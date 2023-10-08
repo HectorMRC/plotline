@@ -1,0 +1,17 @@
+[package]
+    authors     = ["Hèctor Morales <hector.morales.carnice@gmail.com>"]
+    description = "A story line manager"
+    edition     = "2021"
+    license     = "MIT"
+    name        = "ithaca"
+    readme      = "../README.md"
+    repository  = "https://github.com/alvidir/ithaca"
+    version     = "0.1.0"
+
+    # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[lib]
+    name = "ithaca"
+    path = "src/lib.rs"
