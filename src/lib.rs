@@ -3,6 +3,9 @@ use std::sync::Arc;
 /// An Entity is anything which to interact with.
 pub struct Entity {}
 
+/// An Interaction is something that occurs between two or more entities.
+pub struct Interaction(Vec<Arc<Entity>>);
+
 /// A Moment answers the "when", giving the order of time.
 pub struct Moment {
     /// The previous moment immediately before self.
@@ -28,9 +31,14 @@ pub struct Event {
 
 /// An Effect is the way an [Entity] has mutated.
 pub enum Effect {
+    /// The entity becomes a different one (any of its attributes has changed).
     Change(Arc<Entity>),
+    /// The entity becomes two or more new entities.
     Split(Vec<Arc<Entity>>),
+    /// The entity no longer exists.
     Terminal,
+    /// The entity begins to exists.
+    Initial,
 }
 
 /// A Mutation represents the way an [Event] has affected an [Entity].

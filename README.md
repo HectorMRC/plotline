@@ -1,3 +1,3 @@
-# ithaca
+# plotline
 
-A story line manager
+A plotline manager.
