@@ -1,9 +1,9 @@
-use crate::{entity::Entity, moment::Duration};
+use crate::entity::Entity;
 use std::sync::Arc;
 
 /// An Interaction is the relation between time and one or more entities.
 pub struct Interaction {
-    duration: Arc<Duration>,
+    // duration: Arc<Duration<'a>>,
     entities: Vec<Arc<Entity>>,
 }
 
