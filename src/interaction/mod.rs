@@ -1,14 +1,14 @@
-use crate::entity::Entity;
+use crate::{entity::Entity, timeline::Duration};
 use std::sync::Arc;
 
 /// An Interaction is the relation between time and one or more entities.
 pub struct Interaction {
-    // duration: Arc<Duration<'a>>,
+    duration: Arc<Duration>,
     entities: Vec<Arc<Entity>>,
 }
 
-/// An Effect is the way an [Entity] has changed.
-pub enum Effect {
+/// InteractionEffect represents all the possible ways an [Interaction] may affect.
+pub enum InteractionEffect {
     /// The entity becomes a different one (any of its attributes has changed).
     Change(Arc<Entity>),
     /// The entity becomes two or more new entities.
@@ -19,12 +19,12 @@ pub enum Effect {
     Initial,
 }
 
-/// An Outcome is the [Effect] of an [Interaction] on an [Entity].
-pub struct Outcome {
+/// An InteractionResult is the way an [Entity] has been affected by an [Interaction].
+pub struct InteractionResult {
     /// The Entity involved in the causing interaction.
-    subject: Arc<Entity>,
+    entity: Arc<Entity>,
     /// The Interaction causing the Effect.
     cause: Arc<Interaction>,
     /// The effect of the mutation itself.
-    effect: Effect,
+    effect: InteractionEffect,
 }
