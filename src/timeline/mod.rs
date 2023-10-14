@@ -1,5 +1,3 @@
-pub mod error;
-
 use std::sync::Arc;
 
 /// A Timeline represents an ordered chain of [Moment]s.
@@ -23,9 +21,7 @@ impl Timeline {
 
 /// A Moment answers the "when", giving the order of time.
 #[derive(Default)]
-pub struct Moment {
-    
-}
+pub struct Moment {}
 
 impl PartialEq for Moment {
     /// A Moment equals no other moment but itself.
