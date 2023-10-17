@@ -1,19 +1,22 @@
 use super::service::{EntityRepository, EntityService};
 use clap::{Args, Subcommand};
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 struct EntityCreateArgs {
     /// The name of the entity to be created.
     name: String,
+    /// The tags to be added to the entity.
+    #[arg(short, long)]
+    tags: Vec<String>,
 }
 
-#[derive(Debug, Args)]
+#[derive(Args)]
 struct EntityRemoveArgs {
     /// The name of all the entities to be removed.
     names: Vec<String>,
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Subcommand)]
 enum EntitySubCommand {
     /// Create a new entity
     Create(EntityCreateArgs),
@@ -36,7 +39,7 @@ where
     pub fn run(&self, entity_cmd: EntityCommand) {
         match entity_cmd.command {
             EntitySubCommand::Create(args) => {
-                let entity = self.create(args.name).execute();
+                let entity = self.create(args.name).with_tags(args.tags).execute();
             }
             EntitySubCommand::Remove(args) => {
                 let entities = self.remove(args.names).execute();

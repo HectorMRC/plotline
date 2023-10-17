@@ -23,6 +23,7 @@ where
         CreateEntity {
             entity_repo: self.entity_repo.clone(),
             name,
+            tags: Default::default(),
         }
     }
 
