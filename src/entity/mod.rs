@@ -10,6 +10,7 @@ use regex::Regex;
 
 use crate::tag::Tag;
 use serde::{Deserialize, Deserializer, Serializer};
+use std::fmt::Display;
 use std::hash::Hash;
 use std::str::FromStr;
 use uuid::Uuid;
@@ -18,7 +19,7 @@ static LINEBREAK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\r\n|\r|\n)").u
 
 /// Represents the universal unique id of an [Entity].
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Serialize, Deserialize)]
-pub struct EntityId(
+pub struct EntityID(
     #[serde(
         serialize_with = "uuid_as_string",
         deserialize_with = "uuid_from_string"
@@ -45,15 +46,21 @@ where
         .map_err(Error::custom)
 }
 
-impl FromStr for EntityId {
-    type Err = uuid::Error;
-
-    fn from_str(uuid: &str) -> std::result::Result<Self, Self::Err> {
-        Uuid::from_str(uuid).map(Self)
+impl Display for EntityID {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
-impl Default for EntityId {
+impl TryFrom<String> for EntityID {
+    type Error = uuid::Error;
+
+    fn try_from(value: String) -> std::result::Result<Self, Self::Error> {
+        Uuid::from_str(&value).map(Self)
+    }
+}
+
+impl Default for EntityID {
     fn default() -> Self {
         Self(uuid::Uuid::new_v4())
     }
@@ -85,7 +92,7 @@ impl TryFrom<String> for EntityName {
 /// An Entity is anything which to interact with.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Entity {
-    id: EntityId,
+    id: EntityID,
     name: EntityName,
     tags: Vec<Tag>,
 }
@@ -104,9 +111,9 @@ impl PartialEq for Entity {
 }
 
 impl Entity {
-    pub fn new(name: EntityName) -> Self {
+    pub fn new(id: EntityID, name: EntityName) -> Self {
         Self {
-            id: EntityId::default(),
+            id,
             name,
             tags: Default::default(),
         }
@@ -115,6 +122,8 @@ impl Entity {
 
 #[cfg(test)]
 mod tests {
+    use crate::entity::EntityID;
+
     use super::{EntityName, Error};
 
     #[test]
@@ -162,5 +171,14 @@ mod tests {
                 Err(err) => assert!(matches!(err, Error::NotAnEntityName), "{}", test.name),
             }
         });
+    }
+
+    #[test]
+    fn entity_id_serde() {
+        let want = EntityID::default();
+        let json = serde_yaml::to_string(&want).unwrap();
+        let got: EntityID = serde_yaml::from_str(&json).unwrap();
+
+        assert_eq!(got, want, "serde ends up with different values");
     }
 }

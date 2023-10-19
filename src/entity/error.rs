@@ -14,4 +14,6 @@ pub enum Error {
     AlreadyExists,
     #[error("{0}")]
     Tag(#[from] crate::tag::Error),
+    #[error("{0}")]
+    Uuid(#[from] uuid::Error),
 }

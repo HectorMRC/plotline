@@ -1,8 +1,16 @@
-use clap::{Parser, Subcommand};
-use plotline::entity::{
-    cli::EntityCommand, repository::InMemoryEntityRepository, service::EntityService,
+use clap::{
+    error::{ContextKind, ContextValue, ErrorKind},
+    Parser, Subcommand,
 };
-use std::{ffi::OsString, sync::Arc};
+use plotline::{
+    entity::{cli::EntityCommand, service::EntityService},
+    snapshot::Snapshot,
+};
+use std::{
+    ffi::OsString,
+    fs::File,
+    io::{BufReader, BufWriter, Write},
+};
 
 const DEFAULT_PLOTFILE: &str = "~/.plotline/plotfile.yaml";
 const ENV_PLOTFILE: &str = "PLOTFILE";
@@ -32,12 +40,32 @@ enum CliCommand {
 }
 
 fn main() {
-    let entity_repo = Arc::new(InMemoryEntityRepository::default());
-    let entity_srv = EntityService { entity_repo };
-
     let args = Cli::parse();
 
-    let command_result = match args.command {
-        CliCommand::Entity(command) => entity_srv.run(command),
+    let f = File::open(args.file).unwrap();
+    let snapshot = Snapshot::parse(|| {
+        let reader = BufReader::new(&f);
+        serde_yaml::from_reader(reader).unwrap()
+    });
+
+    let entity_srv = EntityService {
+        entity_repo: snapshot.entities.clone(),
     };
+
+    let command_result = match args.command {
+        CliCommand::Entity(command) => entity_srv.execute(command),
+    };
+
+    if let Err(error) = command_result {
+        let mut stderr = clap::Error::new(ErrorKind::Io);
+        stderr.insert(ContextKind::Custom, ContextValue::String(error.to_string()));
+        stderr.exit();
+    }
+
+    let mut writer = BufWriter::new(f);
+    writer
+        .write_all(serde_yaml::to_string(&snapshot).unwrap().as_bytes())
+        .unwrap();
+
+    writer.flush().unwrap();
 }
