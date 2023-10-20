@@ -5,10 +5,10 @@ pub mod service;
 
 mod error;
 pub use error::*;
-use once_cell::sync::Lazy;
-use regex::Regex;
 
 use crate::tag::Tag;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use serde::{Deserialize, Deserializer, Serializer};
 use std::fmt::Display;
 use std::hash::Hash;

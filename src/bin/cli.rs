@@ -39,33 +39,39 @@ enum CliCommand {
     Entity(EntityCommand),
 }
 
+/// Returns the value of the result if, and only if, the result is OK. Otherwise prints the error and exits.
+fn unwrap_or_exit<T, E>(result: Result<T, E>) -> T
+where
+    E: ToString,
+{
+    match result {
+        Ok(value) => value,
+        Err(error) => {
+            let mut cli_error = clap::Error::new(ErrorKind::Io);
+            cli_error.insert(ContextKind::Custom, ContextValue::String(error.to_string()));
+            cli_error.exit();
+        }
+    }
+}
+
 fn main() {
     let args = Cli::parse();
 
-    let f = File::open(args.file).unwrap();
-    let snapshot = Snapshot::parse(|| {
+    let f = File::open(&args.file).unwrap();
+    let snapshot = unwrap_or_exit(Snapshot::parse(|| {
         let reader = BufReader::new(&f);
-        serde_yaml::from_reader(reader).unwrap()
-    });
+        serde_yaml::from_reader(reader)
+    }));
 
     let entity_srv = EntityService {
         entity_repo: snapshot.entities.clone(),
     };
 
-    let command_result = match args.command {
+    unwrap_or_exit(match args.command {
         CliCommand::Entity(command) => entity_srv.execute(command),
-    };
-
-    if let Err(error) = command_result {
-        let mut stderr = clap::Error::new(ErrorKind::Io);
-        stderr.insert(ContextKind::Custom, ContextValue::String(error.to_string()));
-        stderr.exit();
-    }
+    });
 
     let mut writer = BufWriter::new(f);
-    writer
-        .write_all(serde_yaml::to_string(&snapshot).unwrap().as_bytes())
-        .unwrap();
-
-    writer.flush().unwrap();
+    unwrap_or_exit(writer.write_all(serde_yaml::to_string(&snapshot).unwrap().as_bytes()));
+    unwrap_or_exit(writer.flush());
 }
