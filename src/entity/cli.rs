@@ -10,7 +10,7 @@ use std::io::{stdout, Write};
 struct EntityCreateArgs {
     /// The uuid string of the entity.
     #[arg(short, long)]
-    id: String,
+    id: Option<String>,
     /// The name of the entity.
     name: String,
     /// A list of tags to be added to the entity.

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 pub struct CreateEntity<R> {
     entity_repo: Arc<R>,
-    id: String,
+    id: Option<String>,
     name: String,
     tags: Vec<String>,
 }
@@ -17,9 +17,13 @@ where
     R: EntityRepository,
 {
     pub fn execute(self) -> Result<Entity> {
-        let entity_id = self.id.try_into()?;
         let entity_name = self.name.try_into()?;
-        let mut entity = Entity::new(entity_id, entity_name);
+        let mut entity = if let Some(entity_id) = self.id {
+            let entity_id = entity_id.try_into()?;
+            Entity::with_id(entity_id, entity_name)
+        } else {
+            Entity::new(entity_name)
+        };
 
         entity.tags = self
             .tags
@@ -33,7 +37,7 @@ where
 }
 
 impl<R> CreateEntity<R> {
-    pub fn with_id(mut self, id: String) -> Self {
+    pub fn with_id(mut self, id: Option<String>) -> Self {
         self.id = id;
         self
     }

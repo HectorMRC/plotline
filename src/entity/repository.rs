@@ -10,6 +10,7 @@ use std::{
 };
 
 #[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct InMemoryEntityRepository {
     #[serde(
         serialize_with = "into_slice_of_entities",

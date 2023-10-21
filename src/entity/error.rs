@@ -6,8 +6,8 @@ pub enum Error {
     NotAnEntityName,
     #[error("entity already exists")]
     AlreadyExists,
-    #[error("{0}")]
+    #[error("tag: {0}")]
     Tag(#[from] crate::tag::Error),
-    #[error("{0}")]
+    #[error("uuid: {0}")]
     Uuid(#[from] uuid::Error),
 }

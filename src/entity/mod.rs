@@ -111,7 +111,15 @@ impl PartialEq for Entity {
 }
 
 impl Entity {
-    pub fn new(id: EntityID, name: EntityName) -> Self {
+    pub fn new(name: EntityName) -> Self {
+        Self {
+            id: EntityID::default(),
+            name,
+            tags: Default::default(),
+        }
+    }
+
+    pub fn with_id(id: EntityID, name: EntityName) -> Self {
         Self {
             id,
             name,

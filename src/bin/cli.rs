@@ -1,19 +1,24 @@
-use clap::{
-    error::{ContextKind, ContextValue, ErrorKind},
-    Parser, Subcommand,
-};
+use clap::{builder::OsStr, error::ErrorKind, Parser, Subcommand};
+use once_cell::sync::Lazy;
 use plotline::{
     entity::{cli::EntityCommand, service::EntityService},
     snapshot::Snapshot,
 };
 use std::{
     ffi::OsString,
+    fmt::Display,
     fs::File,
     io::{BufReader, BufWriter, Write},
 };
 
-const DEFAULT_PLOTFILE: &str = "~/.plotline/plotfile.yaml";
 const ENV_PLOTFILE: &str = "PLOTFILE";
+
+static DEFAULT_PLOTFILE: Lazy<OsString> = Lazy::new(|| {
+    dirs::home_dir()
+        .unwrap_or_default()
+        .join(".plotline/plotfile.yaml")
+        .into_os_string()
+});
 
 /// A plotline manager.
 #[derive(Parser)]
@@ -25,7 +30,7 @@ struct Cli {
     /// The data source file
     #[arg(
         env = ENV_PLOTFILE,
-        default_value = DEFAULT_PLOTFILE,
+        default_value = &*DEFAULT_PLOTFILE,
         default_missing_value = "always",
         global = true,
         short, long
@@ -33,45 +38,47 @@ struct Cli {
     file: OsString,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, strum_macros::Display)]
 enum CliCommand {
     /// Manage entities
     Entity(EntityCommand),
 }
 
 /// Returns the value of the result if, and only if, the result is OK. Otherwise prints the error and exits.
-fn unwrap_or_exit<T, E>(result: Result<T, E>) -> T
+fn unwrap_or_exit<D, T, E>(msg: D, result: Result<T, E>) -> T
 where
-    E: ToString,
+    D: Display,
+    E: Display,
 {
     match result {
         Ok(value) => value,
-        Err(error) => {
-            let mut cli_error = clap::Error::new(ErrorKind::Io);
-            cli_error.insert(ContextKind::Custom, ContextValue::String(error.to_string()));
-            cli_error.exit();
-        }
+        Err(error) => clap::Error::raw(ErrorKind::Io, format!("{msg}: {error}\n")).exit(),
     }
 }
 
 fn main() {
     let args = Cli::parse();
 
-    let f = File::open(&args.file).unwrap();
-    let snapshot = unwrap_or_exit(Snapshot::parse(|| {
-        let reader = BufReader::new(&f);
-        serde_yaml::from_reader(reader)
-    }));
+    let filepath = format!("{:?}", &args.file);
+    let snapshot = Snapshot::parse(|| {
+        let f = unwrap_or_exit(&filepath, File::open(&args.file));
+        let reader = BufReader::new(f);
+        unwrap_or_exit("yaml reader", serde_yaml::from_reader(reader))
+    });
 
     let entity_srv = EntityService {
         entity_repo: snapshot.entities.clone(),
     };
 
-    unwrap_or_exit(match args.command {
-        CliCommand::Entity(command) => entity_srv.execute(command),
-    });
+    unwrap_or_exit(
+        format!("{}", args.command),
+        match args.command {
+            CliCommand::Entity(command) => entity_srv.execute(command),
+        },
+    );
 
+    let f = unwrap_or_exit(&filepath, File::create(&args.file));
     let mut writer = BufWriter::new(f);
-    unwrap_or_exit(writer.write_all(serde_yaml::to_string(&snapshot).unwrap().as_bytes()));
-    unwrap_or_exit(writer.flush());
+    unwrap_or_exit("yaml writer", serde_yaml::to_writer(&mut writer, &snapshot));
+    unwrap_or_exit("io writer", writer.flush());
 }
