@@ -1,7 +1,7 @@
 use super::{
     error::{Error, Result},
     service::EntityRepository,
-    Entity,
+    Entity, EntityName,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
@@ -20,14 +20,51 @@ pub struct InMemoryEntityRepository {
 }
 
 impl EntityRepository for InMemoryEntityRepository {
+    fn list(&self) -> Result<Vec<Arc<Entity>>> {
+        Ok(self
+            .entities
+            .read()
+            .map_err(|err| Error::Lock(err.to_string()))?
+            .iter()
+            .cloned()
+            .collect())
+    }
+
+    fn find_by_name(&self, name: &EntityName) -> Result<Arc<Entity>> {
+        self.entities
+            .read()
+            .map_err(|err| Error::Lock(err.to_string()))?
+            .iter()
+            .find(|entity| entity.name() == name)
+            .cloned()
+            .ok_or(Error::NotFound)
+    }
+
     fn create(&self, entity: &Entity) -> Result<()> {
-        let mut entities = self.entities.write().unwrap();
+        let mut entities = self
+            .entities
+            .write()
+            .map_err(|err| Error::Lock(err.to_string()))?;
+
         if entities.get(entity).is_some() {
             return Err(Error::AlreadyExists);
         }
 
         entities.insert(Arc::new(entity.clone()));
         Ok(())
+    }
+
+    fn remove(&self, entity: &Entity) -> Result<()> {
+        let mut entities = self
+            .entities
+            .write()
+            .map_err(|err| Error::Lock(err.to_string()))?;
+
+        if entities.remove(entity) {
+            return Ok(());
+        }
+
+        Err(Error::NotFound)
     }
 }
 

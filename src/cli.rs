@@ -1,3 +1,5 @@
+use clap::error::ErrorKind;
+
 pub type CliResult = std::result::Result<(), CliError>;
 
 impl From<CliError> for CliResult {
@@ -18,6 +20,6 @@ pub enum CliError {
 
 impl Into<clap::Error> for CliError {
     fn into(self) -> clap::Error {
-        todo!()
+        clap::Error::raw(ErrorKind::Io, self)
     }
 }

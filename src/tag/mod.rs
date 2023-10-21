@@ -1,4 +1,6 @@
 mod error;
+use std::fmt::Display;
+
 pub use error::*;
 
 /// Contains all the space-like characters that are available to use in tags
@@ -28,6 +30,42 @@ impl TryFrom<String> for Tag {
         }
 
         Ok(Self(value))
+    }
+}
+
+impl Display for Tag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+/// A vector of [Tag]s.
+#[derive(Default, Serialize, Deserialize, Clone)]
+pub struct Tags(Vec<Tag>);
+
+impl TryFrom<Vec<String>> for Tags {
+    type Error = Error;
+
+    fn try_from(value: Vec<String>) -> Result<Self> {
+        Ok(Self(
+            value
+                .into_iter()
+                .map(Tag::try_from)
+                .collect::<Result<Vec<Tag>>>()?,
+        ))
+    }
+}
+
+impl Display for Tags {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let tags_str = self
+            .0
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+
+        write!(f, "{}", tags_str)
     }
 }
 

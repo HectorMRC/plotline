@@ -1,18 +1,18 @@
-use super::service::{EntityRepository, EntityService};
-use crate::cli::{CliError, CliResult};
-use clap::{
-    error::{ContextKind, ContextValue, ErrorKind},
-    Args, Subcommand,
+use super::{
+    entity_format,
+    service::{EntityRepository, EntityService},
 };
+use crate::cli::{CliError, CliResult};
+use clap::{Args, Subcommand};
 use std::io::{stdout, Write};
 
 #[derive(Args)]
 struct EntityCreateArgs {
+    /// The name of the entity.
+    name: String,
     /// The uuid string of the entity.
     #[arg(short, long)]
     id: Option<String>,
-    /// The name of the entity.
-    name: String,
     /// A list of tags to be added to the entity.
     #[arg(short, long)]
     tags: Vec<String>,
@@ -21,6 +21,7 @@ struct EntityCreateArgs {
 #[derive(Args)]
 struct EntityRemoveArgs {
     /// The name of all the entities to be removed.
+    #[arg(short, long)]
     names: Vec<String>,
 }
 
@@ -28,6 +29,8 @@ struct EntityRemoveArgs {
 enum EntitySubCommand {
     /// Create a new entity
     Create(EntityCreateArgs),
+    /// List entities in plotfile
+    List,
     /// Remove one or more entities
     Remove(EntityRemoveArgs),
 }
@@ -41,9 +44,9 @@ pub struct EntityCommand {
 
 impl<R> EntityService<R>
 where
-    R: EntityRepository,
+    R: 'static + EntityRepository + Sync + Send,
 {
-    /// Given an [EntityCommand] parsed by Clap, executes the corresponding logic.
+    /// Given an [EntityCommand] parsed by Clap, executes the corresponding command.
     pub fn execute(&self, entity_cmd: EntityCommand) -> CliResult {
         match entity_cmd.command {
             EntitySubCommand::Create(args) => {
@@ -57,27 +60,41 @@ where
 
                 println!("{}", entity.id);
             }
-            EntitySubCommand::Remove(args) => {
-                let entities = self
-                    .remove()
-                    .with_names(args.names)
-                    .execute()
-                    .map_err(CliError::from)?;
 
-                let mut lock = stdout().lock();
-                let errors_str: Vec<String> = entities
-                    .into_iter()
-                    .filter_map(|entity| writeln!(lock, "{}", entity.id).err())
-                    .map(|err| err.to_string())
-                    .collect();
+            EntitySubCommand::List => {
+                let entities = self.list().execute()?;
 
-                if !errors_str.is_empty() {
-                    let mut stderr = clap::Error::new(ErrorKind::Io);
-                    stderr.insert(ContextKind::Custom, ContextValue::Strings(errors_str));
-                    stderr.print().map_err(CliError::from)?;
-                }
+                let mut stdout = stdout().lock();
+                entity_format!(stdout, "NAME", "UUID", "TAGS").unwrap();
+
+                entities.into_iter().for_each(|entity| {
+                    write!(stdout, "{entity}",).unwrap();
+                })
             }
-        };
+
+            EntitySubCommand::Remove(args) => {
+                args.names
+                    .into_iter()
+                    .map(|name| self.remove_by_name().with_name(name))
+                    .map(|command| std::thread::spawn(move || command.execute()))
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .for_each(|handle| {
+                        let command_result = match handle.join() {
+                            Ok(result) => result,
+                            Err(error) => {
+                                eprintln!("{:?}", error);
+                                return;
+                            }
+                        };
+
+                        match command_result {
+                            Ok(entity) => println!("{}", entity.id),
+                            Err(error) => eprintln!("{error}"),
+                        }
+                    });
+            }
+        }
 
         Ok(())
     }

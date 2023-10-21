@@ -1,4 +1,4 @@
-use clap::{builder::OsStr, error::ErrorKind, Parser, Subcommand};
+use clap::{error::ErrorKind, Parser, Subcommand};
 use once_cell::sync::Lazy;
 use plotline::{
     entity::{cli::EntityCommand, service::EntityService},

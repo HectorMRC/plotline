@@ -1,18 +1,18 @@
 use super::{EntityRepository, EntityService};
 use crate::{
-    entity::{Entity, Error, Result},
-    tag::Tag,
+    entity::{Entity, Result},
+    tag::Tags,
 };
 use std::sync::Arc;
 
-pub struct CreateEntity<R> {
+pub struct EntityCreate<R> {
     entity_repo: Arc<R>,
     id: Option<String>,
     name: String,
     tags: Vec<String>,
 }
 
-impl<R> CreateEntity<R>
+impl<R> EntityCreate<R>
 where
     R: EntityRepository,
 {
@@ -25,18 +25,14 @@ where
             Entity::new(entity_name)
         };
 
-        entity.tags = self
-            .tags
-            .into_iter()
-            .map(|s| Tag::try_from(s).map_err(Error::from))
-            .collect::<Result<Vec<Tag>>>()?;
+        entity.tags = Tags::try_from(self.tags)?;
 
         self.entity_repo.create(&entity)?;
         Ok(entity)
     }
 }
 
-impl<R> CreateEntity<R> {
+impl<R> EntityCreate<R> {
     pub fn with_id(mut self, id: Option<String>) -> Self {
         self.id = id;
         self
@@ -57,8 +53,8 @@ impl<R> EntityService<R>
 where
     R: EntityRepository,
 {
-    pub fn create(&self) -> CreateEntity<R> {
-        CreateEntity {
+    pub fn create(&self) -> EntityCreate<R> {
+        EntityCreate {
             entity_repo: self.entity_repo.clone(),
             id: Default::default(),
             name: Default::default(),
