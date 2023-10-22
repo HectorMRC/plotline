@@ -7,9 +7,9 @@ macro_rules! row_format {
     };
 }
 
-/// Displays a single row with the information of the [Entity].
+/// Displays the [Entity] in a single line.
 pub struct Row;
-/// Displays every field of the [Entity] in its own row.
+/// Displays the [Entity] in different lines.
 pub struct Column;
 
 /// Implements diffent strategies of [Display] for [Entity].
@@ -39,11 +39,12 @@ impl<'a> Display for EntityFmt<'a, Column> {
 }
 
 impl<'a> EntityFmt<'a, Row> {
-    /// Returns a string containing the headers.
+    /// Returns the string of headers corresponding to the row-like display.
     pub fn headers() -> String {
         format!(row_format!(), "NAME", "UUID", "TAGS")
     }
 
+    /// Returns an instance of [EntityFmt] that displays the given entity in a single line.
     pub fn row(entity: &'a Entity) -> Self {
         EntityFmt {
             style: PhantomData,
@@ -53,6 +54,7 @@ impl<'a> EntityFmt<'a, Row> {
 }
 
 impl<'a> EntityFmt<'a, Column> {
+    /// Returns an instance of [EntityFmt] that displays the given entity in different lines.
     pub fn column(entity: &'a Entity) -> Self {
         EntityFmt {
             style: PhantomData,
