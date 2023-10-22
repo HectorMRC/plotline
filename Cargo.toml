@@ -28,8 +28,9 @@
     uuid = {version = "1.4.1", features = ["v4"]}
 
 [features]
-    cli     = ["clap", "dirs"]
+    cli     = ["clap", "dirs", "fmt"]
     default = ["cli"]
+    fmt     = []
 
 [lib]
     name = "plotline"

@@ -1,5 +1,7 @@
 #[cfg(feature = "cli")]
 pub mod cli;
+#[cfg(feature = "fmt")]
+pub mod fmt;
 pub mod repository;
 pub mod service;
 
@@ -14,15 +16,6 @@ use std::fmt::Display;
 use std::hash::Hash;
 use std::str::FromStr;
 use uuid::Uuid;
-
-/// Writes the given args into the writer using an entity's specific format.
-macro_rules! entity_format {
-    ($f:ident, $($args:expr),*) => {
-        writeln!($f, "{: <15} {: <40} {: <20}", $($args,)*)
-    };
-}
-
-use entity_format;
 
 /// Matches any combination of line-break characters.
 static LINEBREAK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\r\n|\r|\n)").unwrap());
@@ -116,17 +109,6 @@ pub struct Entity {
 impl Hash for Entity {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);
-    }
-}
-
-impl Display for Entity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        entity_format!(
-            f,
-            self.name.to_string(),
-            self.id.to_string(),
-            self.tags.to_string()
-        )
     }
 }
 

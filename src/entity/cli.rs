@@ -1,10 +1,10 @@
 use super::{
-    entity_format,
+    fmt::EntityFmt,
     service::{EntityRepository, EntityService},
 };
 use crate::cli::{CliError, CliResult};
 use clap::{Args, Subcommand};
-use std::io::{stdout, Write};
+use std::io::{stderr, stdout, Write};
 
 #[derive(Args)]
 struct EntityCreateArgs {
@@ -30,8 +30,10 @@ enum EntitySubCommand {
     /// Create a new entity
     Create(EntityCreateArgs),
     /// List entities in plotfile
+    #[command(alias("ls"))]
     List,
     /// Remove one or more entities
+    #[command(alias("rm"))]
     Remove(EntityRemoveArgs),
 }
 
@@ -65,14 +67,17 @@ where
                 let entities = self.list().execute()?;
 
                 let mut stdout = stdout().lock();
-                entity_format!(stdout, "NAME", "UUID", "TAGS").unwrap();
+                writeln!(stdout, "{}", EntityFmt::headers()).unwrap();
 
                 entities.into_iter().for_each(|entity| {
-                    write!(stdout, "{entity}",).unwrap();
+                    write!(stdout, "{}", EntityFmt::row(&entity)).unwrap();
                 })
             }
 
             EntitySubCommand::Remove(args) => {
+                let mut stdout = stdout().lock();
+                let mut stderr = stderr().lock();
+
                 args.names
                     .into_iter()
                     .map(|name| self.remove_by_name().with_name(name))
@@ -83,14 +88,14 @@ where
                         let command_result = match handle.join() {
                             Ok(result) => result,
                             Err(error) => {
-                                eprintln!("{:?}", error);
+                                writeln!(stderr, "{:?}", error).unwrap();
                                 return;
                             }
                         };
 
                         match command_result {
-                            Ok(entity) => println!("{}", entity.id),
-                            Err(error) => eprintln!("{error}"),
+                            Ok(entity) => writeln!(stdout, "{}", entity.id).unwrap(),
+                            Err(error) => writeln!(stderr, "{error}").unwrap(),
                         }
                     });
             }
