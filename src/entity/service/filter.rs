@@ -2,22 +2,21 @@ use super::{EntityFilter, EntityRepository, EntityService};
 use crate::entity::{error::Result, Entity};
 use std::sync::Arc;
 
-pub struct RemoveEntity<R> {
-    entity_repo: Arc<R>,
+pub struct FilterEntities<R> {
+    _entity_repo: Arc<R>,
     filter: EntityFilter,
 }
 
-impl<R> RemoveEntity<R>
+impl<R> FilterEntities<R>
 where
     R: EntityRepository,
 {
-    pub fn execute(self) -> Result<Arc<Entity>> {
-        let entity = self.entity_repo.find(&self.filter)?;
-        self.entity_repo.remove(entity.as_ref()).map(|_| entity)
+    pub fn execute(self) -> Result<Vec<Arc<Entity>>> {
+        todo!()
     }
 }
 
-impl<R> RemoveEntity<R> {
+impl<R> FilterEntities<R> {
     pub fn with_filter(mut self, filter: EntityFilter) -> Self {
         self.filter = filter;
         self
@@ -25,9 +24,9 @@ impl<R> RemoveEntity<R> {
 }
 
 impl<R> EntityService<R> {
-    pub fn remove(&self) -> RemoveEntity<R> {
-        RemoveEntity {
-            entity_repo: self.entity_repo.clone(),
+    pub fn filter(&self) -> FilterEntities<R> {
+        FilterEntities {
+            _entity_repo: self.entity_repo.clone(),
             filter: Default::default(),
         }
     }

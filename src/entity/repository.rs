@@ -1,7 +1,7 @@
 use super::{
     error::{Error, Result},
-    service::EntityRepository,
-    Entity, EntityName,
+    service::{EntityFilter, EntityRepository},
+    Entity,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
@@ -20,24 +20,25 @@ pub struct InMemoryEntityRepository {
 }
 
 impl EntityRepository for InMemoryEntityRepository {
-    fn list(&self) -> Result<Vec<Arc<Entity>>> {
+    fn find(&self, filter: &EntityFilter) -> Result<Arc<Entity>> {
+        self.entities
+            .read()
+            .map_err(|err| Error::Lock(err.to_string()))?
+            .iter()
+            .find(|entity| filter.filter(entity))
+            .cloned()
+            .ok_or(Error::NotFound)
+    }
+
+    fn filter(&self, filter: &EntityFilter) -> Result<Vec<Arc<Entity>>> {
         Ok(self
             .entities
             .read()
             .map_err(|err| Error::Lock(err.to_string()))?
             .iter()
+            .filter(|entity| filter.filter(entity))
             .cloned()
             .collect())
-    }
-
-    fn find_by_name(&self, name: &EntityName) -> Result<Arc<Entity>> {
-        self.entities
-            .read()
-            .map_err(|err| Error::Lock(err.to_string()))?
-            .iter()
-            .find(|entity| entity.name() == name)
-            .cloned()
-            .ok_or(Error::NotFound)
     }
 
     fn create(&self, entity: &Entity) -> Result<()> {

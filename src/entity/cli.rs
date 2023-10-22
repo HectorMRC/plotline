@@ -1,6 +1,6 @@
 use super::{
     fmt::EntityFmt,
-    service::{EntityRepository, EntityService},
+    service::{EntityFilter, EntityRepository, EntityService},
 };
 use crate::cli::{CliError, CliResult};
 use clap::{Args, Subcommand};
@@ -23,6 +23,19 @@ struct EntityRemoveArgs {
     /// The name of all the entities to be removed.
     #[arg(short, long)]
     names: Vec<String>,
+    /// The uuid of all the entities to be removed.
+    #[arg(short, long)]
+    ids: Vec<String>,
+}
+
+#[derive(Args)]
+struct EntityFindArgs {
+    /// The name of the entity.
+    #[arg(conflicts_with = "id")]
+    name: Option<String>,
+    /// The uuid string of the entity.
+    #[arg(short, long, conflicts_with = "name")]
+    id: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -35,6 +48,8 @@ enum EntitySubCommand {
     /// Remove one or more entities
     #[command(alias("rm"))]
     Remove(EntityRemoveArgs),
+    /// Displays the information of the entity.
+    Find(EntityFindArgs),
 }
 
 #[derive(Args)]
@@ -53,10 +68,9 @@ where
         match entity_cmd.command {
             EntitySubCommand::Create(args) => {
                 let entity = self
-                    .create()
-                    .with_id(args.id)
-                    .with_name(args.name)
-                    .with_tags(args.tags)
+                    .create(args.name.try_into()?)
+                    .with_id(args.id.map(TryInto::try_into).transpose()?)
+                    .with_tags(args.tags.try_into()?)
                     .execute()
                     .map_err(CliError::from)?;
 
@@ -64,7 +78,8 @@ where
             }
 
             EntitySubCommand::List => {
-                let entities = self.list().execute()?;
+                let filter = EntityFilter::default();
+                let entities = self.filter().with_filter(filter).execute()?;
 
                 let mut stdout = stdout().lock();
                 writeln!(stdout, "{}", EntityFmt::headers()).unwrap();
@@ -74,30 +89,54 @@ where
                 })
             }
 
+            EntitySubCommand::Find(args) => {
+                let filter = EntityFilter::default()
+                    .with_name(args.name.map(TryInto::try_into).transpose()?)
+                    .with_id(args.id.map(TryInto::try_into).transpose()?);
+
+                let entity = self.find().with_filter(filter).execute()?;
+                print!("{}", EntityFmt::column(&entity));
+            }
+
             EntitySubCommand::Remove(args) => {
+                let mut handles: Vec<_> = Vec::with_capacity(args.ids.len() + args.names.len());
+                args.names
+                    .into_iter()
+                    .map(|name| (name, self.remove()))
+                    .for_each(|(name, command)| {
+                        handles.push(std::thread::spawn(|| {
+                            let filter = EntityFilter::default().with_name(Some(name.try_into()?));
+                            command.with_filter(filter).execute()
+                        }));
+                    });
+
+                args.ids
+                    .into_iter()
+                    .map(|id| (id, self.remove()))
+                    .for_each(|(id, command)| {
+                        handles.push(std::thread::spawn(|| {
+                            let filter = EntityFilter::default().with_id(Some(id.try_into()?));
+                            command.with_filter(filter).execute()
+                        }));
+                    });
+
                 let mut stdout = stdout().lock();
                 let mut stderr = stderr().lock();
 
-                args.names
-                    .into_iter()
-                    .map(|name| self.remove_by_name().with_name(name))
-                    .map(|command| std::thread::spawn(move || command.execute()))
-                    .collect::<Vec<_>>()
-                    .into_iter()
-                    .for_each(|handle| {
-                        let command_result = match handle.join() {
-                            Ok(result) => result,
-                            Err(error) => {
-                                writeln!(stderr, "{:?}", error).unwrap();
-                                return;
-                            }
-                        };
-
-                        match command_result {
-                            Ok(entity) => writeln!(stdout, "{}", entity.id).unwrap(),
-                            Err(error) => writeln!(stderr, "{error}").unwrap(),
+                handles.into_iter().for_each(|handle| {
+                    let command_result = match handle.join() {
+                        Ok(result) => result,
+                        Err(error) => {
+                            writeln!(stderr, "{:?}", error).unwrap();
+                            return;
                         }
-                    });
+                    };
+
+                    match command_result {
+                        Ok(entity) => writeln!(stdout, "{}", entity.id).unwrap(),
+                        Err(error) => writeln!(stderr, "{error}").unwrap(),
+                    }
+                });
             }
         }
 
