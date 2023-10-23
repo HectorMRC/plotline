@@ -1,24 +1,30 @@
-use std::sync::Arc;
-
+use std::{sync::Arc, marker::PhantomData};
 use super::{EntityRepository, EntityService};
 use crate::{
-    entity::{Entity, EntityID, Result},
+    entity::{Entity, EntityID, Result, EntityName, error::Error},
     tag::Tags,
 };
 
-pub struct CreateEntity<R> {
+pub struct Uncomplete;
+pub struct Complete;
+
+pub struct CreateEntity<R, S = Uncomplete> {
     entity_repo: Arc<R>,
-    name: String,
+    state: PhantomData<S>,
+    name: Option<EntityName>,
     id: Option<EntityID>,
     tags: Tags,
 }
 
-impl<R> CreateEntity<R>
+impl<R> CreateEntity<R, Complete>
 where
     R: EntityRepository,
 {
     pub fn execute(self) -> Result<Entity> {
-        let entity_name = self.name.try_into()?;
+        let Some(entity_name) = self.name else {
+            return Err(Error::NotAnEntityName);
+        };
+
         let mut entity = if let Some(entity_id) = self.id {
             Entity::with_id(entity_id, entity_name)
         } else {
@@ -32,10 +38,15 @@ where
     }
 }
 
-impl<R> CreateEntity<R> {
-    pub fn with_name(mut self, name: String) -> Self {
-        self.name = name;
-        self
+impl<R, S> CreateEntity<R, S> {
+    pub fn with_name(self, name: EntityName) -> CreateEntity<R, Complete> {
+        CreateEntity {
+            entity_repo: self.entity_repo,
+            state: PhantomData,
+            name: Some(name),
+            id: self.id,
+            tags: self.tags,
+        }
     }
 
     pub fn with_id(mut self, id: Option<EntityID>) -> Self {
@@ -56,6 +67,7 @@ where
     pub fn create(&self) -> CreateEntity<R> {
         CreateEntity {
             entity_repo: self.entity_repo.clone(),
+            state: PhantomData,
             name: Default::default(),
             id: Default::default(),
             tags: Default::default(),

@@ -67,7 +67,12 @@ where
     pub fn execute(&self, entity_cmd: EntityCommand) -> CliResult {
         match entity_cmd.command {
             EntitySubCommand::Create(args) => {
-                let entity = self.create().with_name(args.name).execute()?;
+                let entity = self
+                    .create()
+                    .with_name(args.name.try_into()?)
+                    .with_id(args.id.map(TryInto::try_into).transpose()?)
+                    .execute()?;
+
                 println!("{}", entity.id);
             }
 
@@ -99,8 +104,7 @@ where
                         scope.spawn(move || {
                             sender.send(
                                 id.try_into()
-                                    .map(|id| self.remove(id))
-                                    .and_then(|command| command.execute()),
+                                    .and_then(|id| self.remove().with_id(id).execute()),
                             )
                         });
                     });
