@@ -1,7 +1,8 @@
 use super::{EntityFilter, EntityRepository, EntityService};
-use crate::entity::{error::Result, Entity};
+use crate::entity::{error::Result, Entity, Error};
 use std::sync::Arc;
 
+#[derive(Default)]
 pub struct FindEntity<R> {
     entity_repo: Arc<R>,
     filter: EntityFilter,
@@ -12,7 +13,12 @@ where
     R: EntityRepository,
 {
     pub fn execute(self) -> Result<Arc<Entity>> {
-        self.entity_repo.find(&self.filter)
+        let entities = self.entity_repo.filter(&self.filter)?;
+        if entities.len() > 1 {
+            return Err(Error::NotFound);
+        }
+
+        Ok(entities[0].clone())
     }
 }
 
@@ -23,7 +29,10 @@ impl<R> FindEntity<R> {
     }
 }
 
-impl<R> EntityService<R> {
+impl<R> EntityService<R>
+where
+    R: EntityRepository,
+{
     pub fn find(&self) -> FindEntity<R> {
         FindEntity {
             entity_repo: self.entity_repo.clone(),

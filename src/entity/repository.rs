@@ -1,11 +1,11 @@
 use super::{
     error::{Error, Result},
     service::{EntityFilter, EntityRepository},
-    Entity,
+    Entity, EntityID,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
-    collections::HashSet,
+    collections::HashMap,
     sync::{Arc, RwLock},
 };
 
@@ -16,16 +16,15 @@ pub struct InMemoryEntityRepository {
         serialize_with = "into_slice_of_entities",
         deserialize_with = "from_slice_of_entities"
     )]
-    entities: RwLock<HashSet<Arc<Entity>>>,
+    entities: RwLock<HashMap<EntityID, Arc<Entity>>>,
 }
 
 impl EntityRepository for InMemoryEntityRepository {
-    fn find(&self, filter: &EntityFilter) -> Result<Arc<Entity>> {
+    fn find(&self, id: &EntityID) -> Result<Arc<Entity>> {
         self.entities
             .read()
             .map_err(|err| Error::Lock(err.to_string()))?
-            .iter()
-            .find(|entity| filter.filter(entity))
+            .get(id)
             .cloned()
             .ok_or(Error::NotFound)
     }
@@ -35,7 +34,7 @@ impl EntityRepository for InMemoryEntityRepository {
             .entities
             .read()
             .map_err(|err| Error::Lock(err.to_string()))?
-            .iter()
+            .values()
             .filter(|entity| filter.filter(entity))
             .cloned()
             .collect())
@@ -47,11 +46,11 @@ impl EntityRepository for InMemoryEntityRepository {
             .write()
             .map_err(|err| Error::Lock(err.to_string()))?;
 
-        if entities.get(entity).is_some() {
+        if entities.get(&entity.id).is_some() {
             return Err(Error::AlreadyExists);
         }
 
-        entities.insert(Arc::new(entity.clone()));
+        entities.insert(entity.id, Arc::new(entity.clone()));
         Ok(())
     }
 
@@ -61,16 +60,16 @@ impl EntityRepository for InMemoryEntityRepository {
             .write()
             .map_err(|err| Error::Lock(err.to_string()))?;
 
-        if entities.remove(entity) {
-            return Ok(());
+        if entities.remove(&entity.id).is_none() {
+            return Err(Error::NotFound);
         }
 
-        Err(Error::NotFound)
+        Ok(())
     }
 }
 
 fn into_slice_of_entities<S>(
-    entities: &RwLock<HashSet<Arc<Entity>>>,
+    entities: &RwLock<HashMap<EntityID, Arc<Entity>>>,
     serializer: S,
 ) -> std::result::Result<S::Ok, S::Error>
 where
@@ -83,18 +82,18 @@ where
         .map_err(|err| err.to_string())
         .map_err(Error::custom)?;
 
-    serializer.collect_seq(entities.iter().map(AsRef::as_ref))
+    serializer.collect_seq(entities.values().map(AsRef::as_ref))
 }
 
 fn from_slice_of_entities<'de, D>(
     deserializer: D,
-) -> std::result::Result<RwLock<HashSet<Arc<Entity>>>, D::Error>
+) -> std::result::Result<RwLock<HashMap<EntityID, Arc<Entity>>>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    Ok(RwLock::new(HashSet::from_iter(
+    Ok(RwLock::new(HashMap::from_iter(
         Vec::<Entity>::deserialize(deserializer)?
             .into_iter()
-            .map(|entity| Arc::new(entity)),
+            .map(|entity| (entity.id, Arc::new(entity))),
     )))
 }

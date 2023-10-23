@@ -1,9 +1,46 @@
-use super::{EntityFilter, EntityRepository, EntityService};
-use crate::entity::{error::Result, Entity};
+use super::{EntityRepository, EntityService};
+use crate::entity::{error::Result, Entity, EntityID, EntityName};
 use std::sync::Arc;
 
+macro_rules! equals_or_return {
+    ($option:expr, $subject:expr) => {
+        if $option
+            .as_ref()
+            .map(|want| want != $subject)
+            .unwrap_or_default()
+        {
+            return false;
+        }
+    };
+}
+
+#[derive(Default)]
+pub struct EntityFilter {
+    name: Option<EntityName>,
+    id: Option<EntityID>,
+}
+
+impl EntityFilter {
+    pub fn with_id(mut self, id: Option<EntityID>) -> Self {
+        self.id = id;
+        self
+    }
+
+    pub fn with_name(mut self, name: Option<EntityName>) -> Self {
+        self.name = name;
+        self
+    }
+
+    pub fn filter(&self, entity: &Entity) -> bool {
+        equals_or_return!(self.name, &entity.name);
+        equals_or_return!(self.id, &entity.id);
+        true
+    }
+}
+
+#[derive(Default)]
 pub struct FilterEntities<R> {
-    _entity_repo: Arc<R>,
+    entity_repo: Arc<R>,
     filter: EntityFilter,
 }
 
@@ -12,7 +49,7 @@ where
     R: EntityRepository,
 {
     pub fn execute(self) -> Result<Vec<Arc<Entity>>> {
-        todo!()
+        self.entity_repo.filter(&self.filter)
     }
 }
 
@@ -23,10 +60,13 @@ impl<R> FilterEntities<R> {
     }
 }
 
-impl<R> EntityService<R> {
+impl<R> EntityService<R>
+where
+    R: EntityRepository,
+{
     pub fn filter(&self) -> FilterEntities<R> {
         FilterEntities {
-            _entity_repo: self.entity_repo.clone(),
+            entity_repo: self.entity_repo.clone(),
             filter: Default::default(),
         }
     }

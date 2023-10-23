@@ -2,13 +2,17 @@ use super::{
     fmt::EntityFmt,
     service::{EntityFilter, EntityRepository, EntityService},
 };
-use crate::cli::{CliError, CliResult};
+use crate::cli::CliResult;
 use clap::{Args, Subcommand};
-use std::io::{stderr, stdout, Write};
+use std::{
+    io::{stdout, Write},
+    sync::mpsc,
+};
 
 #[derive(Args)]
 struct EntityCreateArgs {
     /// The name of the entity.
+    #[arg(num_args(1..))]
     name: String,
     /// The uuid string of the entity.
     #[arg(short, long)]
@@ -20,11 +24,7 @@ struct EntityCreateArgs {
 
 #[derive(Args)]
 struct EntityRemoveArgs {
-    /// The name of all the entities to be removed.
-    #[arg(short, long)]
-    names: Vec<String>,
     /// The uuid of all the entities to be removed.
-    #[arg(short, long)]
     ids: Vec<String>,
 }
 
@@ -67,19 +67,12 @@ where
     pub fn execute(&self, entity_cmd: EntityCommand) -> CliResult {
         match entity_cmd.command {
             EntitySubCommand::Create(args) => {
-                let entity = self
-                    .create(args.name.try_into()?)
-                    .with_id(args.id.map(TryInto::try_into).transpose()?)
-                    .with_tags(args.tags.try_into()?)
-                    .execute()
-                    .map_err(CliError::from)?;
-
+                let entity = self.create().with_name(args.name).execute()?;
                 println!("{}", entity.id);
             }
 
             EntitySubCommand::List => {
-                let filter = EntityFilter::default();
-                let entities = self.filter().with_filter(filter).execute()?;
+                let entities = self.filter().execute()?;
 
                 let mut stdout = stdout().lock();
                 writeln!(stdout, "{}", EntityFmt::headers()).unwrap();
@@ -99,44 +92,28 @@ where
             }
 
             EntitySubCommand::Remove(args) => {
-                let mut handles: Vec<_> = Vec::with_capacity(args.ids.len() + args.names.len());
-                args.names
-                    .into_iter()
-                    .map(|name| (name, self.remove()))
-                    .for_each(|(name, command)| {
-                        handles.push(std::thread::spawn(|| {
-                            let filter = EntityFilter::default().with_name(Some(name.try_into()?));
-                            command.with_filter(filter).execute()
-                        }));
+                let receiver = std::thread::scope(|scope| {
+                    let (sender, receiver) = mpsc::channel();
+                    args.ids.into_iter().for_each(|id| {
+                        let sender = sender.clone();
+                        scope.spawn(move || {
+                            sender.send(
+                                id.try_into()
+                                    .map(|id| self.remove(id))
+                                    .and_then(|command| command.execute()),
+                            )
+                        });
                     });
 
-                args.ids
-                    .into_iter()
-                    .map(|id| (id, self.remove()))
-                    .for_each(|(id, command)| {
-                        handles.push(std::thread::spawn(|| {
-                            let filter = EntityFilter::default().with_id(Some(id.try_into()?));
-                            command.with_filter(filter).execute()
-                        }));
-                    });
-
-                let mut stdout = stdout().lock();
-                let mut stderr = stderr().lock();
-
-                handles.into_iter().for_each(|handle| {
-                    let command_result = match handle.join() {
-                        Ok(result) => result,
-                        Err(error) => {
-                            writeln!(stderr, "{:?}", error).unwrap();
-                            return;
-                        }
-                    };
-
-                    match command_result {
-                        Ok(entity) => writeln!(stdout, "{}", entity.id).unwrap(),
-                        Err(error) => writeln!(stderr, "{error}").unwrap(),
-                    }
+                    receiver
                 });
+
+                while let Ok(result) = receiver.recv() {
+                    match result {
+                        Ok(entity) => println!("{}", entity.id),
+                        Err(error) => eprintln!("{error}"),
+                    }
+                }
             }
         }
 

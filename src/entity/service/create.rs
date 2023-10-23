@@ -1,13 +1,14 @@
+use std::sync::Arc;
+
 use super::{EntityRepository, EntityService};
 use crate::{
-    entity::{Entity, EntityID, EntityName, Result},
+    entity::{Entity, EntityID, Result},
     tag::Tags,
 };
-use std::sync::Arc;
 
 pub struct CreateEntity<R> {
     entity_repo: Arc<R>,
-    name: EntityName,
+    name: String,
     id: Option<EntityID>,
     tags: Tags,
 }
@@ -17,10 +18,11 @@ where
     R: EntityRepository,
 {
     pub fn execute(self) -> Result<Entity> {
+        let entity_name = self.name.try_into()?;
         let mut entity = if let Some(entity_id) = self.id {
-            Entity::with_id(entity_id, self.name)
+            Entity::with_id(entity_id, entity_name)
         } else {
-            Entity::new(self.name)
+            Entity::new(entity_name)
         };
 
         entity.tags = self.tags;
@@ -31,6 +33,11 @@ where
 }
 
 impl<R> CreateEntity<R> {
+    pub fn with_name(mut self, name: String) -> Self {
+        self.name = name;
+        self
+    }
+
     pub fn with_id(mut self, id: Option<EntityID>) -> Self {
         self.id = id;
         self
@@ -42,13 +49,16 @@ impl<R> CreateEntity<R> {
     }
 }
 
-impl<R> EntityService<R> {
-    pub fn create(&self, name: EntityName) -> CreateEntity<R> {
+impl<R> EntityService<R>
+where
+    R: EntityRepository,
+{
+    pub fn create(&self) -> CreateEntity<R> {
         CreateEntity {
             entity_repo: self.entity_repo.clone(),
+            name: Default::default(),
             id: Default::default(),
             tags: Default::default(),
-            name,
         }
     }
 }
