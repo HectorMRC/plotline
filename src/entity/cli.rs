@@ -68,8 +68,7 @@ where
         match entity_cmd.command {
             EntitySubCommand::Create(args) => {
                 let entity = self
-                    .create()
-                    .with_name(args.name.try_into()?)
+                    .create(args.name.try_into()?)
                     .with_id(args.id.map(TryInto::try_into).transpose()?)
                     .execute()?;
 

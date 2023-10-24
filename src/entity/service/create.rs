@@ -1,34 +1,26 @@
-use std::{sync::Arc, marker::PhantomData};
 use super::{EntityRepository, EntityService};
 use crate::{
-    entity::{Entity, EntityID, Result, EntityName, error::Error},
+    entity::{error::Error, Entity, EntityID, EntityName, Result},
     tag::Tags,
 };
+use std::{marker::PhantomData, sync::Arc};
 
-pub struct Uncomplete;
-pub struct Complete;
-
-pub struct CreateEntity<R, S = Uncomplete> {
+pub struct CreateEntity<R> {
     entity_repo: Arc<R>,
-    state: PhantomData<S>,
-    name: Option<EntityName>,
+    name: EntityName,
     id: Option<EntityID>,
     tags: Tags,
 }
 
-impl<R> CreateEntity<R, Complete>
+impl<R> CreateEntity<R>
 where
     R: EntityRepository,
 {
     pub fn execute(self) -> Result<Entity> {
-        let Some(entity_name) = self.name else {
-            return Err(Error::NotAnEntityName);
-        };
-
         let mut entity = if let Some(entity_id) = self.id {
-            Entity::with_id(entity_id, entity_name)
+            Entity::with_id(entity_id, self.name)
         } else {
-            Entity::new(entity_name)
+            Entity::new(self.name)
         };
 
         entity.tags = self.tags;
@@ -38,17 +30,7 @@ where
     }
 }
 
-impl<R, S> CreateEntity<R, S> {
-    pub fn with_name(self, name: EntityName) -> CreateEntity<R, Complete> {
-        CreateEntity {
-            entity_repo: self.entity_repo,
-            state: PhantomData,
-            name: Some(name),
-            id: self.id,
-            tags: self.tags,
-        }
-    }
-
+impl<R> CreateEntity<R> {
     pub fn with_id(mut self, id: Option<EntityID>) -> Self {
         self.id = id;
         self
@@ -64,11 +46,10 @@ impl<R> EntityService<R>
 where
     R: EntityRepository,
 {
-    pub fn create(&self) -> CreateEntity<R> {
+    pub fn create(&self, name: EntityName) -> CreateEntity<R> {
         CreateEntity {
             entity_repo: self.entity_repo.clone(),
-            state: PhantomData,
-            name: Default::default(),
+            name,
             id: Default::default(),
             tags: Default::default(),
         }
