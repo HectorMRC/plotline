@@ -1,9 +1,9 @@
 use super::{EntityRepository, EntityService};
 use crate::{
-    entity::{error::Error, Entity, EntityID, EntityName, Result},
+    entity::{Entity, EntityID, EntityName, Result},
     tag::Tags,
 };
-use std::{marker::PhantomData, sync::Arc};
+use std::sync::Arc;
 
 pub struct CreateEntity<R> {
     entity_repo: Arc<R>,

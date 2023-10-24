@@ -28,10 +28,10 @@ impl<R> EntityService<R>
 where
     R: EntityRepository,
 {
-    pub fn remove(&self)-> RemoveEntity<R> {
+    pub fn remove(&self, id: EntityID) -> RemoveEntity<R> {
         RemoveEntity {
             entity_repo: self.entity_repo.clone(),
-            id: Default::default(),
+            id,
         }
     }
 }

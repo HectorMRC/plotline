@@ -101,10 +101,7 @@ where
                     args.ids.into_iter().for_each(|id| {
                         let sender = sender.clone();
                         scope.spawn(move || {
-                            sender.send(
-                                id.try_into()
-                                    .and_then(|id| self.remove().with_id(id).execute()),
-                            )
+                            sender.send(id.try_into().and_then(|id| self.remove(id).execute()))
                         });
                     });
 

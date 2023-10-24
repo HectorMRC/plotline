@@ -21,7 +21,7 @@ use uuid::Uuid;
 static LINEBREAK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\r\n|\r|\n)").unwrap());
 
 /// Represents the universal unique id of an [Entity].
-#[derive(Debug, Default, PartialEq, Eq, Clone, Copy, Hash, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Serialize, Deserialize)]
 pub struct EntityID(
     #[serde(
         serialize_with = "uuid_as_string",
@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn entity_id_serde() {
-        let want = EntityID::default();
+        let want = EntityID::new();
         let json = serde_yaml::to_string(&want).unwrap();
         let got: EntityID = serde_yaml::from_str(&json).unwrap();
 
