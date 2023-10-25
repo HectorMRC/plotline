@@ -7,8 +7,8 @@ use plotline::{
 use std::{
     ffi::OsString,
     fmt::Display,
-    fs::File,
-    io::{BufReader, BufWriter, Write},
+    fs::{File, self},
+    io::{BufReader, BufWriter, Write}, path::Path,
 };
 
 const ENV_PLOTFILE: &str = "PLOTFILE";
@@ -51,25 +51,32 @@ where
     E: Display,
 {
     match result {
-        Ok(value) => value,
         Err(error) => clap::Error::raw(ErrorKind::Io, format!("{msg}: {error}\n")).exit(),
+        Ok(value) => value,
     }
 }
 
 fn main() {
     let args = Cli::parse();
 
-    let filepath = format!("{:?}", &args.file);
-    let snapshot = Snapshot::parse(|| {
-        let f = unwrap_or_exit(&filepath, File::open(&args.file));
-        let reader = BufReader::new(f);
-        unwrap_or_exit("yaml reader", serde_yaml::from_reader(reader))
-    });
+    // Load data from YAML file
+    let filepath = Path::new(&args.file);
+    let snapshot = if filepath.exists() {
+        Snapshot::parse(|| {
+            let f = unwrap_or_exit(filepath.to_string_lossy(), File::open(&filepath));
+            let reader = BufReader::new(f);
+            unwrap_or_exit("yaml reader", serde_yaml::from_reader(reader))
+        })
+    } else {
+        Snapshot::default()
+    };
 
+    // Build dependencies
     let entity_srv = EntityService {
         entity_repo: snapshot.entities.clone(),
     };
 
+    // Execute command 
     unwrap_or_exit(
         format!("{}", args.command),
         match args.command {
@@ -77,7 +84,15 @@ fn main() {
         },
     );
 
-    let f = unwrap_or_exit(&filepath, File::create(&args.file));
+    // Persist data into YAML file
+    if let Some(parent) = filepath.parent() {
+        if !parent.exists() {
+            unwrap_or_exit(parent.to_string_lossy(), fs::create_dir_all(parent));
+        }
+    }
+
+    let f = unwrap_or_exit(filepath.to_string_lossy(), File::create(&filepath));
+    
     let mut writer = BufWriter::new(f);
     unwrap_or_exit("yaml writer", serde_yaml::to_writer(&mut writer, &snapshot));
     unwrap_or_exit("io writer", writer.flush());

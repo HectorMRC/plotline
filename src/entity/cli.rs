@@ -5,7 +5,7 @@ use super::{
 use crate::cli::CliResult;
 use clap::{Args, Subcommand};
 use std::{
-    io::{stdout, Write},
+    io::{stdout, Write, stderr},
     sync::mpsc,
 };
 
@@ -79,11 +79,11 @@ where
                 let entities = self.filter().execute()?;
 
                 let mut stdout = stdout().lock();
-                writeln!(stdout, "{}", EntityFmt::headers()).unwrap();
+                writeln!(stdout, "{}", EntityFmt::headers())?;
 
-                entities.into_iter().for_each(|entity| {
-                    write!(stdout, "{}", EntityFmt::row(&entity)).unwrap();
-                })
+                entities.into_iter().try_for_each(|entity| {
+                    write!(stdout, "{}", EntityFmt::row(&entity))
+                })?
             }
 
             EntitySubCommand::Find(args) => {
@@ -108,10 +108,12 @@ where
                     receiver
                 });
 
+                let mut stdout = stdout().lock();
+                let mut stderr = stderr().lock();
                 while let Ok(result) = receiver.recv() {
                     match result {
-                        Ok(entity) => println!("{}", entity.id),
-                        Err(error) => eprintln!("{error}"),
+                        Ok(entity) => writeln!(stdout, "{}", entity.id)?,
+                        Err(error) => writeln!(stderr, "{error}")?,
                     }
                 }
             }
