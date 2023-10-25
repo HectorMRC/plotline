@@ -63,7 +63,7 @@ fn main() {
     let filepath = Path::new(&args.file);
     let snapshot = if filepath.exists() {
         Snapshot::parse(|| {
-            let f = unwrap_or_exit(filepath.to_string_lossy(), File::open(&filepath));
+            let f = unwrap_or_exit(filepath.to_string_lossy(), File::open(filepath));
             let reader = BufReader::new(f);
             unwrap_or_exit("yaml reader", serde_yaml::from_reader(reader))
         })
@@ -91,7 +91,7 @@ fn main() {
         }
     }
 
-    let f = unwrap_or_exit(filepath.to_string_lossy(), File::create(&filepath));
+    let f = unwrap_or_exit(filepath.to_string_lossy(), File::create(filepath));
     
     let mut writer = BufWriter::new(f);
     unwrap_or_exit("yaml writer", serde_yaml::to_writer(&mut writer, &snapshot));

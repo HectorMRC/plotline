@@ -1,5 +1,3 @@
-use clap::error::ErrorKind;
-
 pub type CliResult = std::result::Result<(), CliError>;
 
 impl From<CliError> for CliResult {
@@ -18,10 +16,4 @@ pub enum CliError {
     Io(#[from] std::io::Error),
     #[error("uuid: {0}")]
     Uuid(#[from] uuid::Error),
-}
-
-impl Into<clap::Error> for CliError {
-    fn into(self) -> clap::Error {
-        clap::Error::raw(ErrorKind::Io, self)
-    }
 }
