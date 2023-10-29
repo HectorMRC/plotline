@@ -10,8 +10,10 @@ pub enum Error {
     NotFound,
     #[error("lock: {0}")]
     Lock(String),
+    #[error("name: {0}")]
+    Name(#[from] crate::name::Error),
     #[error("tag: {0}")]
     Tag(#[from] crate::tag::Error),
-    #[error("uuid: {0}")]
-    Uuid(#[from] uuid::Error),
+    #[error("id: {0}")]
+    Id(#[from] crate::id::Error),
 }

@@ -10,10 +10,12 @@ impl From<CliError> for CliResult {
 pub enum CliError {
     #[error("entity: {0}")]
     Entity(#[from] crate::entity::Error),
+    #[error("name: {0}")]
+    Name(#[from] crate::name::Error),
     #[error("tag: {0}")]
     Tag(#[from] crate::tag::Error),
+    #[error("id: {0}")]
+    Id(#[from] crate::id::Error),
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
-    #[error("uuid: {0}")]
-    Uuid(#[from] uuid::Error),
 }

@@ -11,10 +11,11 @@ mod remove;
 pub use remove::*;
 
 use super::{error::Result, Entity, EntityID};
+use crate::id::ID;
 use std::sync::Arc;
 
 pub trait EntityRepository {
-    fn find(&self, id: &EntityID) -> Result<Arc<Entity>>;
+    fn find(&self, id: &ID<EntityID>) -> Result<Arc<Entity>>;
     fn filter(&self, filter: &EntityFilter) -> Result<Vec<Arc<Entity>>>;
     fn create(&self, entity: &Entity) -> Result<()>;
     fn remove(&self, entity: &Entity) -> Result<()>;

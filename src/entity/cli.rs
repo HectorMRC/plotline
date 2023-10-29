@@ -1,11 +1,12 @@
 use super::{
     fmt::EntityFmt,
     service::{EntityFilter, EntityRepository, EntityService},
+    Error,
 };
 use crate::cli::CliResult;
 use clap::{Args, Subcommand};
 use std::{
-    io::{stdout, Write, stderr},
+    io::{stderr, stdout, Write},
     sync::mpsc,
 };
 
@@ -81,9 +82,9 @@ where
                 let mut stdout = stdout().lock();
                 writeln!(stdout, "{}", EntityFmt::headers())?;
 
-                entities.into_iter().try_for_each(|entity| {
-                    write!(stdout, "{}", EntityFmt::row(&entity))
-                })?
+                entities
+                    .into_iter()
+                    .try_for_each(|entity| write!(stdout, "{}", EntityFmt::row(&entity)))?
             }
 
             EntitySubCommand::Find(args) => {
@@ -101,7 +102,11 @@ where
                     args.ids.into_iter().for_each(|id| {
                         let sender = sender.clone();
                         scope.spawn(move || {
-                            sender.send(id.try_into().and_then(|id| self.remove(id).execute()))
+                            sender.send(
+                                id.try_into()
+                                    .map_err(Error::from)
+                                    .and_then(|id| self.remove(id).execute()),
+                            )
                         });
                     });
 

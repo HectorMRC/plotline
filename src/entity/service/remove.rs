@@ -1,10 +1,13 @@
 use super::{EntityRepository, EntityService};
-use crate::entity::{error::Result, Entity, EntityID};
+use crate::{
+    entity::{error::Result, Entity, EntityID},
+    id::ID,
+};
 use std::sync::Arc;
 
 pub struct RemoveEntity<R> {
     entity_repo: Arc<R>,
-    id: EntityID,
+    id: ID<EntityID>,
 }
 
 impl<R> RemoveEntity<R>
@@ -18,7 +21,7 @@ where
 }
 
 impl<R> RemoveEntity<R> {
-    pub fn with_id(mut self, id: EntityID) -> Self {
+    pub fn with_id(mut self, id: ID<EntityID>) -> Self {
         self.id = id;
         self
     }
@@ -28,7 +31,7 @@ impl<R> EntityService<R>
 where
     R: EntityRepository,
 {
-    pub fn remove(&self, id: EntityID) -> RemoveEntity<R> {
+    pub fn remove(&self, id: ID<EntityID>) -> RemoveEntity<R> {
         RemoveEntity {
             entity_repo: self.entity_repo.clone(),
             id,
