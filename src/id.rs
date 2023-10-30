@@ -10,9 +10,9 @@ pub enum Error {
     Uuid(#[from] uuid::Error),
 }
 
-/// An ID uniquely identifies a resource.
+/// An Id uniquely identifies a resource.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Serialize, Deserialize)]
-pub struct ID<T> {
+pub struct Id<T> {
     #[serde(
         serialize_with = "uuid_as_string",
         deserialize_with = "uuid_from_string"
@@ -42,13 +42,13 @@ where
         .map_err(Error::custom)
 }
 
-impl<T> Display for ID<T> {
+impl<T> Display for Id<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.uuid)
     }
 }
 
-impl<T> TryFrom<String> for ID<T> {
+impl<T> TryFrom<String> for Id<T> {
     type Error = Error;
 
     fn try_from(value: String) -> Result<Self> {
@@ -61,7 +61,7 @@ impl<T> TryFrom<String> for ID<T> {
     }
 }
 
-impl<T> ID<T> {
+impl<T> Id<T> {
     /// Generates a new id.
     pub fn new() -> Self {
         Self {
@@ -73,16 +73,16 @@ impl<T> ID<T> {
 
 #[cfg(test)]
 pub mod tests {
-    use super::ID;
+    use super::Id;
 
     #[test]
     fn id_serde() {
         #[derive(Debug, PartialEq, Eq)]
         struct Any;
 
-        let want = ID::<Any>::new();
+        let want = Id::<Any>::new();
         let yaml = serde_yaml::to_string(&want).unwrap();
-        let got: ID<Any> = serde_yaml::from_str(&yaml).unwrap();
+        let got: Id<Any> = serde_yaml::from_str(&yaml).unwrap();
 
         assert_eq!(got, want, "serde ends up with different values");
     }

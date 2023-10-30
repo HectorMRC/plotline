@@ -1,7 +1,7 @@
-use crate::{entity::EntityID, event::EventID};
+use crate::{entity::EntityId, event::EventId};
 
 /// An Experience is the result of a specific event in an entity.
 pub struct Experience {
-    entity: EntityID,
-    event: EventID,
+    entity: EntityId,
+    event: EventId,
 }

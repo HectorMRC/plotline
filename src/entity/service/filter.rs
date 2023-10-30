@@ -1,6 +1,6 @@
 use super::{EntityRepository, EntityService};
-use crate::entity::{error::Result, Entity, EntityID, EntityName};
-use crate::{id::ID, name::Name};
+use crate::entity::{error::Result, Entity, EntityId, EntityName};
+use crate::{id::Id, name::Name};
 use std::sync::Arc;
 
 macro_rules! equals_or_return {
@@ -18,11 +18,11 @@ macro_rules! equals_or_return {
 #[derive(Default)]
 pub struct EntityFilter {
     name: Option<Name<EntityName>>,
-    id: Option<ID<EntityID>>,
+    id: Option<Id<EntityId>>,
 }
 
 impl EntityFilter {
-    pub fn with_id(mut self, id: Option<ID<EntityID>>) -> Self {
+    pub fn with_id(mut self, id: Option<Id<EntityId>>) -> Self {
         self.id = id;
         self
     }

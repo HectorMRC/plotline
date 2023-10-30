@@ -1,4 +1,4 @@
-use crate::{entity::EntityID, id::ID};
+use crate::{entity::EntityId, id::Id};
 use std::sync::Arc;
 
 /// A Moment answers the "when", giving the order of time.
@@ -13,11 +13,11 @@ pub enum Duration {
     Period(Arc<Period>),
 }
 
-/// EventID determines an instance of [ID] belongs to an [Event].
-pub struct EventID;
+/// EventId determines an instance of [Id] belongs to an [Event].
+pub struct EventId;
 
 /// An Event is a specific happening in which one or more entities are involved.
 pub struct Event {
-    entities: Vec<ID<EntityID>>,
+    entities: Vec<Id<EntityId>>,
     duration: Duration,
 }

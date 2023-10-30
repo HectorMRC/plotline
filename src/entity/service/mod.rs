@@ -10,12 +10,12 @@ pub use find::*;
 mod remove;
 pub use remove::*;
 
-use super::{error::Result, Entity, EntityID};
-use crate::id::ID;
+use super::{error::Result, Entity, EntityId};
+use crate::id::Id;
 use std::sync::Arc;
 
 pub trait EntityRepository {
-    fn find(&self, id: &ID<EntityID>) -> Result<Arc<Entity>>;
+    fn find(&self, id: &Id<EntityId>) -> Result<Arc<Entity>>;
     fn filter(&self, filter: &EntityFilter) -> Result<Vec<Arc<Entity>>>;
     fn create(&self, entity: &Entity) -> Result<()>;
     fn remove(&self, entity: &Entity) -> Result<()>;
