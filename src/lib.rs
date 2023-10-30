@@ -11,4 +11,5 @@ pub mod snapshot;
 pub mod tag;
 
 mod id;
+mod interval;
 mod name;
