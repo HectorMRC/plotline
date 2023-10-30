@@ -13,11 +13,11 @@ use crate::id::ID;
 use crate::name::Name;
 use crate::tag::Tags;
 
-/// An EntityName identifies one or more entities.
+/// EntityName determines an instance of [Name] belongs to an [Entity].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EntityName;
 
-/// An EntityID uniquely identifies an entity;
+/// EntityID determines an instance of [ID] belongs to an [Entity].
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct EntityID;
 

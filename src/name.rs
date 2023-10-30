@@ -13,7 +13,7 @@ pub enum Error {
 /// Matches any combination of line-break characters.
 static LINEBREAK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\r\n|\r|\n)").unwrap());
 
-/// An Name identifies one or more entities.
+/// An Name identifies one or more resources.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Name<T> {
     name: String,
@@ -37,7 +37,7 @@ impl<T> Display for Name<T> {
 impl<T> TryFrom<String> for Name<T> {
     type Error = Error;
 
-    /// An entity name must consist of a non-empty string of alphanumeric characters.
+    /// A name must consist of a non-empty and single line string.
     fn try_from(value: String) -> Result<Self> {
         if value.is_empty() || LINEBREAK_REGEX.is_match(&value) {
             return Err(Error::NotAName);
