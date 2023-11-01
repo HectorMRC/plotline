@@ -1,8 +1,16 @@
-use crate::{entity::EntityId, id::Id};
+use crate::{entity::EntityId, id::Id, name::Name};
+
+/// MomentName determines an instance of [Name] belongs to a [Moment].
+#[derive(Clone)]
+pub struct MomentName;
 
 /// A Moment answers the "when", giving the order of time.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Moment;
+#[derive(Clone)]
+pub struct Moment {
+    name: Name<MomentName>,
+    /// the position of self in a list of consecutive moments.
+    index: usize,
+}
 
 /// A Period is the time being between two different [Moment]s in time. Both included.
 pub struct Period([Moment; 2]);

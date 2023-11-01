@@ -1,7 +1,5 @@
 //! Interval search tree implementation.
 
-use std::{collections::BTreeMap, iter::Sum};
-
 /// An Interval is anything delimited by two bounds.
 pub trait Interval {
     type Bound: Eq + Ord;
@@ -49,7 +47,7 @@ impl<I> Node<I>
 where
     I: Interval,
 {
-    /// Creates a new interval search tree node containing the given interval.
+    /// Creates a new node containing the given interval.
     pub fn new(interval: I) -> Self {
         Self {
             max: interval.hi(),
@@ -59,13 +57,13 @@ where
         }
     }
 
-    /// Inserts the given interval in interval search tree rooted by self.
+    /// Inserts the given interval in the tree rooted by self.
     pub fn with_interval(mut self, interval: I) -> Self {
         self.insert(interval);
         self
     }
 
-    /// Adds the given interval in the interval search tree rooted by self.
+    /// Adds the given interval in the tree rooted by self.
     pub fn insert(&mut self, interval: I) {
         if self.max < interval.hi() {
             self.max = interval.hi();
@@ -86,8 +84,8 @@ where
         }
     }
 
-    /// Returns true if, and only if, there is an interval in the search tree
-    /// that intersects the given one.
+    /// Returns true if, and only if, there is an interval in the tree that intersects the
+    /// given one.
     pub fn intersects(&self, interval: &I) -> bool {
         if self.value.intersects(interval) {
             return true;
@@ -140,6 +138,11 @@ where
         }
 
         immersion(self, interval, &mut f);
+    }
+
+    /// Removes the given interval from the tree rooted by self.
+    pub fn remove(mut self, interval: &I) -> Option<Self> {
+        todo!()
     }
 }
 
