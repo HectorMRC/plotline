@@ -1,16 +1,16 @@
 use crate::{entity::EntityId, id::Id};
-use std::sync::Arc;
 
 /// A Moment answers the "when", giving the order of time.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Moment;
 
 /// A Period is the time being between two different [Moment]s in time. Both included.
-pub struct Period([Arc<Moment>; 2]);
+pub struct Period([Moment; 2]);
 
 /// A Duration is the time during which something takes place.
 pub enum Duration {
-    Moment(Arc<Moment>),
-    Period(Arc<Period>),
+    Moment(Moment),
+    Period(Period),
 }
 
 /// EventId determines an instance of [Id] belongs to an [Event].
