@@ -18,7 +18,7 @@ pub trait EntityRepository {
     fn find(&self, id: &Id<EntityId>) -> Result<Arc<Entity>>;
     fn filter(&self, filter: &EntityFilter) -> Result<Vec<Arc<Entity>>>;
     fn create(&self, entity: &Entity) -> Result<()>;
-    fn remove(&self, entity: &Entity) -> Result<()>;
+    fn delete(&self, entity: &Entity) -> Result<()>;
 }
 
 pub struct EntityService<R> {

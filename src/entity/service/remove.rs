@@ -16,7 +16,7 @@ where
 {
     pub fn execute(self) -> Result<Arc<Entity>> {
         let entity = self.entity_repo.find(&self.id)?;
-        self.entity_repo.remove(&entity).map(|_| entity)
+        self.entity_repo.delete(&entity).map(|_| entity)
     }
 }
 

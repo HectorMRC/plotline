@@ -2,11 +2,11 @@
 pub mod cli;
 #[cfg(feature = "fmt")]
 pub mod fmt;
+#[cfg(feature = "in_memory")]
 pub mod repository;
 pub mod service;
 
 mod error;
-
 pub use error::*;
 
 use crate::id::Id;

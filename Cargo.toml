@@ -1,6 +1,6 @@
 [package]
     authors     = ["Hèctor Morales <hector.morales.carnice@gmail.com>"]
-    description = "A story line manager"
+    description = "A plotline manager"
     edition     = "2021"
     license     = "MIT"
     name        = "plotline"
@@ -28,7 +28,8 @@
     uuid = {version = "1.4.1", features = ["v4"]}
 
 [features]
-    cli     = ["clap", "dirs", "fmt"]
+    cli     = ["clap", "dirs", "fmt", "in_memory"]
+    in_memory = []
     default = ["cli"]
     fmt     = []
 

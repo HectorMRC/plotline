@@ -9,6 +9,7 @@ pub mod experience;
 pub mod profile;
 pub mod snapshot;
 pub mod tag;
+pub mod timeline;
 
 mod id;
 mod interval;

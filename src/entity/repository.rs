@@ -48,7 +48,7 @@ impl EntityRepository for InMemoryEntityRepository {
             .write()
             .map_err(|err| Error::Lock(err.to_string()))?;
 
-        if entities.get(&entity.id).is_some() {
+        if entities.contains_key(&entity.id) {
             return Err(Error::AlreadyExists);
         }
 
@@ -56,7 +56,7 @@ impl EntityRepository for InMemoryEntityRepository {
         Ok(())
     }
 
-    fn remove(&self, entity: &Entity) -> Result<()> {
+    fn delete(&self, entity: &Entity) -> Result<()> {
         let mut entities = self
             .entities
             .write()

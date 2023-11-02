@@ -1,31 +1,43 @@
-use crate::{entity::EntityId, id::Id, name::Name};
+#[cfg(feature = "in_memory")]
+pub mod repository;
+pub mod service;
 
-/// MomentName determines an instance of [Name] belongs to a [Moment].
-#[derive(Clone)]
-pub struct MomentName;
+mod error;
+pub use error::*;
 
-/// A Moment answers the "when", giving the order of time.
-#[derive(Clone)]
-pub struct Moment {
-    name: Name<MomentName>,
-    /// the position of self in a list of consecutive moments.
-    index: usize,
-}
-
-/// A Period is the time being between two different [Moment]s in time. Both included.
-pub struct Period([Moment; 2]);
-
-/// A Duration is the time during which something takes place.
-pub enum Duration {
-    Moment(Moment),
-    Period(Period),
-}
+use crate::{
+    entity::EntityId,
+    id::Id,
+    interval::Interval,
+    name::Name,
+    timeline::{Moment, Period},
+};
 
 /// EventId determines an instance of [Id] belongs to an [Event].
+#[derive(Clone, Copy, Hash, PartialEq, Eq)]
 pub struct EventId;
 
+/// EventName determines an instance of [Name] belongs to an [Event].
+#[derive(Clone)]
+pub struct EventName;
+
 /// An Event is a specific happening in which one or more entities are involved.
+#[derive(Clone)]
 pub struct Event {
+    id: Id<EventId>,
+    name: Name<EventName>,
     entities: Vec<Id<EntityId>>,
-    duration: Duration,
+    period: Period,
+}
+
+impl Interval for Event {
+    type Bound = Moment;
+
+    fn lo(&self) -> Self::Bound {
+        self.period.lo()
+    }
+
+    fn hi(&self) -> Self::Bound {
+        self.period.hi()
+    }
 }

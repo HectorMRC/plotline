@@ -146,6 +146,26 @@ where
     }
 }
 
+/// An IntervalST represents an interval search tree that may be empty.
+#[derive(Default)]
+pub struct IntervaST<I>(Option<Node<I>>)
+where
+    I: Interval;
+
+impl<I> IntervaST<I>
+where
+    I: Interval,
+{
+    /// Inserts the given interval in the tree, becoming the root if there was no node.
+    pub fn insert(&mut self, interval: I) {
+        if let Some(root) = &mut self.0 {
+            root.insert(interval);
+        } else {
+            self.0 = Some(Node::new(interval));
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Interval, Node};
