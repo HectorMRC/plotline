@@ -14,7 +14,7 @@ impl<R> RemoveEntity<R>
 where
     R: EntityRepository,
 {
-    pub fn execute(self) -> Result<Arc<Entity>> {
+    pub fn execute(self) -> Result<Entity> {
         let entity = self.entity_repo.find(&self.id)?;
         self.entity_repo.delete(&entity).map(|_| entity)
     }

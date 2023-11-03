@@ -49,7 +49,7 @@ impl<R> FilterEntities<R>
 where
     R: EntityRepository,
 {
-    pub fn execute(self) -> Result<Vec<Arc<Entity>>> {
+    pub fn execute(self) -> Result<Vec<Entity>> {
         self.entity_repo.filter(&self.filter)
     }
 }

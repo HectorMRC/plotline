@@ -12,7 +12,7 @@ impl<R> FindEntity<R>
 where
     R: EntityRepository,
 {
-    pub fn execute(self) -> Result<Arc<Entity>> {
+    pub fn execute(self) -> Result<Entity> {
         let entities = self.entity_repo.filter(&self.filter)?;
         if entities.len() > 1 {
             return Err(Error::NotFound);

@@ -45,16 +45,57 @@ impl<R> CreateTimeline<R> {
     }
 }
 
+
+pub struct CreateMoment<R> {
+    timeline_repo: Arc<R>,
+    timeline_id: Id<Timeline>,
+    id: Option<Id<Moment>>,
+}
+
+impl<R> CreateMoment<R>
+where
+    R: TimelineRepository,
+{
+    pub fn execute(self) -> Result<Timeline> {
+        let moment = if let Some(moment_id) = self.id {
+            Moment::with_id(moment_id)
+        } else {
+            Moment::new()
+        };
+
+        let mut timeline = self.timeline_repo.find(&self.timeline_id)?;
+        timeline.push_moment(moment)?;
+        
+        self.timeline_repo.save(&timeline)?;
+        Ok(timeline)
+    }
+}
+
+impl<R> CreateMoment<R> {
+    pub fn with_id(mut self, id: Option<Id<Moment>>) -> Self {
+        self.id = id;
+        self
+    }
+}
+
 impl<R> TimelineService<R>
 where
     R: TimelineRepository,
 {
-    pub fn create(&self, name: Name<Timeline>) -> CreateTimeline<R> {
+    pub fn create_timeline(&self, name: Name<Timeline>) -> CreateTimeline<R> {
         CreateTimeline {
             timeline_repo: self.timeline_repo.clone(),
             name,
             id: Default::default(),
             moments: Default::default(),
+        }
+    }
+
+    pub fn create_moment(&self, timeline_id: Id<Timeline>) -> CreateMoment<R> {
+        CreateMoment {
+            timeline_repo: self.timeline_repo.clone(),
+            timeline_id,
+            id: Default::default(),
         }
     }
 }

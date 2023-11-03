@@ -15,8 +15,8 @@ use crate::id::Id;
 use std::sync::Arc;
 
 pub trait EntityRepository {
-    fn find(&self, id: &Id<Entity>) -> Result<Arc<Entity>>;
-    fn filter(&self, filter: &EntityFilter) -> Result<Vec<Arc<Entity>>>;
+    fn find(&self, id: &Id<Entity>) -> Result<Entity>;
+    fn filter(&self, filter: &EntityFilter) -> Result<Vec<Entity>>;
     fn create(&self, entity: &Entity) -> Result<()>;
     fn delete(&self, entity: &Entity) -> Result<()>;
 }

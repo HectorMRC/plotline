@@ -7,7 +7,7 @@ use super::{
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock},
+    sync::RwLock,
 };
 
 #[derive(Default, Serialize, Deserialize)]
@@ -17,11 +17,11 @@ pub struct InMemoryEntityRepository {
         serialize_with = "into_slice_of_entities",
         deserialize_with = "from_slice_of_entities"
     )]
-    entities: RwLock<HashMap<Id<Entity>, Arc<Entity>>>,
+    entities: RwLock<HashMap<Id<Entity>, Entity>>,
 }
 
 impl EntityRepository for InMemoryEntityRepository {
-    fn find(&self, id: &Id<Entity>) -> Result<Arc<Entity>> {
+    fn find(&self, id: &Id<Entity>) -> Result<Entity> {
         self.entities
             .read()
             .map_err(|err| Error::Lock(err.to_string()))?
@@ -30,7 +30,7 @@ impl EntityRepository for InMemoryEntityRepository {
             .ok_or(Error::NotFound)
     }
 
-    fn filter(&self, filter: &EntityFilter) -> Result<Vec<Arc<Entity>>> {
+    fn filter(&self, filter: &EntityFilter) -> Result<Vec<Entity>> {
         Ok(self
             .entities
             .read()
@@ -51,7 +51,7 @@ impl EntityRepository for InMemoryEntityRepository {
             return Err(Error::AlreadyExists);
         }
 
-        entities.insert(entity.id, Arc::new(entity.clone()));
+        entities.insert(entity.id, entity.clone());
         Ok(())
     }
 
@@ -70,7 +70,7 @@ impl EntityRepository for InMemoryEntityRepository {
 }
 
 fn into_slice_of_entities<S>(
-    entities: &RwLock<HashMap<Id<Entity>, Arc<Entity>>>,
+    entities: &RwLock<HashMap<Id<Entity>, Entity>>,
     serializer: S,
 ) -> std::result::Result<S::Ok, S::Error>
 where
@@ -83,18 +83,18 @@ where
         .map_err(|err| err.to_string())
         .map_err(Error::custom)?;
 
-    serializer.collect_seq(entities.values().map(AsRef::as_ref))
+    serializer.collect_seq(entities.values())
 }
 
 fn from_slice_of_entities<'de, D>(
     deserializer: D,
-) -> std::result::Result<RwLock<HashMap<Id<Entity>, Arc<Entity>>>, D::Error>
+) -> std::result::Result<RwLock<HashMap<Id<Entity>, Entity>>, D::Error>
 where
     D: Deserializer<'de>,
 {
     Ok(RwLock::new(HashMap::from_iter(
         Vec::<Entity>::deserialize(deserializer)?
             .into_iter()
-            .map(|entity| (entity.id, Arc::new(entity))),
+            .map(|entity| (entity.id, entity)),
     )))
 }
