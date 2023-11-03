@@ -5,6 +5,7 @@ use crate::{
 };
 use std::sync::Arc;
 
+/// Implements the remove entity transaction.
 pub struct RemoveEntity<R> {
     entity_repo: Arc<R>,
     id: Id<Entity>,
@@ -14,6 +15,7 @@ impl<R> RemoveEntity<R>
 where
     R: EntityRepository,
 {
+    /// Executes the remove entity transaction.
     pub fn execute(self) -> Result<Entity> {
         let entity = self.entity_repo.find(&self.id)?;
         self.entity_repo.delete(&entity).map(|_| entity)

@@ -7,6 +7,7 @@ use crate::{
 };
 use std::sync::Arc;
 
+/// Implements the create entity transaction.
 pub struct CreateEntity<R> {
     entity_repo: Arc<R>,
     name: Name<Entity>,
@@ -18,6 +19,7 @@ impl<R> CreateEntity<R>
 where
     R: EntityRepository,
 {
+    /// Executes the create entity transaction.
     pub fn execute(self) -> Result<Entity> {
         let mut entity = if let Some(entity_id) = self.id {
             Entity::with_id(entity_id, self.name)

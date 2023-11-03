@@ -2,6 +2,7 @@ use super::{EntityFilter, EntityRepository, EntityService};
 use crate::entity::{error::Result, Entity, Error};
 use std::sync::Arc;
 
+/// Implements the find query, through which one, and exactly one, entity must be retrived.
 #[derive(Default)]
 pub struct FindEntity<R> {
     entity_repo: Arc<R>,
@@ -12,6 +13,8 @@ impl<R> FindEntity<R>
 where
     R: EntityRepository,
 {
+    /// Executes the find query, through which one, and exactly one, entity must be retrived.
+    /// If there is no entity matching the query the error [Error::NotFound] is returned.
     pub fn execute(self) -> Result<Entity> {
         let entities = self.entity_repo.filter(&self.filter)?;
         if entities.len() > 1 {

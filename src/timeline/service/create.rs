@@ -6,6 +6,7 @@ use crate::{
 };
 use std::sync::Arc;
 
+/// Implements the create timeline transaction, 
 pub struct CreateTimeline<R> {
     timeline_repo: Arc<R>,
     name: Name<Timeline>,
@@ -17,6 +18,7 @@ impl<R> CreateTimeline<R>
 where
     R: TimelineRepository,
 {
+    /// Executes the create timeline transaction.
     pub fn execute(self) -> Result<Timeline> {
         let mut timeline = if let Some(timeline_id) = self.id {
             Timeline::with_id(timeline_id, self.name)
@@ -45,7 +47,7 @@ impl<R> CreateTimeline<R> {
     }
 }
 
-
+/// Implements the create moment transaction.
 pub struct CreateMoment<R> {
     timeline_repo: Arc<R>,
     timeline_id: Id<Timeline>,
@@ -56,6 +58,7 @@ impl<R> CreateMoment<R>
 where
     R: TimelineRepository,
 {
+    /// Executes the create moment transaction.
     pub fn execute(self) -> Result<Timeline> {
         let moment = if let Some(moment_id) = self.id {
             Moment::with_id(moment_id)

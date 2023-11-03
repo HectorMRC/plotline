@@ -15,6 +15,7 @@ macro_rules! equals_or_return {
     };
 }
 
+/// Implements the filter query, through which zero o more entities may be retrived.
 #[derive(Default)]
 pub struct EntityFilter {
     name: Option<Name<Entity>>,
@@ -49,6 +50,7 @@ impl<R> FilterEntities<R>
 where
     R: EntityRepository,
 {
+    /// Executes the filter query, through which zero o more entities may be retrived.
     pub fn execute(self) -> Result<Vec<Entity>> {
         self.entity_repo.filter(&self.filter)
     }
