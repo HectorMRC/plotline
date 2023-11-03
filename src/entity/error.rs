@@ -12,8 +12,6 @@ pub enum Error {
     Lock(String),
     #[error("name: {0}")]
     Name(#[from] crate::name::Error),
-    #[error("tag: {0}")]
-    Tag(#[from] crate::tag::Error),
     #[error("id: {0}")]
     Id(#[from] crate::id::Error),
 }

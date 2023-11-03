@@ -11,7 +11,6 @@ pub struct CreateTimeline<R> {
     timeline_repo: Arc<R>,
     name: Name<Timeline>,
     id: Option<Id<Timeline>>,
-    moments: Vec<Moment>,
 }
 
 impl<R> CreateTimeline<R>
@@ -26,10 +25,6 @@ where
             Timeline::new(self.name)
         };
 
-        self.moments
-            .into_iter()
-            .try_for_each(|moment| timeline.push_moment(moment))?;
-
         self.timeline_repo.create(&timeline)?;
         Ok(timeline)
     }
@@ -38,11 +33,6 @@ where
 impl<R> CreateTimeline<R> {
     pub fn with_id(mut self, id: Option<Id<Timeline>>) -> Self {
         self.id = id;
-        self
-    }
-
-    pub fn with_moments(mut self, moments: Vec<Moment>) -> Self {
-        self.moments = moments;
         self
     }
 }
@@ -90,7 +80,6 @@ where
             timeline_repo: self.timeline_repo.clone(),
             name,
             id: Default::default(),
-            moments: Default::default(),
         }
     }
 

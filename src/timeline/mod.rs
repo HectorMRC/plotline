@@ -1,3 +1,5 @@
+#[cfg(feature = "cli")]
+pub mod cli;
 #[cfg(feature = "in_memory")]
 pub mod repository;
 pub mod service;

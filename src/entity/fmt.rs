@@ -3,7 +3,7 @@ use std::{fmt::Display, marker::PhantomData};
 
 macro_rules! row_format {
     () => {
-        "{: <15} {: <40} {: <20}"
+        "{: <15} {: <40}"
     };
 }
 
@@ -25,7 +25,6 @@ impl<'a> Display for EntityFmt<'a, Row> {
             row_format!(),
             self.entity.name.to_string(),
             self.entity.id.to_string(),
-            self.entity.tags.to_string()
         )
     }
 }
@@ -33,15 +32,14 @@ impl<'a> Display for EntityFmt<'a, Row> {
 impl<'a> Display for EntityFmt<'a, Column> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{: <10} {}", "NAME", self.entity.name)?;
-        writeln!(f, "{: <10} {}", "UUID", self.entity.id)?;
-        writeln!(f, "{: <10} {}", "TAGS", self.entity.tags)
+        writeln!(f, "{: <10} {}", "UUID", self.entity.id)
     }
 }
 
 impl<'a> EntityFmt<'a, Row> {
     /// Returns the string of headers corresponding to the row-like display.
     pub fn headers() -> String {
-        format!(row_format!(), "NAME", "UUID", "TAGS")
+        format!(row_format!(), "NAME", "UUID")
     }
 
     /// Returns an instance of [EntityFmt] that displays the given entity in a single line.

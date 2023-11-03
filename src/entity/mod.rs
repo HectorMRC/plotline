@@ -11,7 +11,6 @@ pub use error::*;
 
 use crate::id::Id;
 use crate::name::Name;
-use crate::tag::Tags;
 
 /// An Entity is anything which to interact with.
 #[derive(Clone, Serialize, Deserialize)]
@@ -20,7 +19,6 @@ pub struct Entity {
     id: Id<Entity>,
     #[serde(flatten)]
     name: Name<Entity>,
-    tags: Tags,
 }
 
 impl Eq for Entity {}
@@ -36,7 +34,6 @@ impl Entity {
         Self {
             id: Id::new(),
             name,
-            tags: Default::default(),
         }
     }
 
@@ -45,7 +42,6 @@ impl Entity {
         Self {
             id,
             name,
-            tags: Default::default(),
         }
     }
 
