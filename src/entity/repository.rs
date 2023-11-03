@@ -1,9 +1,8 @@
 use crate::id::Id;
-
 use super::{
     error::{Error, Result},
     service::{EntityFilter, EntityRepository},
-    Entity, EntityId,
+    Entity,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
@@ -18,11 +17,11 @@ pub struct InMemoryEntityRepository {
         serialize_with = "into_slice_of_entities",
         deserialize_with = "from_slice_of_entities"
     )]
-    entities: RwLock<HashMap<Id<EntityId>, Arc<Entity>>>,
+    entities: RwLock<HashMap<Id<Entity>, Arc<Entity>>>,
 }
 
 impl EntityRepository for InMemoryEntityRepository {
-    fn find(&self, id: &Id<EntityId>) -> Result<Arc<Entity>> {
+    fn find(&self, id: &Id<Entity>) -> Result<Arc<Entity>> {
         self.entities
             .read()
             .map_err(|err| Error::Lock(err.to_string()))?
@@ -71,7 +70,7 @@ impl EntityRepository for InMemoryEntityRepository {
 }
 
 fn into_slice_of_entities<S>(
-    entities: &RwLock<HashMap<Id<EntityId>, Arc<Entity>>>,
+    entities: &RwLock<HashMap<Id<Entity>, Arc<Entity>>>,
     serializer: S,
 ) -> std::result::Result<S::Ok, S::Error>
 where
@@ -89,7 +88,7 @@ where
 
 fn from_slice_of_entities<'de, D>(
     deserializer: D,
-) -> std::result::Result<RwLock<HashMap<Id<EntityId>, Arc<Entity>>>, D::Error>
+) -> std::result::Result<RwLock<HashMap<Id<Entity>, Arc<Entity>>>, D::Error>
 where
     D: Deserializer<'de>,
 {

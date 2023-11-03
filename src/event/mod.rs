@@ -6,27 +6,18 @@ mod error;
 pub use error::*;
 
 use crate::{
-    entity::EntityId,
     id::Id,
     interval::Interval,
     name::Name,
-    timeline::{Moment, Period},
+    timeline::{Moment, Period}, entity::Entity,
 };
-
-/// EventId determines an instance of [Id] belongs to an [Event].
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
-pub struct EventId;
-
-/// EventName determines an instance of [Name] belongs to an [Event].
-#[derive(Clone)]
-pub struct EventName;
 
 /// An Event is a specific happening in which one or more entities are involved.
 #[derive(Clone)]
 pub struct Event {
-    id: Id<EventId>,
-    name: Name<EventName>,
-    entities: Vec<Id<EntityId>>,
+    id: Id<Event>,
+    name: Name<Event>,
+    entities: Vec<Id<Entity>>,
     period: Period,
 }
 

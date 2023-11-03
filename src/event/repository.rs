@@ -1,4 +1,4 @@
-use super::{service::EventRepository, Error, Event, EventId, Moment, Result};
+use super::{service::EventRepository, Error, Event, Moment, Result};
 use crate::{id::Id, interval::Interval};
 use std::{
     collections::HashMap,
@@ -20,7 +20,7 @@ impl Interval for Arc<Event> {
 // #[derive(Default, Serialize, Deserialize)]
 // #[serde(default)]
 pub struct InMemoryEventRepository {
-    events: RwLock<HashMap<Id<EventId>, Arc<Event>>>,
+    events: RwLock<HashMap<Id<Event>, Arc<Event>>>,
 }
 
 impl EventRepository for InMemoryEventRepository {

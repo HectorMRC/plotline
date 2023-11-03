@@ -1,7 +1,7 @@
 mod error;
 pub use error::*;
 
-use crate::{entity::EntityId, id::Id, name::Name};
+use crate::{entity::Entity, id::Id, name::Name};
 
 /// AttributeName determines an instance of [Name] belongs to an [Attribute].
 pub struct AttributeName;
@@ -36,13 +36,13 @@ impl Attribute {
 
 /// A Profile collects all the necessary attributes to describe an individual entity.
 pub struct Profile {
-    entity: Id<EntityId>,
+    entity: Id<Entity>,
     attributes: Vec<Attribute>,
 }
 
 impl Profile {
-    /// Creates an empty profiles for the given [EntityId].
-    pub fn new(entity_id: Id<EntityId>) -> Self {
+    /// Creates an empty profiles for the given entity id.
+    pub fn new(entity_id: Id<Entity>) -> Self {
         Self {
             entity: entity_id,
             attributes: Default::default(),

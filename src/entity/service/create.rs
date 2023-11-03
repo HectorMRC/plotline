@@ -1,6 +1,6 @@
 use super::{EntityRepository, EntityService};
 use crate::{
-    entity::{Entity, EntityId, EntityName, Result},
+    entity::{Entity, Result},
     id::Id,
     name::Name,
     tag::Tags,
@@ -9,8 +9,8 @@ use std::sync::Arc;
 
 pub struct CreateEntity<R> {
     entity_repo: Arc<R>,
-    name: Name<EntityName>,
-    id: Option<Id<EntityId>>,
+    name: Name<Entity>,
+    id: Option<Id<Entity>>,
     tags: Tags,
 }
 
@@ -33,7 +33,7 @@ where
 }
 
 impl<R> CreateEntity<R> {
-    pub fn with_id(mut self, id: Option<Id<EntityId>>) -> Self {
+    pub fn with_id(mut self, id: Option<Id<Entity>>) -> Self {
         self.id = id;
         self
     }
@@ -48,7 +48,7 @@ impl<R> EntityService<R>
 where
     R: EntityRepository,
 {
-    pub fn create(&self, name: Name<EntityName>) -> CreateEntity<R> {
+    pub fn create(&self, name: Name<Entity>) -> CreateEntity<R> {
         CreateEntity {
             entity_repo: self.entity_repo.clone(),
             name,

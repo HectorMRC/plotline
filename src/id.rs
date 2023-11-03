@@ -1,5 +1,5 @@
 use serde::{de::Deserializer, Deserialize, Serialize, Serializer};
-use std::{fmt::Display, marker::PhantomData, str::FromStr};
+use std::{fmt::Display, marker::PhantomData, str::FromStr, hash::Hash};
 use uuid::Uuid;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -11,7 +11,7 @@ pub enum Error {
 }
 
 /// An Id uniquely identifies a resource.
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Id<T> {
     #[serde(
         serialize_with = "uuid_as_string",
@@ -20,7 +20,7 @@ pub struct Id<T> {
     uuid: Uuid,
 
     #[serde(skip)]
-    _type: PhantomData<T>,
+    _marker: PhantomData<T>,
 }
 
 fn uuid_as_string<S>(uuid: &Uuid, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -42,6 +42,26 @@ where
         .map_err(Error::custom)
 }
 
+impl<T> Eq for Id<T> {}
+impl<T> PartialEq for Id<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.uuid == other.uuid
+    }
+}
+
+impl<T> Copy for Id<T> {}
+impl<T> Clone for Id<T> {
+    fn clone(&self) -> Self {
+        Self { uuid: self.uuid.clone(), _marker: PhantomData }
+    }
+}
+
+impl<T> Hash for Id<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.uuid.hash(state);
+    }
+}
+
 impl<T> Display for Id<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.uuid)
@@ -55,7 +75,7 @@ impl<T> TryFrom<String> for Id<T> {
         Uuid::from_str(&value)
             .map(|uuid| Self {
                 uuid,
-                _type: PhantomData,
+                _marker: PhantomData,
             })
             .map_err(Error::from)
     }
@@ -66,7 +86,7 @@ impl<T> Id<T> {
     pub fn new() -> Self {
         Self {
             uuid: Uuid::new_v4(),
-            _type: PhantomData,
+            _marker: PhantomData,
         }
     }
 }

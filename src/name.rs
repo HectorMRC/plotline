@@ -19,7 +19,7 @@ pub struct Name<T> {
     name: String,
 
     #[serde(skip)]
-    _type: PhantomData<T>,
+    _marker: PhantomData<T>,
 }
 
 impl<T> AsRef<str> for Name<T> {
@@ -45,7 +45,7 @@ impl<T> TryFrom<String> for Name<T> {
 
         Ok(Self {
             name: value,
-            _type: PhantomData,
+            _marker: PhantomData,
         })
     }
 }

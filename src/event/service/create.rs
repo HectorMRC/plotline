@@ -1,11 +1,11 @@
 use crate::{
-    event::{EventId, EventName},
+    event::Event,
     id::Id,
     name::Name,
 };
 
 pub struct CreateEvent<R> {
     event_repo: R,
-    name: Name<EventName>,
-    id: Option<Id<EventId>>,
+    name: Name<Event>,
+    id: Option<Id<Event>>,
 }

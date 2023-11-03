@@ -3,8 +3,6 @@ pub mod repository;
 pub mod service;
 
 mod error;
-use std::collections::{HashMap, HashSet};
-
 pub use error::*;
 
 use crate::{id::Id, interval::Interval, name::Name};
