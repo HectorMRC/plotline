@@ -28,7 +28,7 @@
     uuid = {version = "1.4.1", features = ["v4"]}
 
 [features]
-    cli     = ["clap", "dirs", "fmt", "in_memory"]
+    cli     = ["clap", "dirs", "fmt"]
     in_memory = []
     default = ["cli"]
     fmt     = []
@@ -40,4 +40,4 @@
 [[bin]]
     name              = "plot"
     path              = "src/bin/cli.rs"
-    required-features = ["cli"]
+    required-features = ["cli", "in_memory"]
