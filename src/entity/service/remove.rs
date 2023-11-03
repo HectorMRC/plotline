@@ -31,7 +31,7 @@ impl<R> EntityService<R>
 where
     R: EntityRepository,
 {
-    pub fn remove(&self, id: Id<Entity>) -> RemoveEntity<R> {
+    pub fn remove_entity(&self, id: Id<Entity>) -> RemoveEntity<R> {
         RemoveEntity {
             entity_repo: self.entity_repo.clone(),
             id,

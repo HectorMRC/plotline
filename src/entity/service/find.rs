@@ -33,7 +33,7 @@ impl<R> EntityService<R>
 where
     R: EntityRepository,
 {
-    pub fn find(&self) -> FindEntity<R> {
+    pub fn find_entity(&self) -> FindEntity<R> {
         FindEntity {
             entity_repo: self.entity_repo.clone(),
             filter: Default::default(),

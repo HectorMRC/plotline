@@ -69,7 +69,7 @@ where
         match entity_cmd.command {
             EntitySubCommand::Create(args) => {
                 let entity = self
-                    .create(args.name.try_into()?)
+                    .create_entity(args.name.try_into()?)
                     .with_id(args.id.map(TryInto::try_into).transpose()?)
                     .execute()?;
 
@@ -77,7 +77,7 @@ where
             }
 
             EntitySubCommand::List => {
-                let entities = self.filter().execute()?;
+                let entities = self.filter_entities().execute()?;
 
                 let mut stdout = stdout().lock();
                 writeln!(stdout, "{}", EntityFmt::headers())?;
@@ -92,7 +92,7 @@ where
                     .with_name(args.name.map(TryInto::try_into).transpose()?)
                     .with_id(args.id.map(TryInto::try_into).transpose()?);
 
-                let entity = self.find().with_filter(filter).execute()?;
+                let entity = self.find_entity().with_filter(filter).execute()?;
                 print!("{}", EntityFmt::column(&entity));
             }
 
@@ -105,7 +105,7 @@ where
                             sender.send(
                                 id.try_into()
                                     .map_err(Error::from)
-                                    .and_then(|id| self.remove(id).execute()),
+                                    .and_then(|id| self.remove_entity(id).execute()),
                             )
                         });
                     });

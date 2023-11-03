@@ -2,14 +2,14 @@ use super::{TimelineRepository, TimelineService};
 use crate::{
     id::Id,
     name::Name,
-    timeline::{Moment, Result, Timeline, TimelineId, TimelineName},
+    timeline::{Moment, Result, Timeline},
 };
 use std::sync::Arc;
 
 pub struct CreateTimeline<R> {
     timeline_repo: Arc<R>,
-    name: Name<TimelineName>,
-    id: Option<Id<TimelineId>>,
+    name: Name<Timeline>,
+    id: Option<Id<Timeline>>,
     moments: Vec<Moment>,
 }
 
@@ -34,7 +34,7 @@ where
 }
 
 impl<R> CreateTimeline<R> {
-    pub fn with_id(mut self, id: Option<Id<TimelineId>>) -> Self {
+    pub fn with_id(mut self, id: Option<Id<Timeline>>) -> Self {
         self.id = id;
         self
     }
@@ -49,7 +49,7 @@ impl<R> TimelineService<R>
 where
     R: TimelineRepository,
 {
-    pub fn create(&self, name: Name<TimelineName>) -> CreateTimeline<R> {
+    pub fn create(&self, name: Name<Timeline>) -> CreateTimeline<R> {
         CreateTimeline {
             timeline_repo: self.timeline_repo.clone(),
             name,

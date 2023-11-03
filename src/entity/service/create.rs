@@ -48,7 +48,7 @@ impl<R> EntityService<R>
 where
     R: EntityRepository,
 {
-    pub fn create(&self, name: Name<Entity>) -> CreateEntity<R> {
+    pub fn create_entity(&self, name: Name<Entity>) -> CreateEntity<R> {
         CreateEntity {
             entity_repo: self.entity_repo.clone(),
             name,

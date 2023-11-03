@@ -65,7 +65,7 @@ impl<R> EntityService<R>
 where
     R: EntityRepository,
 {
-    pub fn filter(&self) -> FilterEntities<R> {
+    pub fn filter_entities(&self) -> FilterEntities<R> {
         FilterEntities {
             entity_repo: self.entity_repo.clone(),
             filter: Default::default(),

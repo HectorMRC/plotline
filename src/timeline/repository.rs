@@ -1,7 +1,7 @@
-use super::{Timeline, TimelineId};
+use super::Timeline;
 use crate::id::Id;
 use std::collections::HashMap;
 
 pub struct InMemoryTimelineRepository {
-    timelines: HashMap<Id<TimelineId>, Timeline>,
+    timelines: HashMap<Id<Timeline>, Timeline>,
 }
