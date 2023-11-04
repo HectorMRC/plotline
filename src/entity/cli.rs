@@ -14,13 +14,10 @@ use std::{
 struct EntityCreateArgs {
     /// The name of the entity.
     #[arg(num_args(1..))]
-    name: String,
+    name: Vec<String>,
     /// The uuid string of the entity.
     #[arg(short, long)]
     id: Option<String>,
-    /// A list of tags to be added to the entity.
-    #[arg(short, long)]
-    tags: Vec<String>,
 }
 
 #[derive(Args)]
@@ -64,12 +61,12 @@ impl<R> EntityService<R>
 where
     R: 'static + EntityRepository + Sync + Send,
 {
-    /// Given an [EntityCommand] parsed by Clap, executes the corresponding command.
+    /// Given an [EntityCommand], executes the corresponding logic.
     pub fn execute(&self, entity_cmd: EntityCommand) -> CliResult {
         match entity_cmd.command {
             EntitySubCommand::Create(args) => {
                 let entity = self
-                    .create_entity(args.name.try_into()?)
+                    .create_entity(args.name.join(" ").try_into()?)
                     .with_id(args.id.map(TryInto::try_into).transpose()?)
                     .execute()?;
 

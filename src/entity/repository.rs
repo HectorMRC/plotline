@@ -1,21 +1,22 @@
-use crate::id::Id;
 use super::{
     error::{Error, Result},
     service::{EntityFilter, EntityRepository},
     Entity,
 };
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{
-    collections::HashMap,
-    sync::RwLock,
+use crate::{
+    id::Id,
+    serde::{hashmap_from_slice, slice_from_hashmap},
 };
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, sync::RwLock};
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct InMemoryEntityRepository {
     #[serde(
-        serialize_with = "into_slice_of_entities",
-        deserialize_with = "from_slice_of_entities"
+        serialize_with = "slice_from_hashmap",
+        deserialize_with = "hashmap_from_slice",
+        default
     )]
     entities: RwLock<HashMap<Id<Entity>, Entity>>,
 }
@@ -67,34 +68,4 @@ impl EntityRepository for InMemoryEntityRepository {
 
         Ok(())
     }
-}
-
-fn into_slice_of_entities<S>(
-    entities: &RwLock<HashMap<Id<Entity>, Entity>>,
-    serializer: S,
-) -> std::result::Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    use serde::ser::Error;
-
-    let entities = entities
-        .read()
-        .map_err(|err| err.to_string())
-        .map_err(Error::custom)?;
-
-    serializer.collect_seq(entities.values())
-}
-
-fn from_slice_of_entities<'de, D>(
-    deserializer: D,
-) -> std::result::Result<RwLock<HashMap<Id<Entity>, Entity>>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    Ok(RwLock::new(HashMap::from_iter(
-        Vec::<Entity>::deserialize(deserializer)?
-            .into_iter()
-            .map(|entity| (entity.id, entity)),
-    )))
 }

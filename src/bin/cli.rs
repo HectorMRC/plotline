@@ -3,12 +3,14 @@ use once_cell::sync::Lazy;
 use plotline::{
     entity::{cli::EntityCommand, service::EntityService},
     snapshot::Snapshot,
+    timeline::{cli::TimelineCommand, service::TimelineService},
 };
 use std::{
     ffi::OsString,
     fmt::Display,
-    fs::{File, self},
-    io::{BufReader, BufWriter, Write}, path::Path,
+    fs::{self, File},
+    io::{BufReader, BufWriter, Write},
+    path::Path,
 };
 
 const ENV_PLOTFILE: &str = "PLOTFILE";
@@ -27,7 +29,7 @@ struct Cli {
     #[command(subcommand)]
     command: CliCommand,
 
-    /// The data source file
+    /// The data source file.
     #[arg(
         env = ENV_PLOTFILE,
         default_value = &*DEFAULT_PLOTFILE,
@@ -40,8 +42,10 @@ struct Cli {
 
 #[derive(Subcommand, strum_macros::Display)]
 enum CliCommand {
-    /// Manage entities
+    /// Manage entities.
     Entity(EntityCommand),
+    /// Manage timelines.
+    Timeline(TimelineCommand),
 }
 
 /// Returns the value of the result if, and only if, the result is OK. Otherwise prints the error and exits.
@@ -76,11 +80,16 @@ fn main() {
         entity_repo: snapshot.entities.clone(),
     };
 
-    // Execute command 
+    let timeline_srv = TimelineService {
+        timeline_repo: snapshot.timelines.clone(),
+    };
+
+    // Execute command
     unwrap_or_exit(
         format!("{}", args.command),
         match args.command {
             CliCommand::Entity(command) => entity_srv.execute(command),
+            CliCommand::Timeline(command) => timeline_srv.execute(command),
         },
     );
 
@@ -92,7 +101,7 @@ fn main() {
     }
 
     let f = unwrap_or_exit(filepath.to_string_lossy(), File::create(filepath));
-    
+
     let mut writer = BufWriter::new(f);
     unwrap_or_exit("yaml writer", serde_yaml::to_writer(&mut writer, &snapshot));
     unwrap_or_exit("io writer", writer.flush());

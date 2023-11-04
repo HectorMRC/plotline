@@ -30,7 +30,7 @@
 [features]
     cli     = ["clap", "dirs", "fmt"]
     in_memory = []
-    default = ["cli"]
+    default = ["cli", "in_memory"]
     fmt     = []
 
 [lib]

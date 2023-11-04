@@ -1,5 +1,6 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::{fmt::Display, marker::PhantomData};
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -14,12 +15,19 @@ pub enum Error {
 static LINEBREAK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\r\n|\r|\n)").unwrap());
 
 /// An Name identifies one or more resources.
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Name<T> {
     name: String,
 
     #[serde(skip)]
     _marker: PhantomData<T>,
+}
+
+impl<T> Eq for Name<T> {}
+impl<T> PartialEq for Name<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
 }
 
 impl<T> AsRef<str> for Name<T> {

@@ -8,12 +8,14 @@ impl From<CliError> for CliResult {
 
 #[derive(thiserror::Error, Debug)]
 pub enum CliError {
-    #[error("entity: {0}")]
+    #[error("{0}")]
     Entity(#[from] crate::entity::Error),
-    #[error("name: {0}")]
+    #[error("{0}")]
+    Timeline(#[from] crate::timeline::Error),
+    #[error("{0}")]
     Name(#[from] crate::name::Error),
-    #[error("id: {0}")]
+    #[error("{0}")]
     Id(#[from] crate::id::Error),
-    #[error("io: {0}")]
+    #[error("{0}")]
     Io(#[from] std::io::Error),
 }

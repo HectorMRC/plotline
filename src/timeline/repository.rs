@@ -1,7 +1,35 @@
-use super::Timeline;
-use crate::id::Id;
-use std::collections::HashMap;
+use super::{service::TimelineRepository, Error, Timeline};
+use crate::{
+    id::Id,
+    serde::{hashmap_from_slice, slice_from_hashmap},
+};
+use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, sync::RwLock};
 
+#[derive(Default, Serialize, Deserialize)]
 pub struct InMemoryTimelineRepository {
-    timelines: HashMap<Id<Timeline>, Timeline>,
+    #[serde(
+        serialize_with = "slice_from_hashmap",
+        deserialize_with = "hashmap_from_slice",
+        default
+    )]
+    timelines: RwLock<HashMap<Id<Timeline>, Timeline>>,
+}
+
+impl TimelineRepository for InMemoryTimelineRepository {
+    fn create(&self, timeline: &Timeline) -> super::Result<()> {
+        let mut timelines = self
+            .timelines
+            .write()
+            .map_err(|err| Error::Lock(err.to_string()))?;
+
+        if timelines.contains_key(&timeline.id)
+            || timelines.values().any(|t| t.name == timeline.name)
+        {
+            return Err(Error::AlreadyExists);
+        }
+
+        timelines.insert(timeline.id, timeline.clone());
+        Ok(())
+    }
 }

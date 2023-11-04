@@ -1,5 +1,5 @@
 use serde::{de::Deserializer, Deserialize, Serialize, Serializer};
-use std::{fmt::Display, marker::PhantomData, str::FromStr, hash::Hash};
+use std::{fmt::Display, hash::Hash, marker::PhantomData, str::FromStr};
 use uuid::Uuid;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -8,6 +8,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("uuid: {0}")]
     Uuid(#[from] uuid::Error),
+}
+
+/// Identified determines an item is uniquely identifiable.
+pub trait Identified<T> {
+    fn id(&self) -> Id<T>;
 }
 
 /// An Id uniquely identifies a resource.
@@ -52,7 +57,10 @@ impl<T> PartialEq for Id<T> {
 impl<T> Copy for Id<T> {}
 impl<T> Clone for Id<T> {
     fn clone(&self) -> Self {
-        Self { uuid: self.uuid.clone(), _marker: PhantomData }
+        Self {
+            uuid: self.uuid.clone(),
+            _marker: PhantomData,
+        }
     }
 }
 

@@ -8,10 +8,10 @@ pub enum Error {
     AlreadyExists,
     #[error("entity not found")]
     NotFound,
-    #[error("lock: {0}")]
+    #[error("{0}")]
     Lock(String),
-    #[error("name: {0}")]
+    #[error("{0}")]
     Name(#[from] crate::name::Error),
-    #[error("id: {0}")]
+    #[error("{0}")]
     Id(#[from] crate::id::Error),
 }
