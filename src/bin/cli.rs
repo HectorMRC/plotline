@@ -2,8 +2,8 @@ use clap::{error::ErrorKind, Parser, Subcommand};
 use once_cell::sync::Lazy;
 use plotline::{
     entity::{cli::EntityCommand, service::EntityService},
+    event::{cli::EventCommand, service::EventService},
     snapshot::Snapshot,
-    timeline::{cli::TimelineCommand, service::TimelineService},
 };
 use std::{
     ffi::OsString,
@@ -44,8 +44,8 @@ struct Cli {
 enum CliCommand {
     /// Manage entities.
     Entity(EntityCommand),
-    /// Manage timelines.
-    Timeline(TimelineCommand),
+    /// Manage events.
+    Event(EventCommand),
 }
 
 /// Returns the value of the result if, and only if, the result is OK. Otherwise prints the error and exits.
@@ -80,8 +80,8 @@ fn main() {
         entity_repo: snapshot.entities.clone(),
     };
 
-    let timeline_srv = TimelineService {
-        timeline_repo: snapshot.timelines.clone(),
+    let event_srv = EventService {
+        event_repo: snapshot.events.clone(),
     };
 
     // Execute command
@@ -89,7 +89,7 @@ fn main() {
         format!("{}", args.command),
         match args.command {
             CliCommand::Entity(command) => entity_srv.execute(command),
-            CliCommand::Timeline(command) => timeline_srv.execute(command),
+            CliCommand::Event(command) => event_srv.execute(command),
         },
     );
 

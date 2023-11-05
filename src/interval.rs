@@ -180,6 +180,25 @@ where
         self.for_each(|interval| intervals.push(interval.clone()));
         intervals
     }
+
+    /// Returns the total amount of intervals in the tree.
+    pub fn count(&self) -> usize {
+        let mut count = 1;
+
+        count += self
+            .left
+            .as_ref()
+            .map(|left| left.count())
+            .unwrap_or_default();
+
+        count += self
+            .right
+            .as_ref()
+            .map(|right| right.count())
+            .unwrap_or_default();
+
+        count
+    }
 }
 
 /// An IntervalST represents an interval search tree that may be empty.
@@ -285,11 +304,23 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::Node;
-    use crate::{interval::IntervalST, timeline::Period};
+    use super::{Interval, IntervalST, Node};
     use std::fmt::Debug;
 
-    type IntervalMock = Period<usize>;
+    #[derive(Debug, Clone, PartialEq)]
+    struct IntervalMock(usize, usize);
+
+    impl Interval for IntervalMock {
+        type Bound = usize;
+
+        fn lo(&self) -> Self::Bound {
+            self.0.clone()
+        }
+
+        fn hi(&self) -> Self::Bound {
+            self.1.clone()
+        }
+    }
 
     impl Debug for IntervalST<IntervalMock> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -309,41 +340,41 @@ mod tests {
         vec![
             Test {
                 name: "no intersaction",
-                tree: Node::new(IntervalMock::new(0, 2)),
-                query: IntervalMock::new(3, 3),
+                tree: Node::new(IntervalMock(0, 2)),
+                query: IntervalMock(3, 3),
                 output: false,
             },
             Test {
                 name: "left-hand intersaction",
-                tree: Node::new(IntervalMock::new(0, 2)),
-                query: IntervalMock::new(1, 3),
+                tree: Node::new(IntervalMock(0, 2)),
+                query: IntervalMock(1, 3),
                 output: true,
             },
             Test {
                 name: "right-hand intersaction",
-                tree: Node::new(IntervalMock::new(2, 4)),
-                query: IntervalMock::new(0, 3),
+                tree: Node::new(IntervalMock(2, 4)),
+                query: IntervalMock(0, 3),
                 output: true,
             },
             Test {
                 name: "superset intersaction",
-                tree: Node::new(IntervalMock::new(0, 3)),
-                query: IntervalMock::new(1, 2),
+                tree: Node::new(IntervalMock(0, 3)),
+                query: IntervalMock(1, 2),
                 output: true,
             },
             Test {
                 name: "subset intersaction",
-                tree: Node::new(IntervalMock::new(1, 2)),
-                query: IntervalMock::new(0, 3),
+                tree: Node::new(IntervalMock(1, 2)),
+                query: IntervalMock(0, 3),
                 output: true,
             },
             Test {
                 name: "complex tree",
-                tree: Node::new(IntervalMock::new(5, 6))
-                    .with_interval(IntervalMock::new(0, 4))
-                    .with_interval(IntervalMock::new(2, 6))
-                    .with_interval(IntervalMock::new(7, 9)),
-                query: IntervalMock::new(1, 2),
+                tree: Node::new(IntervalMock(5, 6))
+                    .with_interval(IntervalMock(0, 4))
+                    .with_interval(IntervalMock(2, 6))
+                    .with_interval(IntervalMock(7, 9)),
+                query: IntervalMock(1, 2),
                 output: true,
             },
         ]
@@ -370,23 +401,19 @@ mod tests {
         vec![
             Test {
                 name: "no intersactions",
-                tree: Node::new(IntervalMock::new(1, 2)),
-                query: IntervalMock::new(0, 0),
+                tree: Node::new(IntervalMock(1, 2)),
+                query: IntervalMock(0, 0),
                 output: Vec::default(),
             },
             Test {
                 name: "multiple intersactions",
-                tree: Node::new(IntervalMock::new(5, 6))
-                    .with_interval(IntervalMock::new(0, 2))
-                    .with_interval(IntervalMock::new(3, 3))
-                    .with_interval(IntervalMock::new(5, 9))
-                    .with_interval(IntervalMock::new(6, 6)),
-                query: IntervalMock::new(3, 5),
-                output: vec![
-                    IntervalMock::new(5, 6),
-                    IntervalMock::new(3, 3),
-                    IntervalMock::new(5, 9),
-                ],
+                tree: Node::new(IntervalMock(5, 6))
+                    .with_interval(IntervalMock(0, 2))
+                    .with_interval(IntervalMock(3, 3))
+                    .with_interval(IntervalMock(5, 9))
+                    .with_interval(IntervalMock(6, 6)),
+                query: IntervalMock(3, 5),
+                output: vec![IntervalMock(5, 6), IntervalMock(3, 3), IntervalMock(5, 9)],
             },
         ]
         .into_iter()
@@ -419,18 +446,18 @@ mod tests {
             Test {
                 name: "node from non empty vec must not fail",
                 input: vec![
-                    IntervalMock::new(0, 0),
-                    IntervalMock::new(3, 3),
-                    IntervalMock::new(5, 6),
-                    IntervalMock::new(5, 9),
-                    IntervalMock::new(6, 6),
+                    IntervalMock(0, 0),
+                    IntervalMock(3, 3),
+                    IntervalMock(5, 6),
+                    IntervalMock(5, 9),
+                    IntervalMock(6, 6),
                 ],
                 output: IntervalST(Some(
-                    Node::new(IntervalMock::new(5, 6))
-                        .with_interval(IntervalMock::new(3, 3))
-                        .with_interval(IntervalMock::new(0, 0))
-                        .with_interval(IntervalMock::new(6, 6))
-                        .with_interval(IntervalMock::new(5, 9)),
+                    Node::new(IntervalMock(5, 6))
+                        .with_interval(IntervalMock(3, 3))
+                        .with_interval(IntervalMock(0, 0))
+                        .with_interval(IntervalMock(6, 6))
+                        .with_interval(IntervalMock(5, 9)),
                 )),
             },
         ]
