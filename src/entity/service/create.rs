@@ -19,7 +19,7 @@ where
 {
     /// Executes the create entity transaction.
     pub fn execute(self) -> Result<Entity> {
-        let mut entity = if let Some(entity_id) = self.id {
+        let entity = if let Some(entity_id) = self.id {
             Entity::with_id(entity_id, self.name)
         } else {
             Entity::new(self.name)

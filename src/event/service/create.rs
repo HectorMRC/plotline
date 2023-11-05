@@ -4,8 +4,12 @@ use crate::{
     name::Name,
 };
 
-pub struct CreateEvent<R> {
+use super::EventRepository;
+
+pub struct CreateEvent<R>
+where
+    R: EventRepository {
     event_repo: R,
-    name: Name<Event>,
-    id: Option<Id<Event>>,
+    name: Name<Event<R::Interval>>,
+    id: Option<Id<Event<R::Interval>>>,
 }

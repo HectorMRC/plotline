@@ -1,5 +1,5 @@
 use crate::{
-    entity::repository::InMemoryEntityRepository, timeline::repository::InMemoryTimelineRepository,
+    entity::repository::InMemoryEntityRepository, timeline::{repository::InMemoryTimelineRepository, Period},
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -13,7 +13,10 @@ pub struct Snapshot<E, T> {
     pub timelines: Arc<T>,
 }
 
-impl Snapshot<InMemoryEntityRepository, InMemoryTimelineRepository> {
+impl Snapshot<
+    InMemoryEntityRepository,
+    InMemoryTimelineRepository<Period<usize>>
+> {
     /// Calls the given closure inferring all the generic types by the default ones.
     pub fn parse<D>(de: D) -> Self
     where

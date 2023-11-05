@@ -1,30 +1,28 @@
-use super::{service::EventRepository, Error, Event, Moment, Result};
-use crate::{id::Id, interval::Interval};
+use serde::{Serialize, Deserialize};
+
+use super::{service::EventRepository, Error, Event, Result};
+use crate::{id::Id, interval::Interval, serde::{slice_from_hashmap, hashmap_from_slice}};
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock},
+    sync::RwLock,
 };
 
-impl Interval for Arc<Event> {
-    type Bound = Moment;
-
-    fn lo(&self) -> Self::Bound {
-        self.as_ref().lo()
-    }
-
-    fn hi(&self) -> Self::Bound {
-        self.as_ref().hi()
-    }
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct InMemoryEventRepository<I>
+where I: Serialize + for<'a> Deserialize<'a> {
+    #[serde(
+        serialize_with = "slice_from_hashmap",
+        deserialize_with = "hashmap_from_slice",
+        default
+    )]
+    events: RwLock<HashMap<Id<Event<I>>, Event<I>>>,
 }
 
-// #[derive(Default, Serialize, Deserialize)]
-// #[serde(default)]
-pub struct InMemoryEventRepository {
-    events: RwLock<HashMap<Id<Event>, Arc<Event>>>,
-}
-
-impl EventRepository for InMemoryEventRepository {
-    fn create(&self, event: &Event) -> Result<()> {
+impl<I> EventRepository for InMemoryEventRepository<I>
+where I: Interval + Serialize + for<'a> Deserialize<'a> {
+    type Interval = I;
+    fn create(&self, event: &Event<Self::Interval>) -> Result<()> {
         let mut events = self
             .events
             .write()
@@ -34,7 +32,7 @@ impl EventRepository for InMemoryEventRepository {
             return Err(Error::AlreadyExists);
         }
 
-        events.insert(event.id, Arc::new(event.clone()));
+        events.insert(event.id, event.clone());
         Ok(())
     }
 }

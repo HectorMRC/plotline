@@ -4,31 +4,41 @@ pub mod service;
 
 mod error;
 pub use error::*;
+use serde::{Serialize, Deserialize};
 
 use crate::{
-    id::Id,
+    id::{Id, Identified},
     interval::Interval,
     name::Name,
-    timeline::{Moment, Period}, entity::Entity,
+    entity::Entity,
 };
 
 /// An Event is a specific happening in which one or more entities are involved.
-#[derive(Clone)]
-pub struct Event {
-    id: Id<Event>,
-    name: Name<Event>,
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Event<I> {
+    id: Id<Event<I>>,
+    name: Name<Event<I>>,
     entities: Vec<Id<Entity>>,
-    period: Period,
+    interval: I,
 }
 
-impl Interval for Event {
-    type Bound = Moment;
+impl<I> Identified<Event<I>> for Event<I> {
+    fn id(&self) -> Id<Event<I>> {
+        self.id
+    }
+}
+
+impl<I> Interval for Event<I> 
+where
+    I: Interval
+{
+    type Bound = I::Bound;
 
     fn lo(&self) -> Self::Bound {
-        self.period.lo()
+        self.interval.lo()
     }
 
     fn hi(&self) -> Self::Bound {
-        self.period.hi()
+        self.interval.hi()
     }
 }

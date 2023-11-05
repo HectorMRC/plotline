@@ -1,8 +1,12 @@
 //! Interval search tree implementation.
 
+use std::cmp;
+
+use serde::{Deserialize, Deserializer, Serialize};
+
 /// An Interval is anything delimited by two bounds.
-pub trait Interval {
-    type Bound: Eq + Ord;
+pub trait Interval: Clone {
+    type Bound: Eq + Ord + Copy;
 
     /// Retrives the lowest bound in the interval.
     fn lo(&self) -> Self::Bound;
@@ -24,6 +28,7 @@ pub trait Interval {
 }
 
 /// A Node is the minimum unit of information in an interval search tree.
+#[derive(Debug, Clone, PartialEq)]
 pub struct Node<I>
 where
     I: Interval,
@@ -108,6 +113,30 @@ where
         left.intersects(interval)
     }
 
+    /// Calls the given closure for each interval in the tree.
+    pub fn for_each<F>(&self, mut f: F)
+    where
+        F: FnMut(&I),
+    {
+        fn immersion<I, F>(node: &Node<I>, f: &mut F)
+        where
+            I: Interval,
+            F: FnMut(&I),
+        {
+            if let Some(left) = &node.left {
+                immersion(left, f);
+            };
+
+            f(&node.value);
+
+            if let Some(right) = &node.right {
+                immersion(right, f);
+            }
+        }
+
+        immersion(self, &mut f);
+    }
+
     /// Calls the given closure for each interval in the tree overlapping the given one.
     pub fn for_each_intersection<F>(&self, interval: &I, mut f: F)
     where
@@ -144,15 +173,103 @@ where
     pub fn remove(mut self, interval: &I) -> Option<Self> {
         todo!()
     }
+
+    /// Returns a vector with all the intervals in the tree rooted by self.
+    pub fn intervals(&self) -> Vec<I> {
+        let mut intervals = Vec::new();
+        self.for_each(|interval| intervals.push(interval.clone()));
+        intervals
+    }
 }
 
 /// An IntervalST represents an interval search tree that may be empty.
-#[derive(Default)]
-pub struct IntervaST<I>(Option<Node<I>>)
+#[derive(Clone, PartialEq)]
+pub struct IntervalST<I>(Option<Node<I>>)
 where
     I: Interval;
 
-impl<I> IntervaST<I>
+impl<I> Serialize for IntervalST<I>
+where
+    I: Serialize + Interval,
+{
+    /// Serializes an [IntervalST] as a vector of intervals.
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_seq(
+            self.0
+                .as_ref()
+                .map(|value| value.intervals())
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl<'de, I> Deserialize<'de> for IntervalST<I>
+where
+    I: Deserialize<'de> + Interval,
+{
+    /// Deserializes a [IntervalST] from a vector of intervals.
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::Error;
+
+        Vec::<I>::deserialize(deserializer)?
+            .try_into()
+            .map_err(Error::custom)
+    }
+}
+
+impl<I> Default for IntervalST<I>
+where
+    I: Interval,
+{
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
+
+impl<I> From<Vec<I>> for IntervalST<I>
+where
+    I: Interval,
+{
+    fn from(value: Vec<I>) -> Self {
+        fn immersion<I>(mut intervals: Vec<I>) -> Option<Node<I>>
+        where
+            I: Interval,
+        {
+            if intervals.is_empty() {
+                return Default::default();
+            }
+
+            let center = intervals.len() / 2;
+            let mut root: Node<I> = intervals.remove(center).into();
+            if !intervals.is_empty() {
+                let left = intervals.drain(0..center).collect();
+                root.left = immersion(left).map(Box::new);
+                root.right = immersion(intervals).map(Box::new);
+            }
+
+            root.max = cmp::max(
+                root.left.as_ref().map(|node| node.max),
+                root.right.as_ref().map(|node| node.max),
+            )
+            .max(Some(root.value.hi()))
+            .unwrap_or(root.value.hi());
+
+            Some(root)
+        }
+
+        let mut tree = IntervalST::default();
+        tree.0 = immersion(value);
+        tree
+    }
+}
+
+impl<I> IntervalST<I>
 where
     I: Interval,
 {
@@ -168,20 +285,15 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{Interval, Node};
+    use super::Node;
+    use crate::{interval::IntervalST, timeline::Period};
+    use std::fmt::Debug;
 
-    #[derive(Clone, Default, PartialEq)]
-    struct IntervalMock(usize, usize);
+    type IntervalMock = Period<usize>;
 
-    impl Interval for IntervalMock {
-        type Bound = usize;
-
-        fn lo(&self) -> Self::Bound {
-            self.0
-        }
-
-        fn hi(&self) -> Self::Bound {
-            self.1
+    impl Debug for IntervalST<IntervalMock> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_tuple("IntervalST").field(&self.0).finish()
         }
     }
 
@@ -197,41 +309,41 @@ mod tests {
         vec![
             Test {
                 name: "no intersaction",
-                tree: Node::new(IntervalMock(0, 2)),
-                query: IntervalMock(3, 3),
+                tree: Node::new(IntervalMock::new(0, 2)),
+                query: IntervalMock::new(3, 3),
                 output: false,
             },
             Test {
                 name: "left-hand intersaction",
-                tree: Node::new(IntervalMock(0, 2)),
-                query: IntervalMock(1, 3),
+                tree: Node::new(IntervalMock::new(0, 2)),
+                query: IntervalMock::new(1, 3),
                 output: true,
             },
             Test {
                 name: "right-hand intersaction",
-                tree: Node::new(IntervalMock(2, 4)),
-                query: IntervalMock(0, 3),
+                tree: Node::new(IntervalMock::new(2, 4)),
+                query: IntervalMock::new(0, 3),
                 output: true,
             },
             Test {
                 name: "superset intersaction",
-                tree: Node::new(IntervalMock(0, 3)),
-                query: IntervalMock(1, 2),
+                tree: Node::new(IntervalMock::new(0, 3)),
+                query: IntervalMock::new(1, 2),
                 output: true,
             },
             Test {
                 name: "subset intersaction",
-                tree: Node::new(IntervalMock(1, 2)),
-                query: IntervalMock(0, 3),
+                tree: Node::new(IntervalMock::new(1, 2)),
+                query: IntervalMock::new(0, 3),
                 output: true,
             },
             Test {
                 name: "complex tree",
-                tree: Node::new(IntervalMock(5, 6))
-                    .with_interval(IntervalMock(0, 4))
-                    .with_interval(IntervalMock(2, 6))
-                    .with_interval(IntervalMock(7, 9)),
-                query: IntervalMock(1, 2),
+                tree: Node::new(IntervalMock::new(5, 6))
+                    .with_interval(IntervalMock::new(0, 4))
+                    .with_interval(IntervalMock::new(2, 6))
+                    .with_interval(IntervalMock::new(7, 9)),
+                query: IntervalMock::new(1, 2),
                 output: true,
             },
         ]
@@ -258,19 +370,23 @@ mod tests {
         vec![
             Test {
                 name: "no intersactions",
-                tree: Node::new(IntervalMock(1, 2)),
-                query: IntervalMock(0, 0),
+                tree: Node::new(IntervalMock::new(1, 2)),
+                query: IntervalMock::new(0, 0),
                 output: Vec::default(),
             },
             Test {
                 name: "multiple intersactions",
-                tree: Node::new(IntervalMock(5, 6))
-                    .with_interval(IntervalMock(0, 2))
-                    .with_interval(IntervalMock(3, 3))
-                    .with_interval(IntervalMock(5, 9))
-                    .with_interval(IntervalMock(6, 6)),
-                query: IntervalMock(3, 5),
-                output: vec![IntervalMock(5, 6), IntervalMock(3, 3), IntervalMock(5, 9)],
+                tree: Node::new(IntervalMock::new(5, 6))
+                    .with_interval(IntervalMock::new(0, 2))
+                    .with_interval(IntervalMock::new(3, 3))
+                    .with_interval(IntervalMock::new(5, 9))
+                    .with_interval(IntervalMock::new(6, 6)),
+                query: IntervalMock::new(3, 5),
+                output: vec![
+                    IntervalMock::new(5, 6),
+                    IntervalMock::new(3, 3),
+                    IntervalMock::new(5, 9),
+                ],
             },
         ]
         .into_iter()
@@ -284,5 +400,44 @@ mod tests {
                 .into_iter()
                 .for_each(|interval| assert!(intervals.contains(&interval), "{}", test.name));
         })
+    }
+
+    #[test]
+    fn interval_search_tree_from_vector() {
+        struct Test<'a> {
+            name: &'a str,
+            input: Vec<IntervalMock>,
+            output: IntervalST<IntervalMock>,
+        }
+
+        vec![
+            Test {
+                name: "node from empty vector must fail",
+                input: Vec::new(),
+                output: IntervalST::default(),
+            },
+            Test {
+                name: "node from non empty vec must not fail",
+                input: vec![
+                    IntervalMock::new(0, 0),
+                    IntervalMock::new(3, 3),
+                    IntervalMock::new(5, 6),
+                    IntervalMock::new(5, 9),
+                    IntervalMock::new(6, 6),
+                ],
+                output: IntervalST(Some(
+                    Node::new(IntervalMock::new(5, 6))
+                        .with_interval(IntervalMock::new(3, 3))
+                        .with_interval(IntervalMock::new(0, 0))
+                        .with_interval(IntervalMock::new(6, 6))
+                        .with_interval(IntervalMock::new(5, 9)),
+                )),
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            let tree: IntervalST<IntervalMock> = test.input.into();
+            assert_eq!(tree, test.output, "{0}", test.name);
+        });
     }
 }
