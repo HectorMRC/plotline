@@ -5,10 +5,10 @@ use clap::{Args, Subcommand};
 #[derive(Args)]
 struct EventCreateArgs {
     /// The name of the event.
-    #[arg(short, long, num_args(1..))]
+    #[arg(short, long, num_args(1..), required = true)]
     name: Vec<String>,
     /// The period during which the event takes place.
-    #[arg(short, long, num_args(1..))]
+    #[arg(short, long, num_args(1..), required = true)]
     period: Vec<String>,
     /// The uuid string of the event.
     #[arg(short, long)]
