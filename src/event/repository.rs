@@ -1,7 +1,7 @@
 use super::{service::EventRepository, Error, Event, Result};
-use crate::interval::{Interval, IntervalST};
+use crate::{id::Id, interval::Interval};
 use serde::{Deserialize, Serialize};
-use std::sync::RwLock;
+use std::{collections::HashMap, sync::RwLock};
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -9,7 +9,7 @@ pub struct InMemoryEventRepository<I>
 where
     I: Interval,
 {
-    events: RwLock<IntervalST<Event<I>>>,
+    events: RwLock<HashMap<Id<Event<I>>, Event<I>>>,
 }
 
 impl<I> EventRepository for InMemoryEventRepository<I>
@@ -23,11 +23,11 @@ where
             .write()
             .map_err(|err| Error::Lock(err.to_string()))?;
 
-        if events.find(|e| e.id == event.id).is_some() {
+        if events.contains_key(&event.id) {
             return Err(Error::AlreadyExists);
         }
 
-        events.insert(event.clone());
+        events.insert(event.id, event.clone());
         Ok(())
     }
 }

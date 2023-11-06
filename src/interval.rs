@@ -122,12 +122,12 @@ where
             I: Interval,
             F: FnMut(&I),
         {
-            if node.value.intersects(interval) {
-                f(&node.value);
-            }
-
             if let Some(right) = &node.right {
                 immersion(right, interval, f);
+            }
+
+            if node.value.intersects(interval) {
+                f(&node.value);
             }
 
             let Some(left) = &node.left else {
@@ -255,48 +255,6 @@ impl<I> IntervalST<I>
 where
     I: Interval,
 {
-    /// Inserts the given interval in the tree, becoming the root if there was no node.
-    pub fn insert(&mut self, interval: I) {
-        if let Some(root) = &mut self.0 {
-            root.insert(interval);
-        } else {
-            self.0 = Some(Node::new(interval));
-        }
-    }
-
-    /// Returns the first interval in the tree for which the closure F returns true. If no interval
-    /// does so, this methods return [Option::None].
-    pub fn find<F>(&self, f: F) -> Option<I>
-    where
-        F: Fn(&I) -> bool,
-    {
-        fn immersion<I, F>(node: &Node<I>, f: &F) -> Option<I>
-        where
-            I: Interval,
-            F: Fn(&I) -> bool,
-        {
-            if let Some(left) = &node.left {
-                immersion(left, f);
-            };
-
-            if f(&node.value) {
-                return Some(node.value.clone());
-            }
-
-            if let Some(right) = &node.right {
-                immersion(right, f);
-            };
-
-            None
-        }
-
-        let Some(root) = &self.0 else {
-            return None;
-        };
-
-        immersion(root, &f)
-    }
-
     /// Calls the given closure for each interval in the tree.
     pub fn for_each<F>(&self, mut f: F)
     where
