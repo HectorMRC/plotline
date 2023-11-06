@@ -1,8 +1,7 @@
 //! Interval search tree implementation.
 
-use std::cmp;
-
 use serde::{Deserialize, Deserializer, Serialize};
+use std::cmp;
 
 /// An Interval is anything delimited by two bounds.
 pub trait Interval: Clone {
@@ -113,30 +112,6 @@ where
         left.intersects(interval)
     }
 
-    /// Calls the given closure for each interval in the tree.
-    pub fn for_each<F>(&self, mut f: F)
-    where
-        F: FnMut(&I),
-    {
-        fn immersion<I, F>(node: &Node<I>, f: &mut F)
-        where
-            I: Interval,
-            F: FnMut(&I),
-        {
-            if let Some(left) = &node.left {
-                immersion(left, f);
-            };
-
-            f(&node.value);
-
-            if let Some(right) = &node.right {
-                immersion(right, f);
-            }
-        }
-
-        immersion(self, &mut f);
-    }
-
     /// Calls the given closure for each interval in the tree overlapping the given one.
     pub fn for_each_intersection<F>(&self, interval: &I, mut f: F)
     where
@@ -174,13 +149,6 @@ where
         todo!()
     }
 
-    /// Returns a vector with all the intervals in the tree rooted by self.
-    pub fn intervals(&self) -> Vec<I> {
-        let mut intervals = Vec::new();
-        self.for_each(|interval| intervals.push(interval.clone()));
-        intervals
-    }
-
     /// Returns the total amount of intervals in the tree.
     pub fn count(&self) -> usize {
         let mut count = 1;
@@ -216,12 +184,7 @@ where
     where
         S: serde::Serializer,
     {
-        serializer.collect_seq(
-            self.0
-                .as_ref()
-                .map(|value| value.intervals())
-                .unwrap_or_default(),
-        )
+        serializer.collect_seq(self.intervals())
     }
 }
 
@@ -299,6 +262,74 @@ where
         } else {
             self.0 = Some(Node::new(interval));
         }
+    }
+
+    /// Returns the first interval in the tree for which the closure F returns true. If no interval
+    /// does so, this methods return [Option::None].
+    pub fn find<F>(&self, f: F) -> Option<I>
+    where
+        F: Fn(&I) -> bool,
+    {
+        fn immersion<I, F>(node: &Node<I>, f: &F) -> Option<I>
+        where
+            I: Interval,
+            F: Fn(&I) -> bool,
+        {
+            if let Some(left) = &node.left {
+                immersion(left, f);
+            };
+
+            if f(&node.value) {
+                return Some(node.value.clone());
+            }
+
+            if let Some(right) = &node.right {
+                immersion(right, f);
+            };
+
+            None
+        }
+
+        let Some(root) = &self.0 else {
+            return None;
+        };
+
+        immersion(root, &f)
+    }
+
+    /// Calls the given closure for each interval in the tree.
+    pub fn for_each<F>(&self, mut f: F)
+    where
+        F: FnMut(&I),
+    {
+        fn immersion<I, F>(node: &Node<I>, f: &mut F)
+        where
+            I: Interval,
+            F: FnMut(&I),
+        {
+            if let Some(left) = &node.left {
+                immersion(left, f);
+            };
+
+            f(&node.value);
+
+            if let Some(right) = &node.right {
+                immersion(right, f);
+            }
+        }
+
+        let Some(root) = &self.0 else {
+            return;
+        };
+
+        immersion(root, &mut f);
+    }
+
+    /// Returns a vector with all the intervals in the tree rooted by self.
+    pub fn intervals(&self) -> Vec<I> {
+        let mut intervals = Vec::new();
+        self.for_each(|interval| intervals.push(interval.clone()));
+        intervals
     }
 }
 

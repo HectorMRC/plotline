@@ -5,25 +5,49 @@ use clap::{Args, Subcommand};
 #[derive(Args)]
 struct EventCreateArgs {
     /// The name of the event.
-    #[arg(short, long, num_args(1..), required = true)]
-    name: Vec<String>,
+    name: String,
     /// The period during which the event takes place.
-    #[arg(short, long, num_args(1..), required = true)]
-    period: Vec<String>,
+    #[arg(required = true, num_args(1..=2))]
+    interval: Vec<String>,
     /// The uuid string of the event.
     #[arg(short, long)]
     id: Option<String>,
+}
+
+#[derive(Args)]
+struct EventAddEntitiesArgs {
+    /// The ids of all the entities to be added.
+    #[arg(required = true, num_args(1..))]
+    entities: Vec<String>,
+    /// The id of the target event.
+    event: String,
+}
+
+#[derive(Subcommand)]
+enum EventEntitiesSubCommand {
+    /// Add a new entity into the event.
+    Add(EventAddEntitiesArgs),
+}
+
+#[derive(Args)]
+#[command(arg_required_else_help = true)]
+struct EventEntitiesCommand {
+    #[command(subcommand)]
+    command: EventEntitiesSubCommand,
 }
 
 #[derive(Subcommand)]
 enum EventSubCommand {
     /// Create a new event.
     Create(EventCreateArgs),
+    /// Manage event entities.
+    Entities(EventEntitiesCommand),
 }
 
 #[derive(Args)]
 #[command(arg_required_else_help = true)]
 pub struct EventCommand {
+    /// The action to perform.
     #[command(subcommand)]
     command: EventSubCommand,
 }
@@ -31,8 +55,8 @@ pub struct EventCommand {
 impl<R> EventService<R>
 where
     R: 'static + EventRepository + Sync + Send,
-    R::Interval: TryFrom<String>,
-    <R::Interval as TryFrom<String>>::Error: Into<CliError>,
+    R::Interval: TryFrom<Vec<String>>,
+    <R::Interval as TryFrom<Vec<String>>>::Error: Into<CliError>,
 {
     /// Given a [EventCommand], executes the corresponding logic.
     pub fn execute(&self, event_cmd: EventCommand) -> CliResult {
@@ -40,13 +64,16 @@ where
             EventSubCommand::Create(args) => {
                 let event = self
                     .create_event(
-                        args.name.join(" ").try_into()?,
-                        args.period.join(" ").try_into().map_err(Into::into)?,
+                        args.name.try_into()?,
+                        args.interval.try_into().map_err(Into::into)?,
                     )
                     .with_id(args.id.map(TryInto::try_into).transpose()?)
                     .execute()?;
 
                 println!("{}", event.id);
+            }
+            EventSubCommand::Entities(args) => {
+                todo!()
             }
         }
 

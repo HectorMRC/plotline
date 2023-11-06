@@ -1,20 +1,15 @@
 use super::{
     fmt::EntityFmt,
     service::{EntityFilter, EntityRepository, EntityService},
-    Error,
 };
-use crate::cli::CliResult;
+use crate::cli::{display_all, CliResult};
 use clap::{Args, Subcommand};
-use std::{
-    io::{stderr, stdout, Write},
-    sync::mpsc,
-};
+use std::io::{stdout, Write};
 
 #[derive(Args)]
 struct EntityCreateArgs {
     /// The name of the entity.
-    #[arg(num_args(1..))]
-    name: Vec<String>,
+    name: String,
     /// The uuid string of the entity.
     #[arg(short, long)]
     id: Option<String>,
@@ -66,7 +61,7 @@ where
         match entity_cmd.command {
             EntitySubCommand::Create(args) => {
                 let entity = self
-                    .create_entity(args.name.join(" ").try_into()?)
+                    .create_entity(args.name.try_into()?)
                     .with_id(args.id.map(TryInto::try_into).transpose()?)
                     .execute()?;
 
@@ -93,32 +88,11 @@ where
                 print!("{}", EntityFmt::column(&entity));
             }
 
-            EntitySubCommand::Remove(args) => {
-                let receiver = std::thread::scope(|scope| {
-                    let (sender, receiver) = mpsc::channel();
-                    args.ids.into_iter().for_each(|id| {
-                        let sender = sender.clone();
-                        scope.spawn(move || {
-                            sender.send(
-                                id.try_into()
-                                    .map_err(Error::from)
-                                    .and_then(|id| self.remove_entity(id).execute()),
-                            )
-                        });
-                    });
-
-                    receiver
-                });
-
-                let mut stdout = stdout().lock();
-                let mut stderr = stderr().lock();
-                while let Ok(result) = receiver.recv() {
-                    match result {
-                        Ok(entity) => writeln!(stdout, "{}", entity.id)?,
-                        Err(error) => writeln!(stderr, "{error}")?,
-                    }
-                }
-            }
+            EntitySubCommand::Remove(args) => display_all(args.ids.into_iter(), |id| {
+                self.remove_entity(id.try_into()?)
+                    .execute()
+                    .map(|entity| entity.id)
+            })?,
         }
 
         Ok(())
