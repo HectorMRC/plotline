@@ -5,15 +5,12 @@ use super::{error::Result, Event};
 use crate::{guard::Guard, id::Id, interval::Interval};
 use std::sync::Arc;
 
-/// An EventGuard holds an [Event], ensuring its atomicity.
-pub trait EventGuard<I>: Guard<Event<I>> {}
-
 pub trait EventRepository {
     type Interval: Interval;
-    type Guard: EventGuard<Self::Interval>;
+    type Guard<'a>: Guard<'a, Event<Self::Interval>> where Self: 'a, Self::Interval: 'a;
 
     fn create(&self, event: &Event<Self::Interval>) -> Result<()>;
-    fn find(&self, id: Id<Event<Self::Interval>>) -> Result<Self::Guard>;
+    fn find<'a>(&'a self, id: Id<Event<Self::Interval>>) -> Result<Self::Guard<'a>>;
 }
 
 pub struct EventService<R> {

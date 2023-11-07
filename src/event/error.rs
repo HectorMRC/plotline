@@ -6,4 +6,6 @@ pub enum Error {
     Lock(String),
     #[error("entity already exists")]
     AlreadyExists,
+    #[error("event not found")]
+    NotFound,
 }
