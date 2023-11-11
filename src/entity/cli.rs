@@ -2,7 +2,7 @@ use super::{
     fmt::EntityFmt,
     service::{EntityFilter, EntityRepository, EntityService},
 };
-use crate::cli::{display_all, CliResult};
+use crate::cli::{display_each_result, CliResult};
 use clap::{Args, Subcommand};
 use std::io::{stdout, Write};
 
@@ -88,7 +88,7 @@ where
                 print!("{}", EntityFmt::column(&entity));
             }
 
-            EntitySubCommand::Remove(args) => display_all(args.ids.into_iter(), |id| {
+            EntitySubCommand::Remove(args) => display_each_result(args.ids.into_iter(), |id| {
                 let entity_id = id.try_into()?;
                 self.remove_entity(entity_id).execute().map(|_| entity_id)
             })?,

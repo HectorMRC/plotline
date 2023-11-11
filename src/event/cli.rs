@@ -1,6 +1,6 @@
 use super::service::{EventRepository, EventService};
 use crate::{
-    cli::{display_all, CliError, CliResult},
+    cli::{display_each_result, CliError, CliResult},
     entity::service::EntityRepository,
 };
 use clap::{Args, Subcommand};
@@ -79,7 +79,7 @@ where
             EventSubCommand::Entities(args) => match args.command {
                 EventEntitiesSubCommand::Add(args) => {
                     let event_id = args.event.try_into()?;
-                    display_all(args.entities.into_iter(), |entity| {
+                    display_each_result(args.entities.into_iter(), |entity| {
                         let entity_id = entity.try_into()?;
                         self.add_entity(entity_id, event_id)
                             .execute()

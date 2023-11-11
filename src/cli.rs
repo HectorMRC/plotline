@@ -31,7 +31,7 @@ pub enum CliError {
 
 /// Calls the given closure for each item in the given iterator and displays the result through the
 /// stdout if is [Result::Ok], or through the stderr otherwise.
-pub fn display_all<I, F, T, E>(iter: I, f: F) -> Result<(), std::io::Error>
+pub fn display_each_result<I, F, T, E>(iter: I, f: F) -> Result<(), std::io::Error>
 where
     I: Iterator,
     I::Item: Sync + Send,
