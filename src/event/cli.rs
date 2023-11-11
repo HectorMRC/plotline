@@ -1,5 +1,8 @@
 use super::service::{EventRepository, EventService};
-use crate::cli::{CliError, CliResult};
+use crate::{
+    cli::{display_all, CliError, CliResult},
+    entity::service::EntityRepository,
+};
 use clap::{Args, Subcommand};
 
 #[derive(Args)]
@@ -52,10 +55,11 @@ pub struct EventCommand {
     command: EventSubCommand,
 }
 
-impl<R> EventService<R>
+impl<R, E> EventService<R, E>
 where
     R: 'static + EventRepository + Sync + Send,
-    R::Interval: TryFrom<Vec<String>>,
+    E: 'static + EntityRepository + Sync + Send,
+    R::Interval: TryFrom<Vec<String>> + Sync + Send,
     <R::Interval as TryFrom<Vec<String>>>::Error: Into<CliError>,
 {
     /// Given a [EventCommand], executes the corresponding logic.
@@ -72,9 +76,17 @@ where
 
                 println!("{}", event.id);
             }
-            EventSubCommand::Entities(args) => {
-                todo!()
-            }
+            EventSubCommand::Entities(args) => match args.command {
+                EventEntitiesSubCommand::Add(args) => {
+                    let event_id = args.event.try_into()?;
+                    display_all(args.entities.into_iter(), |entity| {
+                        let entity_id = entity.try_into()?;
+                        self.add_entity(entity_id, event_id)
+                            .execute()
+                            .map(|_| entity_id)
+                    })?;
+                }
+            },
         }
 
         Ok(())

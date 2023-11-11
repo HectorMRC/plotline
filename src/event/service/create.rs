@@ -2,6 +2,7 @@ use super::{EventRepository, EventService};
 use crate::{event::Event, event::Result, id::Id, name::Name};
 use std::sync::Arc;
 
+/// Implements the create event transaction.
 pub struct CreateEvent<R>
 where
     R: EventRepository,
@@ -35,7 +36,7 @@ where
     }
 }
 
-impl<R> EventService<R>
+impl<R, E> EventService<R, E>
 where
     R: EventRepository,
 {

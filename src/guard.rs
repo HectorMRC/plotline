@@ -1,46 +1,92 @@
-use std::sync::{Mutex, MutexGuard, PoisonError, Arc};
+use std::{
+    ops::{Deref, DerefMut},
+    sync::{Arc, Mutex, MutexGuard},
+};
 
-/// A Guard holds a copy of T while keeping locked the original value, ensuring its
-/// consistency during transactions.
-pub trait Guard<'a, T>: AsRef<T> + AsMut<T> {
-    /// Commits the changes into the locked value, releasing the resource at the end.
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("posisoned resource")]
+    Poisoned,
+}
+
+/// Tx represents a resource to be manipulated transactionally.
+pub trait Tx<T> {
+    type Guard<'a>: TxGuard<'a, T>
+    where
+        Self: 'a,
+        T: 'a;
+
+    /// Acquires the resource, blocking the current thread until it is available
+    /// to do so.
+    fn begin<'a>(&'a self) -> Result<Self::Guard<'a>, Error>;
+}
+
+/// A TxGuard holds a copy of T while keeping locked the original value, ensuring
+/// its consistency between transactions.
+pub trait TxGuard<'a, T>: Deref + DerefMut + AsRef<T> + AsMut<T> {
+    /// Releases the resource right after updating its content with the
+    /// manipulated data.
     fn commit(self);
 }
 
-/// Guarded is an implementation of [Guard].
-pub struct Guarded<'a, T> {
-    sandbox: T,
-    guard: MutexGuard<'a, T>,
+pub struct Resource<T> {
     mu: Arc<Mutex<T>>,
 }
 
-impl<'a, T> AsRef<T> for Guarded<'a, T> {
-    fn as_ref(&self) -> &T {
-        &self.sandbox
-    }
-}
+impl<T> Tx<T> for Resource<T>
+where
+    T: Clone,
+{
+    type Guard<'a> = ResourceGuard<'a, T> where Self: 'a, T: 'a;
 
-impl<'a, T> AsMut<T> for Guarded<'a, T> {
-    fn as_mut(&mut self) -> &mut T {
-        &mut self.sandbox
-    }
-}
-
-impl<'a, T> TryFrom<Arc<Mutex<T>>> for Guarded<'a, T>
-where T: Clone {
-    type Error = PoisonError<MutexGuard<'a, T>>;
-
-    fn try_from(mu: Arc<Mutex<T>>) -> Result<Self, Self::Error> {
-        mu.clone().lock().map(|guard| Self {
-            sandbox: guard.clone(),
+    fn begin<'a>(&'a self) -> Result<Self::Guard<'a>, Error> {
+        let guard = self.mu.lock().map_err(|_| Error::Poisoned)?;
+        Ok(ResourceGuard {
+            data: guard.clone(),
             guard,
-            mu,
         })
     }
 }
 
-impl<'a, T> Guard<'a, T> for Guarded<'a, T> {
+impl<T> From<Arc<Mutex<T>>> for Resource<T> {
+    fn from(value: Arc<Mutex<T>>) -> Self {
+        Self { mu: value }
+    }
+}
+
+pub struct ResourceGuard<'a, T> {
+    guard: MutexGuard<'a, T>,
+    data: T,
+}
+
+impl<'a, T> Deref for ResourceGuard<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+impl<'a, T> DerefMut for ResourceGuard<'a, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
+    }
+}
+
+impl<'a, T> AsRef<T> for ResourceGuard<'a, T> {
+    fn as_ref(&self) -> &T {
+        &self.data
+    }
+}
+
+impl<'a, T> AsMut<T> for ResourceGuard<'a, T> {
+    fn as_mut(&mut self) -> &mut T {
+        &mut self.data
+    }
+}
+
+impl<'a, T> TxGuard<'a, T> for ResourceGuard<'a, T> {
     fn commit(mut self) {
-        *self.guard = self.sandbox;
+        *self.guard = self.data;
     }
 }

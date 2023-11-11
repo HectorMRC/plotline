@@ -1,7 +1,10 @@
 use super::{service::EventRepository, Error, Event, Result};
-use crate::{id::Id, interval::Interval, guard::Guarded};
+use crate::{guard::Resource, id::Id, interval::Interval};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::{Arc, RwLock, Mutex}};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex, RwLock},
+};
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -17,9 +20,9 @@ where
     I: Interval,
 {
     type Interval = I;
-    type Guard<'a> = Guarded<'a, Event<Self::Interval>> where Self: 'a,  Self::Interval: 'a;
+    type Tx = Resource<Event<I>>;
 
-    fn create(&self, event: &Event<Self::Interval>) -> Result<()> {
+    fn create(&self, event: &Event<I>) -> Result<()> {
         let mut events = self
             .events
             .write()
@@ -33,18 +36,16 @@ where
         Ok(())
     }
 
-    fn find<'a>(&'a self, id: Id<Event<Self::Interval>>) -> Result<Self::Guard<'a>> {
+    fn find(&self, id: Id<Event<I>>) -> Result<Self::Tx> {
         let events = self
             .events
             .read()
             .map_err(|err| Error::Lock(err.to_string()))?;
 
-        let Some(event) = events.get(&id).cloned() else {
-            return Err(Error::NotFound);
-        };
-
-        event.try_into().map_err(|_| Error::NotFound)
+        events
+            .get(&id)
+            .cloned()
+            .ok_or(Error::NotFound)
+            .map(Resource::from)
     }
-
-    
 }
