@@ -1,5 +1,8 @@
 use super::{EntityFilter, EntityRepository, EntityService};
-use crate::entity::{error::Result, Entity, Error};
+use crate::{
+    entity::{error::Result, Entity, Error},
+    guard::Tx,
+};
 use std::sync::Arc;
 
 /// Implements the find query, through which one, and exactly one, entity must be retrived.
@@ -21,7 +24,8 @@ where
             return Err(Error::NotFound);
         }
 
-        Ok(entities[0].clone())
+        let entity = entities[0].begin()?;
+        Ok(entity.as_ref().clone())
     }
 }
 

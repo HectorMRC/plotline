@@ -4,11 +4,15 @@ use super::{
     Entity,
 };
 use crate::{
+    guard::Resource,
     id::Id,
     serde::{hashmap_from_slice, slice_from_hashmap},
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::RwLock};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex, RwLock},
+};
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -18,27 +22,36 @@ pub struct InMemoryEntityRepository {
         deserialize_with = "hashmap_from_slice",
         default
     )]
-    entities: RwLock<HashMap<Id<Entity>, Entity>>,
+    entities: RwLock<HashMap<Id<Entity>, Arc<Mutex<Entity>>>>,
 }
 
 impl EntityRepository for InMemoryEntityRepository {
-    fn find(&self, id: &Id<Entity>) -> Result<Entity> {
+    type Tx = Resource<Entity>;
+
+    fn find(&self, id: Id<Entity>) -> Result<Self::Tx> {
         self.entities
             .read()
             .map_err(|err| Error::Lock(err.to_string()))?
-            .get(id)
+            .get(&id)
             .cloned()
+            .map(Resource::from)
             .ok_or(Error::NotFound)
     }
 
-    fn filter(&self, filter: &EntityFilter) -> Result<Vec<Entity>> {
+    fn filter(&self, filter: &EntityFilter) -> Result<Vec<Self::Tx>> {
         Ok(self
             .entities
             .read()
             .map_err(|err| Error::Lock(err.to_string()))?
             .values()
-            .filter(|entity| filter.filter(entity))
+            .filter(|entity| {
+                entity
+                    .lock()
+                    .map(|entity| filter.filter(&entity))
+                    .unwrap_or_default()
+            })
             .cloned()
+            .map(Resource::from)
             .collect())
     }
 
@@ -52,17 +65,17 @@ impl EntityRepository for InMemoryEntityRepository {
             return Err(Error::AlreadyExists);
         }
 
-        entities.insert(entity.id, entity.clone());
+        entities.insert(entity.id, Arc::new(Mutex::new(entity.clone())));
         Ok(())
     }
 
-    fn delete(&self, entity: &Entity) -> Result<()> {
+    fn delete(&self, id: Id<Entity>) -> Result<()> {
         let mut entities = self
             .entities
             .write()
             .map_err(|err| Error::Lock(err.to_string()))?;
 
-        if entities.remove(&entity.id).is_none() {
+        if entities.remove(&id).is_none() {
             return Err(Error::NotFound);
         }
 

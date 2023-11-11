@@ -1,5 +1,10 @@
 use super::{service::EventRepository, Error, Event, Result};
-use crate::{guard::Resource, id::Id, interval::Interval};
+use crate::{
+    guard::Resource,
+    id::Id,
+    interval::Interval,
+    serde::{hashmap_from_slice, slice_from_hashmap},
+};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -10,14 +15,19 @@ use std::{
 #[serde(default)]
 pub struct InMemoryEventRepository<I>
 where
-    I: Interval,
+    I: Interval + Serialize + for<'a> Deserialize<'a>,
 {
+    #[serde(
+        serialize_with = "slice_from_hashmap",
+        deserialize_with = "hashmap_from_slice",
+        default
+    )]
     events: RwLock<HashMap<Id<Event<I>>, Arc<Mutex<Event<I>>>>>,
 }
 
 impl<I> EventRepository for InMemoryEventRepository<I>
 where
-    I: Interval,
+    I: Interval + Serialize + for<'a> Deserialize<'a>,
 {
     type Interval = I;
     type Tx = Resource<Event<I>>;

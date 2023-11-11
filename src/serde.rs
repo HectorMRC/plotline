@@ -1,10 +1,13 @@
 use crate::id::{Id, Identified};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{collections::HashMap, sync::RwLock};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex, RwLock},
+};
 
 /// Serializes a hashmap into a slice of items.
 pub(crate) fn slice_from_hashmap<S, T>(
-    hashmap: &RwLock<HashMap<Id<T>, T>>,
+    hashmap: &RwLock<HashMap<Id<T>, Arc<Mutex<T>>>>,
     serializer: S,
 ) -> std::result::Result<S::Ok, S::Error>
 where
@@ -24,7 +27,7 @@ where
 /// Deserializes an slice of [Identified] items as a hasmap indexed by the [Id] of each value.
 pub(crate) fn hashmap_from_slice<'de, D, T>(
     deserializer: D,
-) -> std::result::Result<RwLock<HashMap<Id<T>, T>>, D::Error>
+) -> std::result::Result<RwLock<HashMap<Id<T>, Arc<Mutex<T>>>>, D::Error>
 where
     D: Deserializer<'de>,
     T: Deserialize<'de> + Identified<T>,
@@ -32,6 +35,6 @@ where
     Ok(RwLock::new(HashMap::from_iter(
         Vec::<T>::deserialize(deserializer)?
             .into_iter()
-            .map(|value| (value.id(), value)),
+            .map(|value| (value.id(), Arc::new(Mutex::new(value)))),
     )))
 }

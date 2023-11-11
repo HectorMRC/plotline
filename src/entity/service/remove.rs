@@ -16,9 +16,8 @@ where
     R: EntityRepository,
 {
     /// Executes the remove entity transaction.
-    pub fn execute(self) -> Result<Entity> {
-        let entity = self.entity_repo.find(&self.id)?;
-        self.entity_repo.delete(&entity).map(|_| entity)
+    pub fn execute(self) -> Result<()> {
+        self.entity_repo.delete(self.id)
     }
 }
 

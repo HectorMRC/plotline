@@ -1,5 +1,6 @@
 use super::{EntityRepository, EntityService};
 use crate::entity::{error::Result, Entity};
+use crate::guard::Tx;
 use crate::{id::Id, name::Name};
 use std::sync::Arc;
 
@@ -52,7 +53,14 @@ where
 {
     /// Executes the filter query, through which zero o more entities may be retrived.
     pub fn execute(self) -> Result<Vec<Entity>> {
-        self.entity_repo.filter(&self.filter)
+        let entities_tx = self.entity_repo.filter(&self.filter)?;
+        let mut entities = Vec::with_capacity(entities_tx.len());
+        for entity_tx in entities_tx {
+            let entity = entity_tx.begin()?;
+            entities.push(entity.as_ref().clone());
+        }
+
+        Ok(entities)
     }
 }
 

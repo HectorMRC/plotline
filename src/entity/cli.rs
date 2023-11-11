@@ -89,9 +89,8 @@ where
             }
 
             EntitySubCommand::Remove(args) => display_all(args.ids.into_iter(), |id| {
-                self.remove_entity(id.try_into()?)
-                    .execute()
-                    .map(|entity| entity.id)
+                let entity_id = id.try_into()?;
+                self.remove_entity(entity_id).execute().map(|_| entity_id)
             })?,
         }
 

@@ -25,11 +25,13 @@ where
 {
     /// Executes the add entity transation.
     pub fn execute(self) -> Result<()> {
-        let entity = self.entity_repo.find(&self.entity_id)?;
+        let entity_tx = self.entity_repo.find(self.entity_id)?;
+        let entity = entity_tx.begin()?;
+
         let event_tx = self.event_repo.find(self.event_id)?;
         let mut event = event_tx.begin()?;
 
-        event.as_mut().entities.push(entity.id());
+        event.as_mut().entities.push(entity.as_ref().id());
 
         event.commit();
         Ok(())
