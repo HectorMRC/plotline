@@ -33,12 +33,12 @@ struct EntityFindArgs {
 
 #[derive(Subcommand)]
 enum EntitySubCommand {
-    /// Create a new entity
+    /// Create a new entity.
     Create(EntityCreateArgs),
-    /// List entities in plotfile
+    /// List all entities.
     #[command(alias("ls"))]
     List,
-    /// Remove one or more entities
+    /// Remove one or more entities.
     #[command(alias("rm"))]
     Remove(EntityRemoveArgs),
     /// Displays the information of the entity.
