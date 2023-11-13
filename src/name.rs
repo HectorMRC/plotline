@@ -1,5 +1,3 @@
-use once_cell::sync::Lazy;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, marker::PhantomData};
 
@@ -11,8 +9,11 @@ pub enum Error {
     NotAName,
 }
 
-/// Matches any combination of line-break characters.
-static LINEBREAK_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\r\n|\r|\n)").unwrap());
+/// Returns true if, and only if, the given char c is an invalid character inside a name. 
+fn is_invalid_char(c: char) -> bool {
+    const INVALID_CHARS: [char;3] = ['\n', '\r', ' '];
+    INVALID_CHARS.contains(&c)
+}
 
 /// An Name identifies one or more resources.
 #[derive(Serialize, Deserialize, Clone)]
@@ -42,12 +43,13 @@ impl<T> Display for Name<T> {
     }
 }
 
+
 impl<T> TryFrom<String> for Name<T> {
     type Error = Error;
 
-    /// A name must consist of a non-empty and single line string.
+    /// A name must consist of a single word string.
     fn try_from(value: String) -> Result<Self> {
-        if value.is_empty() || LINEBREAK_REGEX.is_match(&value) {
+        if value.is_empty() || value.contains(is_invalid_char) {
             return Err(Error::NotAName);
         }
 
