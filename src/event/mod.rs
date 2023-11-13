@@ -9,7 +9,7 @@ pub use error::*;
 
 use crate::{
     entity::Entity,
-    id::{Id, Identified},
+    id::{Id, Identifiable},
     interval::Interval,
     name::Name,
 };
@@ -27,7 +27,7 @@ pub struct Event<I> {
     interval: I,
 }
 
-impl<I> Identified<Event<I>> for Event<I> {
+impl<I> Identifiable<Event<I>> for Event<I> {
     fn id(&self) -> Id<Event<I>> {
         self.id
     }

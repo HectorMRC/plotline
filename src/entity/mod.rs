@@ -9,7 +9,7 @@ pub mod service;
 mod error;
 pub use error::*;
 
-use crate::id::{Id, Identified};
+use crate::id::{Id, Identifiable};
 use crate::name::Name;
 use serde::{Deserialize, Serialize};
 
@@ -29,7 +29,7 @@ impl PartialEq for Entity {
     }
 }
 
-impl Identified<Entity> for Entity {
+impl Identifiable<Entity> for Entity {
     fn id(&self) -> Id<Entity> {
         self.id
     }

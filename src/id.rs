@@ -1,5 +1,6 @@
-use serde::{de::Deserializer, Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::{fmt::Display, hash::Hash, marker::PhantomData, str::FromStr};
+use crate::serde::{uuid_as_string, uuid_from_string};
 use uuid::Uuid;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -10,8 +11,8 @@ pub enum Error {
     Uuid(#[from] uuid::Error),
 }
 
-/// Identified determines an item is uniquely identifiable.
-pub trait Identified<T> {
+/// Identifiable qualifies a resource of being uniquely identifiable.
+pub trait Identifiable<T> {
     fn id(&self) -> Id<T>;
 }
 
@@ -26,25 +27,6 @@ pub struct Id<T> {
 
     #[serde(skip)]
     _marker: PhantomData<T>,
-}
-
-fn uuid_as_string<S>(uuid: &Uuid, serializer: S) -> std::result::Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(&uuid.to_string())
-}
-
-fn uuid_from_string<'de, D>(deserializer: D) -> std::result::Result<Uuid, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    use serde::de::Error;
-
-    let uuid = String::deserialize(deserializer)?;
-    Uuid::from_str(&uuid)
-        .map_err(|err| err.to_string())
-        .map_err(Error::custom)
 }
 
 impl<T> Eq for Id<T> {}

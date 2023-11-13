@@ -3,7 +3,7 @@ use crate::{
     entity::{service::EntityRepository, Entity},
     event::{Event, Result},
     guard::{Tx, TxGuard},
-    id::{Id, Identified},
+    id::{Id, Identifiable},
 };
 use std::sync::Arc;
 
