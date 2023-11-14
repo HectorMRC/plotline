@@ -5,7 +5,7 @@ pub mod event;
 #[cfg(feature = "in_memory")]
 pub mod snapshot;
 
-mod guard;
+mod transaction;
 mod id;
 mod interval;
 mod name;

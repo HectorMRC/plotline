@@ -4,7 +4,7 @@ use super::{
     Entity,
 };
 use crate::{
-    guard::Resource,
+    transaction::Resource,
     id::Id,
     serde::{hashmap_from_slice, slice_from_hashmap},
 };

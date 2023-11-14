@@ -1,7 +1,7 @@
 use super::{EntityFilter, EntityRepository, EntityService};
 use crate::{
     entity::{error::Result, Entity, Error},
-    guard::Tx,
+    transaction::Tx,
 };
 use std::sync::Arc;
 

@@ -87,12 +87,9 @@ pub mod tests {
 
     #[test]
     fn id_serde() {
-        #[derive(Debug, PartialEq, Eq)]
-        struct Any;
-
-        let want = Id::<Any>::new();
+        let want = Id::<()>::new();
         let yaml = serde_yaml::to_string(&want).unwrap();
-        let got: Id<Any> = serde_yaml::from_str(&yaml).unwrap();
+        let got: Id<()> = serde_yaml::from_str(&yaml).unwrap();
 
         assert_eq!(got, want, "serde ends up with different values");
     }

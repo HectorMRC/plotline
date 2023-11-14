@@ -7,7 +7,7 @@ pub enum Error {
     #[error("event not found")]
     NotFound,
     #[error("{0}")]
-    Guard(#[from] crate::guard::Error),
+    Guard(#[from] crate::transaction::Error),
     #[error("{0}")]
     Entity(#[from] crate::entity::Error),
     #[error("{0}")]

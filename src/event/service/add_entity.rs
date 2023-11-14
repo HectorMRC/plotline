@@ -2,7 +2,7 @@ use super::{EventRepository, EventService};
 use crate::{
     entity::{service::EntityRepository, Entity},
     event::{Event, Result},
-    guard::{Tx, TxGuard},
+    transaction::{Tx, TxGuard},
     id::{Id, Identifiable},
 };
 use std::sync::Arc;

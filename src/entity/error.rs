@@ -13,7 +13,7 @@ pub enum Error {
     #[error("{0}")]
     Id(#[from] crate::id::Error),
     #[error("{0}")]
-    Guard(#[from] crate::guard::Error),
+    Guard(#[from] crate::transaction::Error),
     #[error("{0}")]
     Lock(String),
 }

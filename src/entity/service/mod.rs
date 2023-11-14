@@ -11,7 +11,7 @@ mod remove;
 pub use remove::*;
 
 use super::{error::Result, Entity};
-use crate::{guard::Tx, id::Id};
+use crate::{transaction::Tx, id::Id};
 use std::sync::Arc;
 
 pub trait EntityRepository {

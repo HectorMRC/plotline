@@ -62,26 +62,26 @@ where
     }
 
     /// Inserts the given interval in the tree rooted by self.
-    pub fn with_interval(mut self, interval: I) -> Self {
-        self.insert(interval);
+    pub fn _with_interval(mut self, interval: I) -> Self {
+        self._insert(interval);
         self
     }
 
     /// Adds the given interval in the tree rooted by self.
-    pub fn insert(&mut self, interval: I) {
+    pub fn _insert(&mut self, interval: I) {
         if self.max < interval.hi() {
             self.max = interval.hi();
         }
 
         if interval.lo() < self.value.lo() {
             if let Some(left) = &mut self.left {
-                left.insert(interval)
+                left._insert(interval)
             } else {
                 self.left = Some(Box::new(interval.into()));
             }
         } else {
             if let Some(right) = &mut self.right {
-                right.insert(interval);
+                right._insert(interval);
             } else {
                 self.right = Some(Box::new(interval.into()))
             }
@@ -90,7 +90,7 @@ where
 
     /// Returns true if, and only if, there is an interval in the tree that intersects the
     /// given one.
-    pub fn intersects(&self, interval: &I) -> bool {
+    pub fn _intersects(&self, interval: &I) -> bool {
         if self.value.intersects(interval) {
             return true;
         }
@@ -98,7 +98,7 @@ where
         let continue_right = || {
             self.right
                 .as_ref()
-                .is_some_and(|right| right.intersects(interval))
+                .is_some_and(|right| right._intersects(interval))
         };
 
         let Some(left) = &self.left else {
@@ -109,11 +109,11 @@ where
             return continue_right();
         }
 
-        left.intersects(interval)
+        left._intersects(interval)
     }
 
     /// Calls the given closure for each interval in the tree overlapping the given one.
-    pub fn for_each_intersection<F>(&self, interval: &I, mut f: F)
+    pub fn _for_each_intersection<F>(&self, interval: &I, mut f: F)
     where
         F: FnMut(&I),
     {
@@ -144,25 +144,20 @@ where
         immersion(self, interval, &mut f);
     }
 
-    /// Removes the given interval from the tree rooted by self.
-    pub fn remove(mut self, interval: &I) -> Option<Self> {
-        todo!()
-    }
-
     /// Returns the total amount of intervals in the tree.
-    pub fn count(&self) -> usize {
+    pub fn _count(&self) -> usize {
         let mut count = 1;
 
         count += self
             .left
             .as_ref()
-            .map(|left| left.count())
+            .map(|left| left._count())
             .unwrap_or_default();
 
         count += self
             .right
             .as_ref()
-            .map(|right| right.count())
+            .map(|right| right._count())
             .unwrap_or_default();
 
         count
@@ -360,9 +355,9 @@ mod tests {
             Test {
                 name: "complex tree",
                 tree: Node::new(IntervalMock(5, 6))
-                    .with_interval(IntervalMock(0, 4))
-                    .with_interval(IntervalMock(2, 6))
-                    .with_interval(IntervalMock(7, 9)),
+                    ._with_interval(IntervalMock(0, 4))
+                    ._with_interval(IntervalMock(2, 6))
+                    ._with_interval(IntervalMock(7, 9)),
                 query: IntervalMock(1, 2),
                 output: true,
             },
@@ -370,7 +365,7 @@ mod tests {
         .into_iter()
         .for_each(|test| {
             assert_eq!(
-                test.tree.intersects(&test.query),
+                test.tree._intersects(&test.query),
                 test.output,
                 "{}",
                 test.name
@@ -397,10 +392,10 @@ mod tests {
             Test {
                 name: "multiple intersactions",
                 tree: Node::new(IntervalMock(5, 6))
-                    .with_interval(IntervalMock(0, 2))
-                    .with_interval(IntervalMock(3, 3))
-                    .with_interval(IntervalMock(5, 9))
-                    .with_interval(IntervalMock(6, 6)),
+                    ._with_interval(IntervalMock(0, 2))
+                    ._with_interval(IntervalMock(3, 3))
+                    ._with_interval(IntervalMock(5, 9))
+                    ._with_interval(IntervalMock(6, 6)),
                 query: IntervalMock(3, 5),
                 output: vec![IntervalMock(5, 6), IntervalMock(3, 3), IntervalMock(5, 9)],
             },
@@ -409,7 +404,7 @@ mod tests {
         .for_each(|test| {
             let mut intervals = Vec::default();
             test.tree
-                .for_each_intersection(&test.query, |interval| intervals.push(interval.clone()));
+                ._for_each_intersection(&test.query, |interval| intervals.push(interval.clone()));
 
             assert_eq!(intervals.len(), test.output.len(), "{}", test.name,);
             test.output
@@ -443,10 +438,10 @@ mod tests {
                 ],
                 output: IntervalST(Some(
                     Node::new(IntervalMock(5, 6))
-                        .with_interval(IntervalMock(3, 3))
-                        .with_interval(IntervalMock(0, 0))
-                        .with_interval(IntervalMock(6, 6))
-                        .with_interval(IntervalMock(5, 9)),
+                        ._with_interval(IntervalMock(3, 3))
+                        ._with_interval(IntervalMock(0, 0))
+                        ._with_interval(IntervalMock(6, 6))
+                        ._with_interval(IntervalMock(5, 9)),
                 )),
             },
         ]

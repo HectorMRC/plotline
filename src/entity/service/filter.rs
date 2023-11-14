@@ -1,6 +1,6 @@
 use super::{EntityRepository, EntityService};
 use crate::entity::{error::Result, Entity};
-use crate::guard::Tx;
+use crate::transaction::Tx;
 use crate::{id::Id, name::Name};
 use std::sync::Arc;
 

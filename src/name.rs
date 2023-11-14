@@ -94,16 +94,19 @@ mod tests {
                 must_fail: true,
             },
             Test {
-                name: "A non-empty single line string is a valid name",
+                name: "A multi word single line string is not a valid name",
                 entity_name: "abc 123#[]-_*&^",
+                must_fail: true,
+            },
+            Test {
+                name: "A single word string is a valid name",
+                entity_name: "abc123#[]-_*&^",
                 must_fail: false,
             },
         ]
         .into_iter()
         .for_each(|test| {
-            struct Any;
-
-            let result = Name::<Any>::try_from(test.entity_name.to_string());
+            let result = Name::<()>::try_from(test.entity_name.to_string());
             assert_eq!(result.is_err(), test.must_fail, "{}", test.name);
 
             match result {

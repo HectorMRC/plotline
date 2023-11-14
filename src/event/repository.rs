@@ -1,6 +1,6 @@
 use super::{service::EventRepository, Error, Event, Result};
 use crate::{
-    guard::Resource,
+    transaction::Resource,
     id::Id,
     interval::Interval,
     serde::{hashmap_from_slice, slice_from_hashmap},

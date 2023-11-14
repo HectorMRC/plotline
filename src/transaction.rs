@@ -29,6 +29,7 @@ pub trait TxGuard<'a, T>: Deref + DerefMut + AsRef<T> + AsMut<T> {
     fn commit(self);
 }
 
+/// Resource implements the [Tx] trait for any piece of data. 
 pub struct Resource<T> {
     mu: Arc<Mutex<T>>,
 }
@@ -54,6 +55,7 @@ impl<T> From<Arc<Mutex<T>>> for Resource<T> {
     }
 }
 
+/// ResourceGuard is the [TxGuard] implementation for [Resource].
 pub struct ResourceGuard<'a, T> {
     guard: MutexGuard<'a, T>,
     data: T,
