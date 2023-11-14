@@ -7,15 +7,15 @@ use crate::{
 use std::sync::Arc;
 
 /// Implements the create entity transaction.
-pub struct CreateEntity<R> {
-    entity_repo: Arc<R>,
+pub struct CreateEntity<EntityRepo> {
+    entity_repo: Arc<EntityRepo>,
     name: Name<Entity>,
     id: Option<Id<Entity>>,
 }
 
-impl<R> CreateEntity<R>
+impl<EntityRepo> CreateEntity<EntityRepo>
 where
-    R: EntityRepository,
+    EntityRepo: EntityRepository,
 {
     /// Executes the create entity transaction.
     pub fn execute(self) -> Result<Entity> {
@@ -30,18 +30,18 @@ where
     }
 }
 
-impl<R> CreateEntity<R> {
+impl<EntityRepo> CreateEntity<EntityRepo> {
     pub fn with_id(mut self, id: Option<Id<Entity>>) -> Self {
         self.id = id;
         self
     }
 }
 
-impl<R> EntityService<R>
+impl<EntityRepo> EntityService<EntityRepo>
 where
-    R: EntityRepository,
+    EntityRepo: EntityRepository,
 {
-    pub fn create_entity(&self, name: Name<Entity>) -> CreateEntity<R> {
+    pub fn create_entity(&self, name: Name<Entity>) -> CreateEntity<EntityRepo> {
         CreateEntity {
             entity_repo: self.entity_repo.clone(),
             name,

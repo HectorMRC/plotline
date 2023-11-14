@@ -7,14 +7,14 @@ use std::sync::Arc;
 
 /// Implements the find query, through which one, and exactly one, entity must be retrived.
 #[derive(Default)]
-pub struct FindEntity<R> {
-    entity_repo: Arc<R>,
+pub struct FindEntity<EntityRepo> {
+    entity_repo: Arc<EntityRepo>,
     filter: EntityFilter,
 }
 
-impl<R> FindEntity<R>
+impl<EntityRepo> FindEntity<EntityRepo>
 where
-    R: EntityRepository,
+    EntityRepo: EntityRepository,
 {
     /// Executes the find query, through which one, and exactly one, entity must be retrived.
     /// If there is no entity matching the query the error [Error::NotFound] is returned.
@@ -29,18 +29,18 @@ where
     }
 }
 
-impl<R> FindEntity<R> {
+impl<EntityRepo> FindEntity<EntityRepo> {
     pub fn with_filter(mut self, filter: EntityFilter) -> Self {
         self.filter = filter;
         self
     }
 }
 
-impl<R> EntityService<R>
+impl<EntityRepo> EntityService<EntityRepo>
 where
-    R: EntityRepository,
+    EntityRepo: EntityRepository,
 {
-    pub fn find_entity(&self) -> FindEntity<R> {
+    pub fn find_entity(&self) -> FindEntity<EntityRepo> {
         FindEntity {
             entity_repo: self.entity_repo.clone(),
             filter: Default::default(),

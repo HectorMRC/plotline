@@ -42,14 +42,14 @@ impl EntityFilter {
 }
 
 #[derive(Default)]
-pub struct FilterEntities<R> {
-    entity_repo: Arc<R>,
+pub struct FilterEntities<EntityRepo> {
+    entity_repo: Arc<EntityRepo>,
     filter: EntityFilter,
 }
 
-impl<R> FilterEntities<R>
+impl<EntityRepo> FilterEntities<EntityRepo>
 where
-    R: EntityRepository,
+    EntityRepo: EntityRepository,
 {
     /// Executes the filter query, through which zero o more entities may be retrived.
     pub fn execute(self) -> Result<Vec<Entity>> {
@@ -64,18 +64,18 @@ where
     }
 }
 
-impl<R> FilterEntities<R> {
+impl<EntityRepo> FilterEntities<EntityRepo> {
     pub fn with_filter(mut self, filter: EntityFilter) -> Self {
         self.filter = filter;
         self
     }
 }
 
-impl<R> EntityService<R>
+impl<EntityRepo> EntityService<EntityRepo>
 where
-    R: EntityRepository,
+    EntityRepo: EntityRepository,
 {
-    pub fn filter_entities(&self) -> FilterEntities<R> {
+    pub fn filter_entities(&self) -> FilterEntities<EntityRepo> {
         FilterEntities {
             entity_repo: self.entity_repo.clone(),
             filter: Default::default(),

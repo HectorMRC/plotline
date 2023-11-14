@@ -16,7 +16,7 @@ pub trait EventRepository {
     fn find(&self, id: Id<Event<Self::Interval>>) -> Result<Self::Tx>;
 }
 
-pub struct EventService<R, E> {
-    pub event_repo: Arc<R>,
-    pub entity_repo: Arc<E>,
+pub struct EventService<EventRepo, EntityRepo> {
+    pub event_repo: Arc<EventRepo>,
+    pub entity_repo: Arc<EntityRepo>,
 }

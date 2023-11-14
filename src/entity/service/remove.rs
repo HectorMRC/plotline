@@ -6,14 +6,14 @@ use crate::{
 use std::sync::Arc;
 
 /// Implements the remove entity transaction.
-pub struct RemoveEntity<R> {
-    entity_repo: Arc<R>,
+pub struct RemoveEntity<EntityRepo> {
+    entity_repo: Arc<EntityRepo>,
     id: Id<Entity>,
 }
 
-impl<R> RemoveEntity<R>
+impl<EntityRepo> RemoveEntity<EntityRepo>
 where
-    R: EntityRepository,
+    EntityRepo: EntityRepository,
 {
     /// Executes the remove entity transaction.
     pub fn execute(self) -> Result<()> {
@@ -21,18 +21,18 @@ where
     }
 }
 
-impl<R> RemoveEntity<R> {
+impl<EntityRepo> RemoveEntity<EntityRepo> {
     pub fn with_id(mut self, id: Id<Entity>) -> Self {
         self.id = id;
         self
     }
 }
 
-impl<R> EntityService<R>
+impl<EntityRepo> EntityService<EntityRepo>
 where
-    R: EntityRepository,
+    EntityRepo: EntityRepository,
 {
-    pub fn remove_entity(&self, id: Id<Entity>) -> RemoveEntity<R> {
+    pub fn remove_entity(&self, id: Id<Entity>) -> RemoveEntity<EntityRepo> {
         RemoveEntity {
             entity_repo: self.entity_repo.clone(),
             id,

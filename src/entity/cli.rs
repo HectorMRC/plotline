@@ -52,9 +52,9 @@ pub struct EntityCommand {
     command: EntitySubCommand,
 }
 
-impl<R> EntityService<R>
+impl<EntityRepo> EntityService<EntityRepo>
 where
-    R: 'static + EntityRepository + Sync + Send,
+    EntityRepo: 'static + EntityRepository + Sync + Send,
 {
     /// Given an [EntityCommand], executes the corresponding logic.
     pub fn execute(&self, entity_cmd: EntityCommand) -> CliResult {

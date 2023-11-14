@@ -8,20 +8,20 @@ use crate::{
 use std::sync::Arc;
 
 /// Implements the add entity transaction for an event.
-pub struct AddEntity<R, E>
+pub struct AddEntity<EventRepo, EntityRepo>
 where
-    R: EventRepository,
+    EventRepo: EventRepository,
 {
-    event_repo: Arc<R>,
-    entity_repo: Arc<E>,
+    event_repo: Arc<EventRepo>,
+    entity_repo: Arc<EntityRepo>,
     entity_id: Id<Entity>,
-    event_id: Id<Event<R::Interval>>,
+    event_id: Id<Event<EventRepo::Interval>>,
 }
 
-impl<R, E> AddEntity<R, E>
+impl<EventRepo, EntityRepo> AddEntity<EventRepo, EntityRepo>
 where
-    R: EventRepository,
-    E: EntityRepository,
+    EventRepo: EventRepository,
+    EntityRepo: EntityRepository,
 {
     /// Executes the add entity transation.
     pub fn execute(self) -> Result<()> {
@@ -38,16 +38,16 @@ where
     }
 }
 
-impl<R, E> EventService<R, E>
+impl<EventRepo, EntityRepo> EventService<EventRepo, EntityRepo>
 where
-    R: EventRepository,
-    E: EntityRepository,
+    EventRepo: EventRepository,
+    EntityRepo: EntityRepository,
 {
     pub fn add_entity(
         &self,
         entity_id: Id<Entity>,
-        event_id: Id<Event<R::Interval>>,
-    ) -> AddEntity<R, E> {
+        event_id: Id<Event<EventRepo::Interval>>,
+    ) -> AddEntity<EventRepo, EntityRepo> {
         AddEntity {
             entity_repo: self.entity_repo.clone(),
             event_repo: self.event_repo.clone(),

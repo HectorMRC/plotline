@@ -55,12 +55,12 @@ pub struct EventCommand {
     command: EventSubCommand,
 }
 
-impl<R, E> EventService<R, E>
+impl<EventRepo, EntityRepo> EventService<EventRepo, EntityRepo>
 where
-    R: 'static + EventRepository + Sync + Send,
-    E: 'static + EntityRepository + Sync + Send,
-    R::Interval: TryFrom<Vec<String>> + Sync + Send,
-    <R::Interval as TryFrom<Vec<String>>>::Error: Into<CliError>,
+    EventRepo: 'static + EventRepository + Sync + Send,
+    EntityRepo: 'static + EntityRepository + Sync + Send,
+    EventRepo::Interval: TryFrom<Vec<String>> + Sync + Send,
+    <EventRepo::Interval as TryFrom<Vec<String>>>::Error: Into<CliError>,
 {
     /// Given a [EventCommand], executes the corresponding logic.
     pub fn execute(&self, event_cmd: EventCommand) -> CliResult {

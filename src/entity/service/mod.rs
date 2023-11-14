@@ -23,6 +23,6 @@ pub trait EntityRepository {
     fn delete(&self, id: Id<Entity>) -> Result<()>;
 }
 
-pub struct EntityService<R> {
-    pub entity_repo: Arc<R>,
+pub struct EntityService<EntityRepo> {
+    pub entity_repo: Arc<EntityRepo>,
 }
