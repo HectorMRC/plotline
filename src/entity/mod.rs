@@ -16,9 +16,7 @@ use serde::{Deserialize, Serialize};
 /// An Entity is anything which to interact with.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Entity {
-    #[serde(flatten)]
     id: Id<Self>,
-    #[serde(flatten)]
     name: Name<Self>,
 }
 

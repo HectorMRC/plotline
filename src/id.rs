@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer, Deserializer};
 use std::{fmt::Display, hash::Hash, marker::PhantomData, str::FromStr};
-use crate::serde::{uuid_as_string, uuid_from_string};
 use uuid::Uuid;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -17,16 +16,32 @@ pub trait Identifiable<T> {
 }
 
 /// An Id uniquely identifies a resource.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct Id<T> {
-    #[serde(
-        serialize_with = "uuid_as_string",
-        deserialize_with = "uuid_from_string"
-    )]
     uuid: Uuid,
-
-    #[serde(skip)]
     _marker: PhantomData<T>,
+}
+
+impl<T> Serialize for Id<T> {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+        where
+            S: Serializer {
+        serializer.serialize_str(&self.uuid.to_string())
+    }
+}
+
+impl<'de, T> Deserialize<'de> for Id<T> {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+        where
+            D: Deserializer<'de> {
+        use serde::de::Error;
+
+        let uuid = String::deserialize(deserializer)?;
+        Uuid::from_str(&uuid)
+            .map(|uuid| Self{uuid, _marker: PhantomData})
+            .map_err(|err| err.to_string())
+            .map_err(Error::custom)
+    }
 }
 
 impl<T> Eq for Id<T> {}

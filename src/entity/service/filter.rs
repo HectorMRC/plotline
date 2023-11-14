@@ -57,7 +57,7 @@ where
         let mut entities = Vec::with_capacity(entities_tx.len());
         for entity_tx in entities_tx {
             let entity = entity_tx.begin()?;
-            entities.push(entity.as_ref().clone());
+            entities.push(entity.clone());
         }
 
         Ok(entities)

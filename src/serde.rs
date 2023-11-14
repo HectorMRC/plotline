@@ -1,9 +1,8 @@
 use crate::id::{Id, Identifiable};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use uuid::Uuid;
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex, RwLock}, str::FromStr,
+    sync::{Arc, Mutex, RwLock},
 };
 
 /// Serializes a hashmap into a slice of items.
@@ -38,24 +37,4 @@ where
             .into_iter()
             .map(|value| (value.id(), Arc::new(Mutex::new(value)))),
     )))
-}
-
-
-pub fn uuid_as_string<S>(uuid: &Uuid, serializer: S) -> std::result::Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(&uuid.to_string())
-}
-
-pub fn uuid_from_string<'de, D>(deserializer: D) -> std::result::Result<Uuid, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    use serde::de::Error;
-
-    let uuid = String::deserialize(deserializer)?;
-    Uuid::from_str(&uuid)
-        .map_err(|err| err.to_string())
-        .map_err(Error::custom)
 }

@@ -21,15 +21,15 @@ pub trait Tx<T> {
     fn begin<'a>(&'a self) -> Result<Self::Guard<'a>, Error>;
 }
 
-/// A TxGuard holds a copy of T while keeping locked the original value, ensuring
-/// its consistency between transactions.
-pub trait TxGuard<'a, T>: Deref + DerefMut + AsRef<T> + AsMut<T> {
+/// A TxGuard holds a copy of T while keeping locked the original value,
+/// ensuring its consistency between transactions.
+pub trait TxGuard<'a, T>: Deref<Target = T> + DerefMut {
     /// Releases the resource right after updating its content with the
     /// manipulated data.
     fn commit(self);
 }
 
-/// Resource implements the [Tx] trait for any piece of data. 
+/// Resource implements the [Tx] trait for any piece of data.
 pub struct Resource<T> {
     mu: Arc<Mutex<T>>,
 }
@@ -71,18 +71,6 @@ impl<'a, T> Deref for ResourceGuard<'a, T> {
 
 impl<'a, T> DerefMut for ResourceGuard<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
-    }
-}
-
-impl<'a, T> AsRef<T> for ResourceGuard<'a, T> {
-    fn as_ref(&self) -> &T {
-        &self.data
-    }
-}
-
-impl<'a, T> AsMut<T> for ResourceGuard<'a, T> {
-    fn as_mut(&mut self) -> &mut T {
         &mut self.data
     }
 }

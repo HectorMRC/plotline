@@ -25,7 +25,7 @@ where
         }
 
         let entity = entities[0].begin()?;
-        Ok(entity.as_ref().clone())
+        Ok(entity.clone())
     }
 }
 

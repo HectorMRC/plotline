@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer, Deserializer};
 use std::{fmt::Display, marker::PhantomData};
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -16,12 +16,31 @@ fn is_invalid_char(c: char) -> bool {
 }
 
 /// An Name identifies one or more resources.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Clone)]
 pub struct Name<T> {
     name: String,
-
-    #[serde(skip)]
     _marker: PhantomData<T>,
+}
+
+impl<T> Serialize for Name<T> {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+        where
+            S: Serializer {
+        serializer.serialize_str(&self.name)
+    }
+}
+
+impl<'de, T> Deserialize<'de> for Name<T> {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+        where
+            D: Deserializer<'de> {
+        use serde::de::Error;
+
+        String::deserialize(deserializer)
+            .map(|name| Self{name, _marker: PhantomData})
+            .map_err(|err| err.to_string())
+            .map_err(Error::custom)
+    }
 }
 
 impl<T> Eq for Name<T> {}

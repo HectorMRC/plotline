@@ -18,9 +18,7 @@ use serde::{Deserialize, Serialize};
 /// An Event is a specific happening in which one or more entities are involved.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Event<I> {
-    #[serde(flatten)]
     id: Id<Self>,
-    #[serde(flatten)]
     name: Name<Self>,
     entities: Vec<Id<Entity>>,
     /// the interval is the time during which the event takes place.

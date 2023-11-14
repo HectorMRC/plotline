@@ -2,8 +2,8 @@ use super::{EventRepository, EventService};
 use crate::{
     entity::{service::EntityRepository, Entity},
     event::{Event, Result},
-    transaction::{Tx, TxGuard},
     id::{Id, Identifiable},
+    transaction::{Tx, TxGuard},
 };
 use std::sync::Arc;
 
@@ -31,7 +31,7 @@ where
         let event_tx = self.event_repo.find(self.event_id)?;
         let mut event = event_tx.begin()?;
 
-        event.as_mut().entities.push(entity.as_ref().id());
+        event.entities.push(entity.id());
 
         event.commit();
         Ok(())
