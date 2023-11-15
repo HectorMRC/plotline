@@ -17,6 +17,9 @@ struct EventSaveArgs {
     /// The period during which the event takes place.
     #[arg(long, short, num_args(1..=2))]
     interval: Option<Vec<String>>,
+    /// The ids of all the entities implicated in the event.
+    #[arg(long, short)]
+    entities: Option<Vec<String>>,
 }
 
 #[derive(Args)]
@@ -83,8 +86,7 @@ where
         match subcommand {
             EventSubCommand::Save(args) => {
                 let event_id = event_id.unwrap_or_else(|| Id::new());
-                let event = self
-                    .save_event(event_id)
+                self.save_event(event_id)
                     .with_name(args.name.map(TryInto::try_into).transpose()?)
                     .with_interval(
                         args.interval
@@ -94,7 +96,7 @@ where
                     )
                     .execute()?;
 
-                println!("{}", event.id);
+                println!("{}", event_id);
             }
             EventSubCommand::Entities(args) => match args.command {
                 EventEntitiesSubCommand::Add(args) => {

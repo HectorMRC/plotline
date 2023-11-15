@@ -56,4 +56,9 @@ impl<Intv> Event<Intv> {
             interval,
         }
     }
+
+    pub fn with_entities(mut self, entities: Vec<Id<Entity>>) -> Self {
+        self.entities = entities;
+        self
+    }
 }

@@ -1,8 +1,9 @@
 use super::{EntityRepository, EntityService};
 use crate::{
-    entity::{Entity, Result, Error},
+    entity::{Entity, Error, Result},
     id::Id,
-    name::Name, transaction::{Tx, TxGuard},
+    name::Name,
+    transaction::{Tx, TxGuard},
 };
 use std::sync::Arc;
 
@@ -18,28 +19,25 @@ where
     EntityRepo: EntityRepository,
 {
     /// Executes the save entity transaction.
-    pub fn execute(self) -> Result<Entity> {
+    pub fn execute(self) -> Result<()> {
         match self.entity_repo.find(self.id) {
             Ok(entity_tx) => self.update(entity_tx),
             Err(Error::NotFound) => self.create(),
-            Err(err) => Err(err)
+            Err(err) => Err(err),
         }
     }
 
-    fn create(self) -> Result<Entity>  {
+    fn create(self) -> Result<()> {
         let entity = Entity::new(self.id, self.name);
-        self.entity_repo.create(&entity)?;
-        Ok(entity)
+        self.entity_repo.create(&entity)
     }
 
-    fn update(self, entity_tx: EntityRepo::Tx) -> Result<Entity>  {
+    fn update(self, entity_tx: EntityRepo::Tx) -> Result<()> {
         let mut entity = entity_tx.begin()?;
         entity.name = self.name;
-        
-        let data = entity.clone();
-        entity.commit();
 
-        Ok(data)
+        entity.commit();
+        Ok(())
     }
 }
 

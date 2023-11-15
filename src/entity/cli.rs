@@ -73,11 +73,10 @@ where
         match subcommand {
             EntitySubCommand::Save(args) => {
                 let entity_id = entity_id.unwrap_or_else(|| Id::new());
-                let entity = self
-                    .save_entity(entity_id, args.name.try_into()?)
+                self.save_entity(entity_id, args.name.try_into()?)
                     .execute()?;
 
-                println!("{}", entity.id);
+                println!("{}", entity_id);
             }
 
             EntitySubCommand::List => {
