@@ -37,8 +37,12 @@ where
     }
 
     fn create(self) -> Result<Event<EventRepo::Interval>>  {
-        let (Some(name), Some(interval)) = (self.name, self.interval) else {
-            return Err(Error::Custom("Name and interval must be set."))
+        let Some(name) = self.name else {
+            return Err(Error::NameRequired);
+        };
+
+        let Some(interval) = self.interval else {
+            return Err(Error::IntervalRequired);
         };
 
         let event = Event::new(self.id, name, interval);

@@ -6,6 +6,10 @@ pub enum Error {
     AlreadyExists,
     #[error("event not found")]
     NotFound,
+    #[error("a name must be provided")]
+    NameRequired,
+    #[error("an interval must be provided")]
+    IntervalRequired,
     #[error("{0}")]
     Transaction(#[from] crate::transaction::Error),
     #[error("{0}")]
