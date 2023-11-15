@@ -25,7 +25,7 @@ struct EntityRemoveArgs {
 #[derive(Subcommand)]
 #[clap(subcommand_negates_reqs = true, subcommand_precedence_over_arg = true)]
 enum EntitySubCommand {
-    /// Create a new entity.
+    /// Save an entity.
     Save(EntitySaveArgs),
     /// List all entities.
     #[command(alias("ls"))]

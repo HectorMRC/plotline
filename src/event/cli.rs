@@ -44,7 +44,7 @@ struct EventEntitiesCommand {
 #[derive(Subcommand)]
 #[clap(subcommand_negates_reqs = true, subcommand_precedence_over_arg = true)]
 enum EventSubCommand {
-    /// Create a new event.
+    /// Save an event.
     Save(EventSaveArgs),
     /// Manage event entities.
     Entities(EventEntitiesCommand),

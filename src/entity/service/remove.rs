@@ -21,13 +21,6 @@ where
     }
 }
 
-impl<EntityRepo> RemoveEntity<EntityRepo> {
-    pub fn with_id(mut self, id: Id<Entity>) -> Self {
-        self.id = id;
-        self
-    }
-}
-
 impl<EntityRepo> EntityService<EntityRepo>
 where
     EntityRepo: EntityRepository,
