@@ -1,18 +1,19 @@
 use super::{
     fmt::EntityFmt,
     service::{EntityFilter, EntityRepository, EntityService},
+    Entity,
 };
-use crate::cli::{display_each_result, CliResult};
+use crate::{
+    cli::{display_each_result, display_result, CliResult},
+    id::Id,
+};
 use clap::{Args, Subcommand};
 use std::io::{stdout, Write};
 
 #[derive(Args)]
-struct EntityCreateArgs {
+struct EntitySaveArgs {
     /// The name of the entity.
     name: String,
-    /// The uuid string of the entity.
-    #[arg(short, long)]
-    id: Option<String>,
 }
 
 #[derive(Args)]
@@ -21,35 +22,25 @@ struct EntityRemoveArgs {
     ids: Vec<String>,
 }
 
-#[derive(Args)]
-struct EntityFindArgs {
-    /// The name of the entity.
-    #[arg(conflicts_with = "id")]
-    name: Option<String>,
-    /// The uuid string of the entity.
-    #[arg(short, long, conflicts_with = "name")]
-    id: Option<String>,
-}
-
 #[derive(Subcommand)]
+#[clap(subcommand_negates_reqs = true, subcommand_precedence_over_arg = true)]
 enum EntitySubCommand {
     /// Create a new entity.
-    Create(EntityCreateArgs),
+    Save(EntitySaveArgs),
     /// List all entities.
     #[command(alias("ls"))]
     List,
     /// Remove one or more entities.
     #[command(alias("rm"))]
     Remove(EntityRemoveArgs),
-    /// Displays the information of the entity.
-    Find(EntityFindArgs),
 }
 
 #[derive(Args)]
 #[command(arg_required_else_help = true)]
 pub struct EntityCommand {
+    entity: Option<String>,
     #[command(subcommand)]
-    command: EntitySubCommand,
+    command: Option<EntitySubCommand>,
 }
 
 impl<EntityRepo> EntityService<EntityRepo>
@@ -58,11 +49,32 @@ where
 {
     /// Given an [EntityCommand], executes the corresponding logic.
     pub fn execute(&self, entity_cmd: EntityCommand) -> CliResult {
-        match entity_cmd.command {
-            EntitySubCommand::Create(args) => {
+        let entity_id = entity_cmd.entity.map(TryInto::try_into).transpose()?;
+        if let Some(command) = entity_cmd.command {
+            return self.execute_subcommand(command, entity_id);
+        }
+
+        if entity_id.is_none() {
+            return self.execute_subcommand(EntitySubCommand::List, None);
+        };
+
+        let filter = EntityFilter::default().with_id(entity_id);
+        let entity = self.find_entity().with_filter(filter).execute()?;
+        print!("{}", EntityFmt::column(&entity));
+
+        Ok(())
+    }
+
+    fn execute_subcommand(
+        &self,
+        subcommand: EntitySubCommand,
+        entity_id: Option<Id<Entity>>,
+    ) -> CliResult {
+        match subcommand {
+            EntitySubCommand::Save(args) => {
+                let entity_id = entity_id.unwrap_or_else(|| Id::new());
                 let entity = self
-                    .create_entity(args.name.try_into()?)
-                    .with_id(args.id.map(TryInto::try_into).transpose()?)
+                    .save_entity(entity_id, args.name.try_into()?)
                     .execute()?;
 
                 println!("{}", entity.id);
@@ -76,22 +88,19 @@ where
 
                 entities
                     .into_iter()
-                    .try_for_each(|entity| write!(stdout, "{}", EntityFmt::row(&entity)))?
+                    .try_for_each(|entity| write!(stdout, "{}", EntityFmt::row(&entity)))?;
             }
 
-            EntitySubCommand::Find(args) => {
-                let filter = EntityFilter::default()
-                    .with_name(args.name.map(TryInto::try_into).transpose()?)
-                    .with_id(args.id.map(TryInto::try_into).transpose()?);
-
-                let entity = self.find_entity().with_filter(filter).execute()?;
-                print!("{}", EntityFmt::column(&entity));
+            EntitySubCommand::Remove(args) => {
+                if let Some(entity_id) = entity_id {
+                    display_result(self.remove_entity(entity_id).execute().map(|_| entity_id))?;
+                } else {
+                    display_each_result(args.ids.into_iter(), |id| {
+                        let entity_id = id.try_into()?;
+                        self.remove_entity(entity_id).execute().map(|_| entity_id)
+                    })?;
+                }
             }
-
-            EntitySubCommand::Remove(args) => display_each_result(args.ids.into_iter(), |id| {
-                let entity_id = id.try_into()?;
-                self.remove_entity(entity_id).execute().map(|_| entity_id)
-            })?,
         }
 
         Ok(())

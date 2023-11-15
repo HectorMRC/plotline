@@ -29,6 +29,24 @@ pub enum CliError {
     ParseIntError(#[from] std::num::ParseIntError),
 }
 
+/// Displays the given result through the stdout if is [Result::Ok], or through the stderr
+/// otherwise.
+pub fn display_result<T, E>(result: Result<T, E>) -> Result<(), std::io::Error>
+where
+    T: Display + Sync + Send,
+    E: Display + Sync + Send,
+{
+    let mut stdout = stdout().lock();
+    let mut stderr = stderr().lock();
+    match result {
+        Ok(ok) => writeln!(stdout, "{ok}")?,
+        Err(error) => writeln!(stderr, "{error}")?,
+    }
+
+    Ok(())
+}
+
+
 /// Calls the given closure for each item in the given iterator and displays the result through the
 /// stdout if is [Result::Ok], or through the stderr otherwise.
 pub fn display_each_result<I, F, T, E>(iter: I, f: F) -> Result<(), std::io::Error>

@@ -9,11 +9,11 @@ pub enum Error {
     #[error("entity not found")]
     NotFound,
     #[error("{0}")]
+    Transaction(#[from] crate::transaction::Error),
+    #[error("{0}")]
     Name(#[from] crate::name::Error),
     #[error("{0}")]
     Id(#[from] crate::id::Error),
-    #[error("{0}")]
-    Guard(#[from] crate::transaction::Error),
     #[error("{0}")]
     Lock(String),
 }
