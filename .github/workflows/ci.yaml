@@ -46,11 +46,6 @@ jobs:
           toolchain: stable
           components: clippy
 
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: "3.x"
-
       - name: Cargo clippy
         uses: actions-rs/clippy@master
 
@@ -75,11 +70,6 @@ jobs:
           profile: minimal
           toolchain: stable
           components: llvm-tools-preview
-
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          version: "3.x"
 
       - name: Cargo install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
