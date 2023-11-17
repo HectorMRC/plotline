@@ -47,7 +47,7 @@ jobs:
           components: clippy
 
       - name: Cargo clippy
-        uses: actions-rs/clippy@master
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Cargo test
         uses: actions-rs/cargo@v1
