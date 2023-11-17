@@ -1,6 +1,6 @@
 use super::{
     service::{EventRepository, EventService},
-    Event,
+    Error, Event,
 };
 use crate::{
     cli::{display_each_result, CliError, CliResult},
@@ -18,7 +18,7 @@ struct EventSaveArgs {
     #[arg(long, short, num_args(1..=2))]
     interval: Option<Vec<String>>,
     /// The ids of all the entities implicated in the event.
-    #[arg(long, short)]
+    #[arg(long, short, use_value_delimiter = true, value_delimiter = ',')]
     entities: Option<Vec<String>>,
 }
 
@@ -27,8 +27,6 @@ struct EventAddEntitiesArgs {
     /// The ids of all the entities to be added.
     #[arg(required = true, num_args(1..))]
     entities: Vec<String>,
-    /// The id of the target event.
-    event: String,
 }
 
 #[derive(Subcommand)]
@@ -56,7 +54,9 @@ enum EventSubCommand {
 #[derive(Args)]
 #[command(arg_required_else_help = true)]
 pub struct EventCommand {
+    /// The id of the target event.
     event: Option<String>,
+    /// The action to perform.
     #[command(subcommand)]
     command: Option<EventSubCommand>,
 }
@@ -100,7 +100,10 @@ where
             }
             EventSubCommand::Entities(args) => match args.command {
                 EventEntitiesSubCommand::Add(args) => {
-                    let event_id = args.event.try_into()?;
+                    let Some(event_id) = event_id else {
+                        return Err(Error::IdRequired.into());
+                    };
+
                     display_each_result(args.entities.into_iter(), |entity| {
                         let entity_id = entity.try_into()?;
                         self.add_entity(entity_id, event_id)

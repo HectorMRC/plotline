@@ -2,7 +2,7 @@ use super::{EventRepository, EventService};
 use crate::{
     entity::{service::EntityRepository, Entity},
     event::{Event, Result},
-    id::{Id, Identifiable},
+    id::Id,
     transaction::{Tx, TxGuard},
 };
 use std::sync::Arc;
@@ -25,13 +25,11 @@ where
 {
     /// Executes the add entity transation.
     pub fn execute(self) -> Result<()> {
-        let entity_tx = self.entity_repo.find(self.entity_id)?;
-        let entity = entity_tx.begin()?;
-
+        self.entity_repo.find(self.entity_id)?;
         let event_tx = self.event_repo.find(self.event_id)?;
         let mut event = event_tx.begin()?;
 
-        event.entities.push(entity.id());
+        event.entities.push(self.entity_id);
 
         event.commit();
         Ok(())
