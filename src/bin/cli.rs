@@ -82,7 +82,6 @@ fn main() {
 
     let event_srv = EventService {
         event_repo: snapshot.events.clone(),
-        entity_repo: snapshot.entities.clone(),
     };
 
     // Execute command

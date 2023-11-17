@@ -8,7 +8,6 @@ mod error;
 pub use error::*;
 
 use crate::{
-    entity::Entity,
     id::{Id, Identifiable},
     interval::Interval,
     name::Name,
@@ -20,7 +19,6 @@ use serde::{Deserialize, Serialize};
 pub struct Event<Intv> {
     id: Id<Self>,
     name: Name<Self>,
-    entities: Vec<Id<Entity>>,
     /// the interval is the time during which the event takes place.
     interval: Intv,
 }
@@ -49,16 +47,6 @@ where
 impl<Intv> Event<Intv> {
     /// Creates a new event with the given id.
     pub fn new(id: Id<Self>, name: Name<Self>, interval: Intv) -> Self {
-        Self {
-            id,
-            name,
-            entities: Default::default(),
-            interval,
-        }
-    }
-
-    pub fn with_entities(mut self, entities: Vec<Id<Entity>>) -> Self {
-        self.entities = entities;
-        self
+        Self { id, name, interval }
     }
 }

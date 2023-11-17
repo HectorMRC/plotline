@@ -4,15 +4,17 @@ use super::{
     Entity,
 };
 use crate::{
-    transaction::Resource,
     id::Id,
     serde::{hashmap_from_slice, slice_from_hashmap},
+    transaction::{Resource, Tx},
 };
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex, RwLock},
 };
+
+type Repository<T> = RwLock<HashMap<Id<T>, Resource<T>>>;
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -22,7 +24,7 @@ pub struct InMemoryEntityRepository {
         deserialize_with = "hashmap_from_slice",
         default
     )]
-    entities: RwLock<HashMap<Id<Entity>, Arc<Mutex<Entity>>>>,
+    entities: Repository<Entity>,
 }
 
 impl EntityRepository for InMemoryEntityRepository {
@@ -46,7 +48,7 @@ impl EntityRepository for InMemoryEntityRepository {
             .values()
             .filter(|entity| {
                 entity
-                    .lock()
+                    .begin()
                     .map(|entity| filter.filter(&entity))
                     .unwrap_or_default()
             })
@@ -65,7 +67,7 @@ impl EntityRepository for InMemoryEntityRepository {
             return Err(Error::AlreadyExists);
         }
 
-        entities.insert(entity.id, Arc::new(Mutex::new(entity.clone())));
+        entities.insert(entity.id, Arc::new(Mutex::new(entity.clone())).into());
         Ok(())
     }
 

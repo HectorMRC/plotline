@@ -1,15 +1,17 @@
 use super::{service::EventRepository, Error, Event, Result};
 use crate::{
-    transaction::Resource,
     id::Id,
     interval::Interval,
     serde::{hashmap_from_slice, slice_from_hashmap},
+    transaction::Resource,
 };
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex, RwLock},
 };
+
+type Repository<T> = RwLock<HashMap<Id<T>, Resource<T>>>;
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -22,7 +24,7 @@ where
         deserialize_with = "hashmap_from_slice",
         default
     )]
-    events: RwLock<HashMap<Id<Event<I>>, Arc<Mutex<Event<I>>>>>,
+    events: Repository<Event<I>>,
 }
 
 impl<I> EventRepository for InMemoryEventRepository<I>
@@ -42,7 +44,7 @@ where
             return Err(Error::AlreadyExists);
         }
 
-        events.insert(event.id, Arc::new(Mutex::new(event.clone())));
+        events.insert(event.id, Arc::new(Mutex::new(event.clone())).into());
         Ok(())
     }
 

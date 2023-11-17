@@ -1,4 +1,7 @@
-use crate::id::{Id, Identifiable};
+use crate::{
+    id::{Id, Identifiable},
+    transaction::Resource,
+};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
     collections::HashMap,
@@ -7,9 +10,9 @@ use std::{
 
 /// Serializes a hashmap into a slice of items.
 pub fn slice_from_hashmap<S, T>(
-    hashmap: &RwLock<HashMap<Id<T>, Arc<Mutex<T>>>>,
+    hashmap: &RwLock<HashMap<Id<T>, Resource<T>>>,
     serializer: S,
-) -> std::result::Result<S::Ok, S::Error>
+) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
     T: Serialize,
@@ -24,10 +27,10 @@ where
     serializer.collect_seq(hashmap.values())
 }
 
+type Repository<T> = RwLock<HashMap<Id<T>, Resource<T>>>;
+
 /// Deserializes an slice of [Identified] items as a hasmap indexed by the [Id] of each value.
-pub fn hashmap_from_slice<'de, D, T>(
-    deserializer: D,
-) -> std::result::Result<RwLock<HashMap<Id<T>, Arc<Mutex<T>>>>, D::Error>
+pub fn hashmap_from_slice<'de, D, T>(deserializer: D) -> Result<Repository<T>, D::Error>
 where
     D: Deserializer<'de>,
     T: Deserialize<'de> + Identifiable<T>,
@@ -35,6 +38,6 @@ where
     Ok(RwLock::new(HashMap::from_iter(
         Vec::<T>::deserialize(deserializer)?
             .into_iter()
-            .map(|value| (value.id(), Arc::new(Mutex::new(value)))),
+            .map(|value| (value.id(), Arc::new(Mutex::new(value)).into())),
     )))
 }

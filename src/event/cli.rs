@@ -1,10 +1,9 @@
 use super::{
     service::{EventRepository, EventService},
-    Error, Event,
+    Event,
 };
 use crate::{
-    cli::{display_each_result, CliError, CliResult},
-    entity::service::EntityRepository,
+    cli::{CliError, CliResult},
     id::Id,
 };
 use clap::{Args, Subcommand};
@@ -22,33 +21,11 @@ struct EventSaveArgs {
     entities: Option<Vec<String>>,
 }
 
-#[derive(Args)]
-struct EventAddEntitiesArgs {
-    /// The ids of all the entities to be added.
-    #[arg(required = true, num_args(1..))]
-    entities: Vec<String>,
-}
-
-#[derive(Subcommand)]
-enum EventEntitiesSubCommand {
-    /// Add a new entity into the event.
-    Add(EventAddEntitiesArgs),
-}
-
-#[derive(Args)]
-#[command(arg_required_else_help = true)]
-struct EventEntitiesCommand {
-    #[command(subcommand)]
-    command: EventEntitiesSubCommand,
-}
-
 #[derive(Subcommand)]
 #[clap(subcommand_negates_reqs = true, subcommand_precedence_over_arg = true)]
 enum EventSubCommand {
     /// Save an event.
     Save(EventSaveArgs),
-    /// Manage event entities.
-    Entities(EventEntitiesCommand),
 }
 
 #[derive(Args)]
@@ -61,10 +38,9 @@ pub struct EventCommand {
     command: Option<EventSubCommand>,
 }
 
-impl<EventRepo, EntityRepo> EventService<EventRepo, EntityRepo>
+impl<EventRepo> EventService<EventRepo>
 where
     EventRepo: 'static + EventRepository + Sync + Send,
-    EntityRepo: 'static + EntityRepository + Sync + Send,
     EventRepo::Interval: TryFrom<Vec<String>> + Sync + Send,
     <EventRepo::Interval as TryFrom<Vec<String>>>::Error: Into<CliError>,
 {
@@ -85,7 +61,7 @@ where
     ) -> CliResult {
         match subcommand {
             EventSubCommand::Save(args) => {
-                let event_id = event_id.unwrap_or_else(|| Id::new());
+                let event_id = event_id.unwrap_or_default();
                 self.save_event(event_id)
                     .with_name(args.name.map(TryInto::try_into).transpose()?)
                     .with_interval(
@@ -98,20 +74,6 @@ where
 
                 println!("{}", event_id);
             }
-            EventSubCommand::Entities(args) => match args.command {
-                EventEntitiesSubCommand::Add(args) => {
-                    let Some(event_id) = event_id else {
-                        return Err(Error::IdRequired.into());
-                    };
-
-                    display_each_result(args.entities.into_iter(), |entity| {
-                        let entity_id = entity.try_into()?;
-                        self.add_entity(entity_id, event_id)
-                            .execute()
-                            .map(|_| entity_id)
-                    })?;
-                }
-            },
         }
 
         Ok(())

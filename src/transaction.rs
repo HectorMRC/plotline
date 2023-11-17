@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::{
     ops::{Deref, DerefMut},
     sync::{Arc, Mutex, MutexGuard},
@@ -18,7 +19,7 @@ pub trait Tx<T> {
 
     /// Acquires the resource, blocking the current thread until it is available
     /// to do so.
-    fn begin<'a>(&'a self) -> Result<Self::Guard<'a>, Error>;
+    fn begin(&self) -> Result<Self::Guard<'_>, Error>;
 }
 
 /// A TxGuard holds a copy of T while keeping locked the original value,
@@ -30,6 +31,8 @@ pub trait TxGuard<'a, T>: Deref<Target = T> + DerefMut {
 }
 
 /// Resource implements the [Tx] trait for any piece of data.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct Resource<T> {
     mu: Arc<Mutex<T>>,
 }
@@ -40,7 +43,7 @@ where
 {
     type Guard<'a> = ResourceGuard<'a, T> where Self: 'a, T: 'a;
 
-    fn begin<'a>(&'a self) -> Result<Self::Guard<'a>, Error> {
+    fn begin(&self) -> Result<Self::Guard<'_>, Error> {
         let guard = self.mu.lock().map_err(|_| Error::Poisoned)?;
         Ok(ResourceGuard {
             data: guard.clone(),

@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize, Serializer, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt::Display, hash::Hash, marker::PhantomData, str::FromStr};
 use uuid::Uuid;
 
@@ -24,21 +24,26 @@ pub struct Id<T> {
 
 impl<T> Serialize for Id<T> {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-        where
-            S: Serializer {
+    where
+        S: Serializer,
+    {
         serializer.serialize_str(&self.uuid.to_string())
     }
 }
 
 impl<'de, T> Deserialize<'de> for Id<T> {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-        where
-            D: Deserializer<'de> {
+    where
+        D: Deserializer<'de>,
+    {
         use serde::de::Error;
 
         let uuid = String::deserialize(deserializer)?;
         Uuid::from_str(&uuid)
-            .map(|uuid| Self{uuid, _marker: PhantomData})
+            .map(|uuid| Self {
+                uuid,
+                _marker: PhantomData,
+            })
             .map_err(|err| err.to_string())
             .map_err(Error::custom)
     }
@@ -54,10 +59,7 @@ impl<T> PartialEq for Id<T> {
 impl<T> Copy for Id<T> {}
 impl<T> Clone for Id<T> {
     fn clone(&self) -> Self {
-        Self {
-            uuid: self.uuid.clone(),
-            _marker: PhantomData,
-        }
+        *self
     }
 }
 
@@ -86,9 +88,9 @@ impl<T> TryFrom<String> for Id<T> {
     }
 }
 
-impl<T> Id<T> {
-    /// Generates a new id.
-    pub fn new() -> Self {
+impl<T> Default for Id<T> {
+    /// Returns a random generated id.
+    fn default() -> Self {
         Self {
             uuid: Uuid::new_v4(),
             _marker: PhantomData,
@@ -102,7 +104,7 @@ pub mod tests {
 
     #[test]
     fn id_serde() {
-        let want = Id::<()>::new();
+        let want: Id<()> = Default::default();
         let yaml = serde_yaml::to_string(&want).unwrap();
         let got: Id<()> = serde_yaml::from_str(&yaml).unwrap();
 

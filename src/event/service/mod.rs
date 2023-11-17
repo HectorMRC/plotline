@@ -1,9 +1,6 @@
 mod save;
 pub use save::*;
 
-mod add_entity;
-pub use add_entity::*;
-
 use super::{error::Result, Event};
 use crate::{id::Id, interval::Interval, transaction::Tx};
 use std::sync::Arc;
@@ -16,7 +13,6 @@ pub trait EventRepository {
     fn find(&self, id: Id<Event<Self::Interval>>) -> Result<Self::Tx>;
 }
 
-pub struct EventService<EventRepo, EntityRepo> {
+pub struct EventService<EventRepo> {
     pub event_repo: Arc<EventRepo>,
-    pub entity_repo: Arc<EntityRepo>,
 }

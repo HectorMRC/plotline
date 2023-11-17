@@ -79,12 +79,10 @@ where
             } else {
                 self.left = Some(Box::new(interval.into()));
             }
+        } else if let Some(right) = &mut self.right {
+            right._insert(interval);
         } else {
-            if let Some(right) = &mut self.right {
-                right._insert(interval);
-            } else {
-                self.right = Some(Box::new(interval.into()))
-            }
+            self.right = Some(Box::new(interval.into()))
         }
     }
 
@@ -240,9 +238,7 @@ where
             Some(root)
         }
 
-        let mut tree = IntervalST::default();
-        tree.0 = immersion(value);
-        tree
+        IntervalST::<I>(immersion(value))
     }
 }
 

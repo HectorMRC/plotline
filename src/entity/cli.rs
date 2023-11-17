@@ -72,7 +72,7 @@ where
     ) -> CliResult {
         match subcommand {
             EntitySubCommand::Save(args) => {
-                let entity_id = entity_id.unwrap_or_else(|| Id::new());
+                let entity_id = entity_id.unwrap_or_default();
                 self.save_entity(entity_id, args.name.try_into()?)
                     .execute()?;
 

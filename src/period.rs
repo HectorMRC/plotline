@@ -34,7 +34,7 @@ impl TryFrom<Vec<String>> for Period<usize> {
             .next()
             .map(|s| s.parse::<usize>())
             .transpose()?
-            .unwrap_or(lo.clone());
+            .unwrap_or(lo);
 
         Ok(Self { lo, hi })
     }
