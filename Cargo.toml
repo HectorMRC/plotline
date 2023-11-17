@@ -1,6 +1,6 @@
 [package]
     authors     = ["Hèctor Morales <hector.morales.carnice@gmail.com>"]
-    description = "A story line manager"
+    description = "A plotline manager"
     edition     = "2021"
     license     = "MIT"
     name        = "plotline"
@@ -17,6 +17,7 @@
         "string",
     ]}
     dirs = {version = "5.0.1", optional = true}
+    futures = "0.3.28"
     once_cell = "1.18.0"
     regex = "1.8.4"
     serde = {version = "1.0.164", features = ["derive", "rc"]} # data parser
@@ -27,8 +28,10 @@
     uuid = {version = "1.4.1", features = ["v4"]}
 
 [features]
-    cli     = ["clap", "dirs"]
-    default = ["cli"]
+    cli     = ["clap", "dirs", "fmt"]
+    in_memory = []
+    default = ["cli", "in_memory"]
+    fmt     = []
 
 [lib]
     name = "plotline"
@@ -37,4 +40,4 @@
 [[bin]]
     name              = "plot"
     path              = "src/bin/cli.rs"
-    required-features = ["cli"]
+    required-features = ["cli", "in_memory"]

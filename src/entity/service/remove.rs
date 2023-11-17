@@ -1,36 +1,34 @@
 use super::{EntityRepository, EntityService};
-use crate::entity::{error::Result, Entity};
+use crate::{
+    entity::{error::Result, Entity},
+    id::Id,
+};
 use std::sync::Arc;
 
-pub struct RemoveEntities<R> {
-    entity_repo: Arc<R>,
-    names: Vec<String>,
+/// Implements the remove entity transaction.
+pub struct RemoveEntity<EntityRepo> {
+    entity_repo: Arc<EntityRepo>,
+    id: Id<Entity>,
 }
 
-impl<R> RemoveEntities<R>
+impl<EntityRepo> RemoveEntity<EntityRepo>
 where
-    R: EntityRepository,
+    EntityRepo: EntityRepository,
 {
-    pub fn execute(self) -> Result<Vec<Entity>> {
-        Ok(vec![])
+    /// Executes the remove entity transaction.
+    pub fn execute(self) -> Result<()> {
+        self.entity_repo.delete(self.id)
     }
 }
 
-impl<R> RemoveEntities<R> {
-    pub fn with_names(mut self, names: Vec<String>) -> Self {
-        self.names = names;
-        self
-    }
-}
-
-impl<R> EntityService<R>
+impl<EntityRepo> EntityService<EntityRepo>
 where
-    R: EntityRepository,
+    EntityRepo: EntityRepository,
 {
-    pub fn remove(&self) -> RemoveEntities<R> {
-        RemoveEntities {
+    pub fn remove_entity(&self, id: Id<Entity>) -> RemoveEntity<EntityRepo> {
+        RemoveEntity {
             entity_repo: self.entity_repo.clone(),
-            names: Default::default(),
+            id,
         }
     }
 }

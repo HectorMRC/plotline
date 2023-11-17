@@ -6,8 +6,14 @@ pub enum Error {
     NotAnEntityName,
     #[error("entity already exists")]
     AlreadyExists,
-    #[error("tag: {0}")]
-    Tag(#[from] crate::tag::Error),
-    #[error("uuid: {0}")]
-    Uuid(#[from] uuid::Error),
+    #[error("entity not found")]
+    NotFound,
+    #[error("{0}")]
+    Transaction(#[from] crate::transaction::Error),
+    #[error("{0}")]
+    Name(#[from] crate::name::Error),
+    #[error("{0}")]
+    Id(#[from] crate::id::Error),
+    #[error("{0}")]
+    Lock(String),
 }
