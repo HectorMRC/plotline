@@ -1,14 +1,16 @@
-use clap::{builder::OsStr, error::ErrorKind, Parser, Subcommand};
+use clap::{error::ErrorKind, Parser, Subcommand};
 use once_cell::sync::Lazy;
 use plotline::{
     entity::{cli::EntityCommand, service::EntityService},
+    event::{cli::EventCommand, service::EventService},
     snapshot::Snapshot,
 };
 use std::{
     ffi::OsString,
     fmt::Display,
-    fs::File,
+    fs::{self, File},
     io::{BufReader, BufWriter, Write},
+    path::Path,
 };
 
 const ENV_PLOTFILE: &str = "PLOTFILE";
@@ -27,7 +29,7 @@ struct Cli {
     #[command(subcommand)]
     command: CliCommand,
 
-    /// The data source file
+    /// The data source file.
     #[arg(
         env = ENV_PLOTFILE,
         default_value = &*DEFAULT_PLOTFILE,
@@ -40,8 +42,10 @@ struct Cli {
 
 #[derive(Subcommand, strum_macros::Display)]
 enum CliCommand {
-    /// Manage entities
+    /// Manage entities.
     Entity(EntityCommand),
+    /// Manage events.
+    Event(EventCommand),
 }
 
 /// Returns the value of the result if, and only if, the result is OK. Otherwise prints the error and exits.
@@ -51,33 +55,54 @@ where
     E: Display,
 {
     match result {
-        Ok(value) => value,
         Err(error) => clap::Error::raw(ErrorKind::Io, format!("{msg}: {error}\n")).exit(),
+        Ok(value) => value,
     }
 }
 
 fn main() {
     let args = Cli::parse();
 
-    let filepath = format!("{:?}", &args.file);
-    let snapshot = Snapshot::parse(|| {
-        let f = unwrap_or_exit(&filepath, File::open(&args.file));
-        let reader = BufReader::new(f);
-        unwrap_or_exit("yaml reader", serde_yaml::from_reader(reader))
-    });
+    // Load data from YAML file
+    let filepath = Path::new(&args.file);
+    let snapshot = if filepath.exists() {
+        Snapshot::parse(|| {
+            let f = unwrap_or_exit(filepath.to_string_lossy(), File::open(filepath));
+            let reader = BufReader::new(f);
+            unwrap_or_exit("yaml reader", serde_yaml::from_reader(reader))
+        })
+    } else {
+        Snapshot::default()
+    };
 
+    // Build dependencies
     let entity_srv = EntityService {
         entity_repo: snapshot.entities.clone(),
     };
 
+    let event_srv = EventService {
+        event_repo: snapshot.events.clone(),
+        entity_repo: snapshot.entities.clone(),
+    };
+
+    // Execute command
     unwrap_or_exit(
         format!("{}", args.command),
         match args.command {
             CliCommand::Entity(command) => entity_srv.execute(command),
+            CliCommand::Event(command) => event_srv.execute(command),
         },
     );
 
-    let f = unwrap_or_exit(&filepath, File::create(&args.file));
+    // Persist data into YAML file
+    if let Some(parent) = filepath.parent() {
+        if !parent.exists() {
+            unwrap_or_exit(parent.to_string_lossy(), fs::create_dir_all(parent));
+        }
+    }
+
+    let f = unwrap_or_exit(filepath.to_string_lossy(), File::create(filepath));
+
     let mut writer = BufWriter::new(f);
     unwrap_or_exit("yaml writer", serde_yaml::to_writer(&mut writer, &snapshot));
     unwrap_or_exit("io writer", writer.flush());

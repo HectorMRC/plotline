@@ -1,83 +1,106 @@
-use super::service::{EntityRepository, EntityService};
-use crate::cli::{CliError, CliResult};
-use clap::{
-    error::{ContextKind, ContextValue, ErrorKind},
-    Args, Subcommand,
+use super::{
+    fmt::EntityFmt,
+    service::{EntityFilter, EntityRepository, EntityService},
+    Entity,
 };
+use crate::{
+    cli::{display_each_result, display_result, CliResult},
+    id::Id,
+};
+use clap::{Args, Subcommand};
 use std::io::{stdout, Write};
 
 #[derive(Args)]
-struct EntityCreateArgs {
-    /// The uuid string of the entity.
-    #[arg(short, long)]
-    id: Option<String>,
+struct EntitySaveArgs {
     /// The name of the entity.
     name: String,
-    /// A list of tags to be added to the entity.
-    #[arg(short, long)]
-    tags: Vec<String>,
 }
 
 #[derive(Args)]
 struct EntityRemoveArgs {
-    /// The name of all the entities to be removed.
-    names: Vec<String>,
+    /// The uuid of all the entities to be removed.
+    ids: Vec<String>,
 }
 
 #[derive(Subcommand)]
+#[clap(subcommand_negates_reqs = true, subcommand_precedence_over_arg = true)]
 enum EntitySubCommand {
-    /// Create a new entity
-    Create(EntityCreateArgs),
-    /// Remove one or more entities
+    /// Save an entity.
+    Save(EntitySaveArgs),
+    /// List all entities.
+    #[command(alias("ls"))]
+    List,
+    /// Remove one or more entities.
+    #[command(alias("rm"))]
     Remove(EntityRemoveArgs),
 }
 
 #[derive(Args)]
 #[command(arg_required_else_help = true)]
 pub struct EntityCommand {
+    entity: Option<String>,
     #[command(subcommand)]
-    command: EntitySubCommand,
+    command: Option<EntitySubCommand>,
 }
 
-impl<R> EntityService<R>
+impl<EntityRepo> EntityService<EntityRepo>
 where
-    R: EntityRepository,
+    EntityRepo: 'static + EntityRepository + Sync + Send,
 {
-    /// Given an [EntityCommand] parsed by Clap, executes the corresponding logic.
+    /// Given an [EntityCommand], executes the corresponding logic.
     pub fn execute(&self, entity_cmd: EntityCommand) -> CliResult {
-        match entity_cmd.command {
-            EntitySubCommand::Create(args) => {
-                let entity = self
-                    .create()
-                    .with_id(args.id)
-                    .with_name(args.name)
-                    .with_tags(args.tags)
-                    .execute()
-                    .map_err(CliError::from)?;
+        let entity_id = entity_cmd.entity.map(TryInto::try_into).transpose()?;
+        if let Some(command) = entity_cmd.command {
+            return self.execute_subcommand(command, entity_id);
+        }
 
-                println!("{}", entity.id);
+        if entity_id.is_none() {
+            return self.execute_subcommand(EntitySubCommand::List, None);
+        };
+
+        let filter = EntityFilter::default().with_id(entity_id);
+        let entity = self.find_entity().with_filter(filter).execute()?;
+        print!("{}", EntityFmt::column(&entity));
+
+        Ok(())
+    }
+
+    fn execute_subcommand(
+        &self,
+        subcommand: EntitySubCommand,
+        entity_id: Option<Id<Entity>>,
+    ) -> CliResult {
+        match subcommand {
+            EntitySubCommand::Save(args) => {
+                let entity_id = entity_id.unwrap_or_else(|| Id::new());
+                self.save_entity(entity_id, args.name.try_into()?)
+                    .execute()?;
+
+                println!("{}", entity_id);
             }
-            EntitySubCommand::Remove(args) => {
-                let entities = self
-                    .remove()
-                    .with_names(args.names)
-                    .execute()
-                    .map_err(CliError::from)?;
 
-                let mut lock = stdout().lock();
-                let errors_str: Vec<String> = entities
+            EntitySubCommand::List => {
+                let entities = self.filter_entities().execute()?;
+
+                let mut stdout = stdout().lock();
+                writeln!(stdout, "{}", EntityFmt::headers())?;
+
+                entities
                     .into_iter()
-                    .filter_map(|entity| writeln!(lock, "{}", entity.id).err())
-                    .map(|err| err.to_string())
-                    .collect();
+                    .try_for_each(|entity| write!(stdout, "{}", EntityFmt::row(&entity)))?;
+            }
 
-                if !errors_str.is_empty() {
-                    let mut stderr = clap::Error::new(ErrorKind::Io);
-                    stderr.insert(ContextKind::Custom, ContextValue::Strings(errors_str));
-                    stderr.print().map_err(CliError::from)?;
+            EntitySubCommand::Remove(args) => {
+                if let Some(entity_id) = entity_id {
+                    display_result(self.remove_entity(entity_id).execute().map(|_| entity_id))?;
+                } else {
+                    display_each_result(args.ids.into_iter(), |id| {
+                        let entity_id = id.try_into()?;
+                        self.remove_entity(entity_id).execute().map(|_| entity_id)
+                    })?;
                 }
             }
-        };
+        }
 
         Ok(())
     }
