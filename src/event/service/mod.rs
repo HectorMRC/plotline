@@ -5,7 +5,7 @@ mod add_entity;
 pub use add_entity::*;
 
 use super::{error::Result, Event};
-use crate::{transaction::Tx, id::Id, interval::Interval};
+use crate::{id::Id, interval::Interval, transaction::Tx};
 use std::sync::Arc;
 
 pub trait EventRepository {
