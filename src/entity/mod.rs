@@ -36,7 +36,7 @@ impl Identifiable<Entity> for Entity {
 impl Entity {
     /// Creates a new entity with the given id and name.
     pub fn new(id: Id<Self>, name: Name<Self>) -> Self {
-        Self {id, name}
+        Self { id, name }
     }
 
     /// Returns a reference to the name of self.

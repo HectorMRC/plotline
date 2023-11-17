@@ -28,31 +28,31 @@ pub trait Interval: Clone {
 
 /// A Node is the minimum unit of information in an interval search tree.
 #[derive(Debug, Clone, PartialEq)]
-pub struct Node<I>
+pub struct Node<Intv>
 where
-    I: Interval,
+    Intv: Interval,
 {
-    value: I,
-    max: I::Bound,
-    left: Option<Box<Node<I>>>,
-    right: Option<Box<Node<I>>>,
+    value: Intv,
+    max: Intv::Bound,
+    left: Option<Box<Node<Intv>>>,
+    right: Option<Box<Node<Intv>>>,
 }
 
-impl<I> From<I> for Node<I>
+impl<Intv> From<Intv> for Node<Intv>
 where
-    I: Interval,
+    Intv: Interval,
 {
-    fn from(value: I) -> Self {
+    fn from(value: Intv) -> Self {
         Self::new(value)
     }
 }
 
-impl<I> Node<I>
+impl<Intv> Node<Intv>
 where
-    I: Interval,
+    Intv: Interval,
 {
     /// Creates a new node containing the given interval.
-    pub fn new(interval: I) -> Self {
+    pub fn new(interval: Intv) -> Self {
         Self {
             max: interval.hi(),
             value: interval,
@@ -62,13 +62,13 @@ where
     }
 
     /// Inserts the given interval in the tree rooted by self.
-    pub fn _with_interval(mut self, interval: I) -> Self {
+    pub fn _with_interval(mut self, interval: Intv) -> Self {
         self._insert(interval);
         self
     }
 
     /// Adds the given interval in the tree rooted by self.
-    pub fn _insert(&mut self, interval: I) {
+    pub fn _insert(&mut self, interval: Intv) {
         if self.max < interval.hi() {
             self.max = interval.hi();
         }
@@ -88,7 +88,7 @@ where
 
     /// Returns true if, and only if, there is an interval in the tree that intersects the
     /// given one.
-    pub fn _intersects(&self, interval: &I) -> bool {
+    pub fn _intersects(&self, interval: &Intv) -> bool {
         if self.value.intersects(interval) {
             return true;
         }
@@ -111,14 +111,14 @@ where
     }
 
     /// Calls the given closure for each interval in the tree overlapping the given one.
-    pub fn _for_each_intersection<F>(&self, interval: &I, mut f: F)
+    pub fn _for_each_intersection<F>(&self, interval: &Intv, mut f: F)
     where
-        F: FnMut(&I),
+        F: FnMut(&Intv),
     {
-        fn immersion<I, F>(node: &Node<I>, interval: &I, f: &mut F)
+        fn immersion<Intv, F>(node: &Node<Intv>, interval: &Intv, f: &mut F)
         where
-            I: Interval,
-            F: FnMut(&I),
+            Intv: Interval,
+            F: FnMut(&Intv),
         {
             if let Some(right) = &node.right {
                 immersion(right, interval, f);
@@ -164,13 +164,13 @@ where
 
 /// An IntervalST represents an interval search tree that may be empty.
 #[derive(Clone, PartialEq)]
-pub struct IntervalST<I>(Option<Node<I>>)
+pub struct IntervalST<Intv>(Option<Node<Intv>>)
 where
-    I: Interval;
+    Intv: Interval;
 
-impl<I> Serialize for IntervalST<I>
+impl<Intv> Serialize for IntervalST<Intv>
 where
-    I: Serialize + Interval,
+    Intv: Serialize + Interval,
 {
     /// Serializes an [IntervalST] as a vector of intervals.
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -181,9 +181,9 @@ where
     }
 }
 
-impl<'de, I> Deserialize<'de> for IntervalST<I>
+impl<'de, Intv> Deserialize<'de> for IntervalST<Intv>
 where
-    I: Deserialize<'de> + Interval,
+    Intv: Deserialize<'de> + Interval,
 {
     /// Deserializes a [IntervalST] from a vector of intervals.
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
@@ -192,36 +192,36 @@ where
     {
         use serde::de::Error;
 
-        Vec::<I>::deserialize(deserializer)?
+        Vec::<Intv>::deserialize(deserializer)?
             .try_into()
             .map_err(Error::custom)
     }
 }
 
-impl<I> Default for IntervalST<I>
+impl<Intv> Default for IntervalST<Intv>
 where
-    I: Interval,
+    Intv: Interval,
 {
     fn default() -> Self {
         Self(Default::default())
     }
 }
 
-impl<I> From<Vec<I>> for IntervalST<I>
+impl<Intv> From<Vec<Intv>> for IntervalST<Intv>
 where
-    I: Interval,
+    Intv: Interval,
 {
-    fn from(value: Vec<I>) -> Self {
-        fn immersion<I>(mut intervals: Vec<I>) -> Option<Node<I>>
+    fn from(value: Vec<Intv>) -> Self {
+        fn immersion<Intv>(mut intervals: Vec<Intv>) -> Option<Node<Intv>>
         where
-            I: Interval,
+            Intv: Interval,
         {
             if intervals.is_empty() {
                 return Default::default();
             }
 
             let center = intervals.len() / 2;
-            let mut root: Node<I> = intervals.remove(center).into();
+            let mut root: Node<Intv> = intervals.remove(center).into();
             if !intervals.is_empty() {
                 let left = intervals.drain(0..center).collect();
                 root.left = immersion(left).map(Box::new);
@@ -238,23 +238,23 @@ where
             Some(root)
         }
 
-        IntervalST::<I>(immersion(value))
+        IntervalST::<Intv>(immersion(value))
     }
 }
 
-impl<I> IntervalST<I>
+impl<Intv> IntervalST<Intv>
 where
-    I: Interval,
+    Intv: Interval,
 {
     /// Calls the given closure for each interval in the tree.
     pub fn for_each<F>(&self, mut f: F)
     where
-        F: FnMut(&I),
+        F: FnMut(&Intv),
     {
-        fn immersion<I, F>(node: &Node<I>, f: &mut F)
+        fn immersion<Intv, F>(node: &Node<Intv>, f: &mut F)
         where
-            I: Interval,
-            F: FnMut(&I),
+            Intv: Interval,
+            F: FnMut(&Intv),
         {
             if let Some(left) = &node.left {
                 immersion(left, f);
@@ -275,7 +275,7 @@ where
     }
 
     /// Returns a vector with all the intervals in the tree rooted by self.
-    pub fn intervals(&self) -> Vec<I> {
+    pub fn intervals(&self) -> Vec<Intv> {
         let mut intervals = Vec::new();
         self.for_each(|interval| intervals.push(interval.clone()));
         intervals
