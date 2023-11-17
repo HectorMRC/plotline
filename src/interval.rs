@@ -294,11 +294,11 @@ mod tests {
         type Bound = usize;
 
         fn lo(&self) -> Self::Bound {
-            self.0.clone()
+            self.0
         }
 
         fn hi(&self) -> Self::Bound {
-            self.1.clone()
+            self.1
         }
     }
 
