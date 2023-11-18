@@ -1,4 +1,4 @@
-use crate::interval::Interval;
+use crate::interval::{Bound, Interval};
 use serde::{Deserialize, Serialize};
 use std::num::ParseIntError;
 
@@ -11,7 +11,7 @@ pub struct Period<M> {
 
 impl<M> Interval for Period<M>
 where
-    M: Eq + Ord + Copy,
+    M: Bound,
 {
     type Bound = M;
 

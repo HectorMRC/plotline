@@ -1,3 +1,8 @@
+pub mod service;
+
+mod error;
+pub use error::*;
+
 use crate::{entity::Entity, id::Id};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

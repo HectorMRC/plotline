@@ -3,9 +3,13 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cmp;
 
+/// A Bound represents the limit of an [Interval].
+pub trait Bound: Eq + Ord + Copy {}
+impl<T> Bound for T where T: Eq + Ord + Copy {}
+
 /// An Interval is anything delimited by two bounds.
 pub trait Interval: Clone {
-    type Bound: Eq + Ord + Copy;
+    type Bound: Bound;
 
     /// Retrives the lowest bound in the interval.
     fn lo(&self) -> Self::Bound;
