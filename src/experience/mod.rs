@@ -10,6 +10,25 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 pub struct Experience<Intv> {
     event: Id<Event<Intv>>,
-    before: Id<Profile>,
-    after: Id<Profile>,
+    before: Option<Id<Profile>>,
+    after: Option<Id<Profile>>,
+}
+
+impl<Intv> Experience<Intv> {
+    pub fn new(event: Id<Event<Intv>>) -> Self {
+        Self {
+            event,
+            before: Default::default(),
+            after: Default::default(),
+        }
+    }
+
+    pub fn with_before(mut self, before: Option<Id<Profile>>) -> Self {
+        self.before = before;
+        self
+    }
+    pub fn with_after(mut self, after: Option<Id<Profile>>) -> Self {
+        self.after = after;
+        self
+    }
 }
