@@ -1,57 +1,64 @@
-use super::ExperienceRepository;
+use super::{ExperienceFilter, ExperienceRepository};
 use crate::{
     entity::{service::EntityRepository, Entity},
     event::{service::EventRepository, Event},
-    experience::{self, Error, Experience, Result},
-    id::Id,
-    profile::service::{ProfileFilter, ProfileRepository},
-    transaction::{Tx, TxGuard},
+    experience::{Error, Experience, Result},
+    id::{Id, Identifiable},
+    transaction::Tx,
 };
-use std::{
-    ops::{Deref, DerefMut},
-    sync::{Arc, Mutex},
-};
+use std::sync::Arc;
 
 /// Implements the save experience transaction.
-pub struct SaveExperience<ExperienceRepo, ProfileRepo, EntityRepo, EventRepo>
+pub struct SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
 where
     EventRepo: EventRepository,
 {
     experience_repo: Arc<ExperienceRepo>,
-    profile_repo: Arc<ProfileRepo>,
     entity_repo: Arc<EntityRepo>,
     event_repo: Arc<EventRepo>,
     entity: Id<Entity>,
     event: Id<Event<EventRepo::Interval>>,
 }
 
-impl<ExperienceRepo, ProfileRepo, EntityRepo, EventRepo>
-    SaveExperience<ExperienceRepo, ProfileRepo, EntityRepo, EventRepo>
+impl<ExperienceRepo, EntityRepo, EventRepo> SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
 where
     ExperienceRepo: ExperienceRepository<Interval = EventRepo::Interval>,
-    ProfileRepo: ProfileRepository,
     EntityRepo: EntityRepository,
     EventRepo: EventRepository,
 {
     /// Executes the save experience transaction.
     pub fn execute(self) -> Result<()> {
-        match self
-            .experience_repo
-            .find_by_entity_and_event(self.entity, self.event)
-        {
-            Ok(experience_tx) => self.update(experience_tx),
-            Err(Error::NotFound) => self.create(),
-            Err(err) => Err(err),
+        let mut experiences_tx = self.experience_repo.filter(
+            ExperienceFilter::default()
+                .with_event(Some(self.event))
+                .with_entity(Some(self.entity)),
+        )?;
+
+        if experiences_tx.is_empty() {
+            self.create()
+        } else if experiences_tx.len() == 1 {
+            self.update(experiences_tx.remove(0))
+        } else {
+            Err(Error::Collition {
+                entity: self.entity.to_string(),
+                event: self.event.to_string(),
+            })
         }
     }
 
     fn create(self) -> Result<()> {
+        // Acquire resources
         let entity_tx = self.entity_repo.find(self.entity)?;
-        let event_tx = self.event_repo.find(self.event)?;
-        let profiles_tx = self
-            .profile_repo
-            .filter(&ProfileFilter::default().with_entity(Some(self.entity)))?;
+        let entity = entity_tx.begin()?;
 
+        let event_tx = self.event_repo.find(self.event)?;
+        let event = event_tx.begin()?;
+
+        let experiences_tx = self
+            .experience_repo
+            .filter(ExperienceFilter::default().with_entity(Some(entity.id())))?;
+
+        // Actual logic
         let experience = Experience::new(self.event);
         Ok(())
     }

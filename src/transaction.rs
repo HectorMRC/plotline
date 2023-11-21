@@ -4,6 +4,8 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
+pub type Result<T> = std::result::Result<T, Error>;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("posisoned resource")]
@@ -19,7 +21,7 @@ pub trait Tx<T> {
 
     /// Acquires the resource, blocking the current thread until it is available
     /// to do so.
-    fn begin(&self) -> Result<Self::Guard<'_>, Error>;
+    fn begin(&self) -> Result<Self::Guard<'_>>;
 }
 
 /// A TxGuard holds a copy of T while keeping locked the original value,
@@ -43,7 +45,7 @@ where
 {
     type Guard<'a> = ResourceGuard<'a, T> where Self: 'a, T: 'a;
 
-    fn begin(&self) -> Result<Self::Guard<'_>, Error> {
+    fn begin(&self) -> Result<Self::Guard<'_>> {
         let guard = self.mu.lock().map_err(|_| Error::Poisoned)?;
         Ok(ResourceGuard {
             data: guard.clone(),

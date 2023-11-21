@@ -1,22 +1,15 @@
 use super::{EntityRepository, EntityService};
-use crate::entity::{error::Result, Entity};
-use crate::transaction::Tx;
-use crate::{id::Id, name::Name};
+use crate::{
+    entity::{error::Result, Entity},
+    id::Id,
+    macros::equals_or_return,
+    name::Name,
+    transaction::Tx,
+};
 use std::sync::Arc;
 
-macro_rules! equals_or_return {
-    ($option:expr, $subject:expr) => {
-        if $option
-            .as_ref()
-            .map(|want| want != $subject)
-            .unwrap_or_default()
-        {
-            return false;
-        }
-    };
-}
-
-/// Implements the filter query, through which zero o more entities may be retrived.
+/// Implements the filter query, through which zero o more entities may be
+/// retrived.
 #[derive(Default)]
 pub struct EntityFilter {
     name: Option<Name<Entity>>,
@@ -51,7 +44,8 @@ impl<EntityRepo> FilterEntities<EntityRepo>
 where
     EntityRepo: EntityRepository,
 {
-    /// Executes the filter query, through which zero o more entities may be retrived.
+    /// Executes the filter query, through which zero o more entities may be
+    /// retrived.
     pub fn execute(self) -> Result<Vec<Entity>> {
         let entities_tx = self.entity_repo.filter(&self.filter)?;
         let mut entities = Vec::with_capacity(entities_tx.len());

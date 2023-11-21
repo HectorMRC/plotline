@@ -3,12 +3,12 @@ pub mod cli;
 pub mod entity;
 pub mod event;
 pub mod experience;
-pub mod profile;
 #[cfg(feature = "in_memory")]
 pub mod snapshot;
 
 mod id;
 mod interval;
+mod macros;
 mod name;
 mod period;
 mod serde;
