@@ -6,6 +6,8 @@ pub enum Error {
     NotFound,
     #[error("Multiple experiences with entity_id = {entity:?} and event_id = {event:?}")]
     Collition { entity: String, event: String },
+    #[error("An experience must include at least one before or after")]
+    MustBeforeOrAfter,
     #[error("{0}")]
     Entity(#[from] crate::entity::Error),
     #[error("{0}")]

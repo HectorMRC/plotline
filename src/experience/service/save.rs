@@ -54,16 +54,17 @@ where
         let event_tx = self.event_repo.find(self.event)?;
         let event = event_tx.begin()?;
 
-        let experiences_tx = self
+        let _experiences_tx = self
             .experience_repo
             .filter(ExperienceFilter::default().with_entity(Some(entity.id())))?;
 
         // Actual logic
-        let experience = Experience::new(self.event);
+        let experience = Experience::new(event.id());
+        self.experience_repo.create(&experience)?;
         Ok(())
     }
 
-    fn update(self, experience_tx: ExperienceRepo::Tx) -> Result<()> {
+    fn update(self, _experience_tx: ExperienceRepo::Tx) -> Result<()> {
         Ok(())
     }
 }
