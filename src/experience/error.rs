@@ -4,10 +4,12 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("Experience not found")]
     NotFound,
-    #[error("Multiple experiences with entity_id = {entity:?} and event_id = {event:?}")]
-    Collition { entity: String, event: String },
+    #[error("Multiple experiences for the same entity and event")]
+    Collition,
     #[error("An experience must include at least one before or after")]
     MustBeforeOrAfter,
+    #[error("The event has already been experienced by the entity")]
+    EventAlreadyExperienced,
     #[error("{0}")]
     Entity(#[from] crate::entity::Error),
     #[error("{0}")]
