@@ -2,15 +2,15 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("entity already exists")]
+    #[error("Entity already exists")]
     AlreadyExists,
-    #[error("event not found")]
+    #[error("Event not found")]
     NotFound,
-    #[error("event ID must be set")]
+    #[error("Event ID must be set")]
     IdRequired,
-    #[error("event name must be set")]
+    #[error("Event name must be set")]
     NameRequired,
-    #[error("event interval must be set")]
+    #[error("Event interval must be set")]
     IntervalRequired,
     #[error("{0}")]
     Entity(#[from] crate::entity::Error),
