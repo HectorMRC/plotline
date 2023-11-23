@@ -18,16 +18,18 @@ where
     EntityRepo: EntityRepository,
 {
     /// Executes the find query, through which one, and exactly one, entity must
-    /// be retrived. If there is no entity matching the query the error
-    /// [Error::NotFound] is returned.
+    /// be retrived.
     pub fn execute(self) -> Result<Entity> {
-        let entities = self.entity_repo.filter(&self.filter)?;
-        if entities.len() > 1 {
+        let mut entities = self.entity_repo.filter(&self.filter)?;
+        if entities.is_empty() {
             return Err(Error::NotFound);
         }
 
-        let entity = entities[0].begin()?;
-        Ok(entity.clone())
+        if entities.len() > 1 {
+            return Err(Error::MoreThanOne);
+        }
+
+        Ok(entities.remove(0).begin().clone())
     }
 }
 

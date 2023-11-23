@@ -57,7 +57,7 @@ where
     }
 
     fn update(self, event_tx: EventRepo::Tx) -> Result<()> {
-        let mut event = event_tx.begin()?;
+        let mut event = event_tx.begin();
 
         if let Some(name) = self.name {
             event.name = name;

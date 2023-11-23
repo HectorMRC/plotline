@@ -11,7 +11,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex, RwLock},
+    sync::RwLock,
 };
 
 type Repository<T> = RwLock<HashMap<Id<T>, Resource<T>>>;
@@ -46,13 +46,10 @@ impl EntityRepository for InMemoryEntityRepository {
             .read()
             .map_err(|err| Error::Lock(err.to_string()))?
             .values()
-            .filter(|entity| {
-                entity
-                    .begin()
-                    .map(|entity| filter.filter(&entity))
-                    .unwrap_or_default()
-            })
             .cloned()
+            .filter(|entity| {
+                filter.filter(&entity.clone().begin())
+            })
             .map(Resource::from)
             .collect())
     }
@@ -67,7 +64,7 @@ impl EntityRepository for InMemoryEntityRepository {
             return Err(Error::AlreadyExists);
         }
 
-        entities.insert(entity.id, Arc::new(Mutex::new(entity.clone())).into());
+        entities.insert(entity.id, entity.clone().into());
         Ok(())
     }
 

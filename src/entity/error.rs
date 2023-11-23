@@ -8,8 +8,8 @@ pub enum Error {
     AlreadyExists,
     #[error("entity not found")]
     NotFound,
-    #[error("{0}")]
-    Transaction(#[from] crate::transaction::Error),
+    #[error("entity not found")]
+    MoreThanOne,
     #[error("{0}")]
     Name(#[from] crate::name::Error),
     #[error("{0}")]

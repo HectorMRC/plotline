@@ -47,14 +47,13 @@ where
     /// Executes the filter query, through which zero o more entities may be
     /// retrived.
     pub fn execute(self) -> Result<Vec<Entity>> {
-        let entities_tx = self.entity_repo.filter(&self.filter)?;
-        let mut entities = Vec::with_capacity(entities_tx.len());
-        for entity_tx in entities_tx {
-            let entity = entity_tx.begin()?;
-            entities.push(entity.clone());
-        }
-
-        Ok(entities)
+        Ok(self
+            .entity_repo
+            .filter(&self.filter)?
+            .into_iter()
+            .map(Tx::begin)
+            .map(|entity| entity.clone())
+            .collect())
     }
 }
 

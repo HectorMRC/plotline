@@ -1,32 +1,22 @@
+use parking_lot::{lock_api::ArcMutexGuard, Mutex, RawMutex};
 use serde::{Deserialize, Serialize};
 use std::{
     ops::{Deref, DerefMut},
-    sync::{Arc, Mutex, MutexGuard},
+    sync::Arc,
 };
-
-pub type Result<T> = std::result::Result<T, Error>;
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("posisoned resource")]
-    Poisoned,
-}
 
 /// Tx represents a resource to be manipulated transactionally.
 pub trait Tx<T> {
-    type Guard<'a>: TxGuard<'a, T>
-    where
-        Self: 'a,
-        T: 'a;
+    type Guard: TxGuard<T>;
 
     /// Acquires the resource, blocking the current thread until it is available
     /// to do so.
-    fn begin(&self) -> Result<Self::Guard<'_>>;
+    fn begin(self) -> Self::Guard;
 }
 
 /// A TxGuard holds a copy of T while keeping locked the original value,
 /// ensuring its consistency between transactions.
-pub trait TxGuard<'a, T>: Deref<Target = T> + DerefMut {
+pub trait TxGuard<T>: Deref<Target = T> + DerefMut {
     /// Releases the resource right after updating its content with the
     /// manipulated data.
     fn commit(self);
@@ -39,18 +29,26 @@ pub struct Resource<T> {
     mu: Arc<Mutex<T>>,
 }
 
+impl<T> From<T> for Resource<T> {
+    fn from(value: T) -> Self {
+        Resource {
+            mu: Arc::new(Mutex::new(value)),
+        }
+    }
+}
+
 impl<T> Tx<T> for Resource<T>
 where
     T: Clone,
 {
-    type Guard<'a> = ResourceGuard<'a, T> where Self: 'a, T: 'a;
+    type Guard = ResourceGuard<T>;
 
-    fn begin(&self) -> Result<Self::Guard<'_>> {
-        let guard = self.mu.lock().map_err(|_| Error::Poisoned)?;
-        Ok(ResourceGuard {
+    fn begin(self) -> Self::Guard {
+        let guard = self.mu.lock_arc();
+        ResourceGuard {
             data: guard.clone(),
             guard,
-        })
+        }
     }
 }
 
@@ -61,12 +59,12 @@ impl<T> From<Arc<Mutex<T>>> for Resource<T> {
 }
 
 /// ResourceGuard is the [TxGuard] implementation for [Resource].
-pub struct ResourceGuard<'a, T> {
-    guard: MutexGuard<'a, T>,
+pub struct ResourceGuard<T> {
+    guard: ArcMutexGuard<RawMutex, T>,
     data: T,
 }
 
-impl<'a, T> Deref for ResourceGuard<'a, T> {
+impl<T> Deref for ResourceGuard<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -74,13 +72,13 @@ impl<'a, T> Deref for ResourceGuard<'a, T> {
     }
 }
 
-impl<'a, T> DerefMut for ResourceGuard<'a, T> {
+impl<T> DerefMut for ResourceGuard<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
     }
 }
 
-impl<'a, T> TxGuard<'a, T> for ResourceGuard<'a, T> {
+impl<T> TxGuard<T> for ResourceGuard<T> {
     fn commit(mut self) {
         *self.guard = self.data;
     }

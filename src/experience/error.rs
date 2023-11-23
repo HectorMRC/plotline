@@ -15,7 +15,5 @@ pub enum Error {
     #[error("{0}")]
     Event(#[from] crate::event::Error),
     #[error("{0}")]
-    Transaction(#[from] crate::transaction::Error),
-    #[error("{0}")]
     Lock(String),
 }

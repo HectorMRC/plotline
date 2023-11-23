@@ -13,8 +13,6 @@ pub enum Error {
     #[error("event interval must be set")]
     IntervalRequired,
     #[error("{0}")]
-    Transaction(#[from] crate::transaction::Error),
-    #[error("{0}")]
     Entity(#[from] crate::entity::Error),
     #[error("{0}")]
     Id(#[from] crate::id::Error),

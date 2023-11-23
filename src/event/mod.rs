@@ -20,7 +20,7 @@ pub struct Event<Intv> {
     id: Id<Self>,
     name: Name<Self>,
     /// the interval is the time during which the event takes place.
-    interval: Intv,
+    pub(crate) interval: Intv,
 }
 
 impl<Intv> Identifiable<Event<Intv>> for Event<Intv> {

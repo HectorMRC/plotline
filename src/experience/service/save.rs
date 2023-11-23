@@ -4,7 +4,7 @@ use crate::{
     event::{service::EventRepository, Event},
     experience::{Error, ExperienceBuilder, ExperiencedEvent, Result},
     id::{Id, Identifiable},
-    transaction::{Result as TxResult, Tx},
+    transaction::Tx,
 };
 use std::sync::Arc;
 
@@ -44,28 +44,23 @@ where
     }
 
     fn create(self) -> Result<()> {
-        let entity_tx = self.entity_repo.find(self.entity)?;
-
+        let _entity_tx = self.entity_repo.find(self.entity)?;
         let event_tx = self.event_repo.find(self.event)?;
 
-        let experiences_tx = self
+        let experiences = self
             .experience_repo
-            .filter(ExperienceFilter::default().with_entity(Some(self.entity)))?;
+            .filter(ExperienceFilter::default().with_entity(Some(self.entity)))?
+            .into_iter()
+            .map(Tx::begin)
+            .collect::<Vec<_>>();
 
-        let experiences = experiences_tx
-            .iter()
-            .map(|tx| tx.begin().map_err(Into::into))
-            .collect::<TxResult<Vec<_>>>()?;
-
-        let events_tx = experiences
+        let events = experiences
             .iter()
             .map(|experience| self.event_repo.find(experience.event).map_err(Into::into))
-            .collect::<Result<Vec<_>>>()?;
-
-        let events = events_tx
-            .iter()
-            .map(|tx| tx.begin().map_err(Into::into))
-            .collect::<TxResult<Vec<_>>>()?;
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .map(Tx::begin)
+            .collect::<Vec<_>>();
 
         if events.iter().any(|event| event.id() == self.event) {
             // Avoid DEADLOCK when acquiring the event_tx.
@@ -75,10 +70,13 @@ where
         let experienced_events = experiences
             .iter()
             .zip(events.iter())
-            .map(|(experience, event)| ExperiencedEvent { experience, event })
+            .map(|(experience, event)| ExperiencedEvent{
+                _experience: experience,
+                event
+            })
             .collect::<Vec<_>>();
 
-        let event = event_tx.begin()?;
+        let event = event_tx.begin();
         let mut select_closer = SelectCloserExperiences::new(self.event_repo.clone(), &event);
 
         experienced_events

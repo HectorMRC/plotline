@@ -5,7 +5,7 @@ use crate::{
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex, RwLock},
+    sync::RwLock,
 };
 
 /// Serializes a hashmap into a slice of items.
@@ -38,6 +38,6 @@ where
     Ok(RwLock::new(HashMap::from_iter(
         Vec::<T>::deserialize(deserializer)?
             .into_iter()
-            .map(|value| (value.id(), Arc::new(Mutex::new(value)).into())),
+            .map(|value| (value.id(), value.into())),
     )))
 }

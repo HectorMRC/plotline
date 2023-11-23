@@ -8,7 +8,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex, RwLock},
+    sync::RwLock,
 };
 
 type Repository<T> = RwLock<HashMap<Id<T>, Resource<T>>>;
@@ -44,7 +44,7 @@ where
             return Err(Error::AlreadyExists);
         }
 
-        events.insert(event.id, Arc::new(Mutex::new(event.clone())).into());
+        events.insert(event.id, event.clone().into());
         Ok(())
     }
 

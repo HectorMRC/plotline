@@ -33,7 +33,7 @@ where
     }
 
     fn update(self, entity_tx: EntityRepo::Tx) -> Result<()> {
-        let mut entity = entity_tx.begin()?;
+        let mut entity = entity_tx.begin();
         entity.name = self.name;
 
         entity.commit();
