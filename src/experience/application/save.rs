@@ -2,7 +2,7 @@ use super::{ExperienceFilter, ExperienceRepository};
 use crate::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
-    experience::{Error, ExperienceBuilder, ExperiencedEvent, Result},
+    experience::{domain::ExperienceService, Error, ExperiencedEvent, Result},
     id::{Id, Identifiable},
     transaction::Tx,
 };
@@ -44,15 +44,26 @@ where
     }
 
     fn create(self) -> Result<()> {
-        let _entity_tx = self.entity_repo.find(self.entity)?;
+        let entity_tx = self.entity_repo.find(self.entity)?;
+        let entity = entity_tx.begin();
+
         let event_tx = self.event_repo.find(self.event)?;
+        let event = event_tx.begin();
 
         let experiences = self
             .experience_repo
-            .filter(ExperienceFilter::default().with_entity(Some(self.entity)))?
+            .filter(ExperienceFilter::default().with_entity(Some(entity.id())))?
             .into_iter()
             .map(Tx::begin)
             .collect::<Vec<_>>();
+
+        if experiences
+            .iter()
+            .any(|experience| experience.event == event.id())
+        {
+            // Avoid deadlock by acquiring the same event twice.
+            return Err(Error::EventAlreadyExperienced);
+        }
 
         let events = experiences
             .iter()
@@ -62,63 +73,21 @@ where
             .map(Tx::begin)
             .collect::<Vec<_>>();
 
-        if events.iter().any(|event| event.id() == self.event) {
-            // Avoid DEADLOCK when acquiring the event_tx.
-            return Err(Error::EventAlreadyExperienced);
-        }
-
         let experienced_events = experiences
             .iter()
             .zip(events.iter())
-            .map(|(experience, event)| ExperiencedEvent{
+            .map(|(experience, event)| ExperiencedEvent {
                 _experience: experience,
-                event
+                event,
             })
             .collect::<Vec<_>>();
 
-        let event = event_tx.begin();
-        let mut select_closer = SelectCloserExperiences::new(self.event_repo.clone(), &event);
-
-        experienced_events
-            .iter()
-            .map(|experienced_event| select_closer.with(&experienced_event))
-            .collect::<Result<Vec<_>>>()?;
-
-        // Actual logic
-        let experience = ExperienceBuilder::new(self.event).build()?;
+        let experience = ExperienceService::create_experience(&event, &experienced_events)?;
         self.experience_repo.create(&experience)?;
         Ok(())
     }
 
     fn update(self, _experience_tx: ExperienceRepo::Tx) -> Result<()> {
-        Ok(())
-    }
-}
-
-struct SelectCloserExperiences<'a, EventRepo>
-where
-    EventRepo: EventRepository,
-{
-    event_repo: Arc<EventRepo>,
-    middle: &'a Event<EventRepo::Interval>,
-    before: Option<ExperiencedEvent<'a, EventRepo::Interval>>,
-    after: Option<ExperiencedEvent<'a, EventRepo::Interval>>,
-}
-
-impl<'a, EventRepo> SelectCloserExperiences<'a, EventRepo>
-where
-    EventRepo: EventRepository,
-{
-    fn new(event_repo: Arc<EventRepo>, middle: &'a Event<EventRepo::Interval>) -> Self {
-        Self {
-            event_repo,
-            middle,
-            before: None,
-            after: None,
-        }
-    }
-
-    fn with(&mut self, experience: &ExperiencedEvent<'a, EventRepo::Interval>) -> Result<()> {
         Ok(())
     }
 }

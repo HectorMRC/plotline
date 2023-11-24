@@ -24,6 +24,8 @@ pub struct Experience<Intv> {
     after: Option<Profile>,
 }
 
+/// ExperienceBuilder makes sure an [Experience] is created if, and only if,
+/// all of its requirements are meet.
 pub struct ExperienceBuilder<Intv> {
     event: Id<Event<Intv>>,
     before: Option<Profile>,
@@ -62,8 +64,8 @@ impl<Intv> ExperienceBuilder<Intv> {
     }
 }
 
-/// An ExperiencedEvent represents the union between an [Experience] and the [Event] where it takes
-/// place.
+/// An ExperiencedEvent represents the union between an [Experience] and the
+/// [Event] that causes it.
 pub struct ExperiencedEvent<'a, Intv> {
     _experience: &'a Experience<Intv>,
     event: &'a Event<Intv>,
