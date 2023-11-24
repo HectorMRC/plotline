@@ -82,7 +82,7 @@ where
             })
             .collect::<Vec<_>>();
 
-        let experience = domain::create_experience(&event, &experienced_events)?;
+        let experience = domain::create(&event, &experienced_events)?;
         self.experience_repo.create(&experience)?;
         Ok(())
     }

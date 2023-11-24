@@ -52,7 +52,6 @@ where
         };
 
         let event = Event::new(self.id, name, interval);
-
         self.event_repo.create(&event)
     }
 
