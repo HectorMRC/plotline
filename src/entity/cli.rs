@@ -1,6 +1,6 @@
 use super::{
     fmt::EntityFmt,
-    service::{EntityFilter, EntityRepository, EntityService},
+    application::{EntityFilter, EntityRepository, EntityApplication},
     Entity,
 };
 use crate::{
@@ -43,7 +43,7 @@ pub struct EntityCommand {
     command: Option<EntitySubCommand>,
 }
 
-impl<EntityRepo> EntityService<EntityRepo>
+impl<EntityRepo> EntityApplication<EntityRepo>
 where
     EntityRepo: 'static + EntityRepository + Sync + Send,
 {

@@ -1,6 +1,6 @@
 use super::{
     error::{Error, Result},
-    service::{EntityFilter, EntityRepository},
+    application::{EntityFilter, EntityRepository},
     Entity,
 };
 use crate::{

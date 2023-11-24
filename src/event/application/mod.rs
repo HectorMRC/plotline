@@ -1,3 +1,5 @@
+//! The application service.
+
 mod save;
 pub use save::*;
 
@@ -13,6 +15,6 @@ pub trait EventRepository {
     fn find(&self, id: Id<Event<Self::Interval>>) -> Result<Self::Tx>;
 }
 
-pub struct EventService<EventRepo> {
+pub struct EventApplication<EventRepo> {
     pub event_repo: Arc<EventRepo>,
 }

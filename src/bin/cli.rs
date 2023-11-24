@@ -1,8 +1,8 @@
 use clap::{error::ErrorKind, Parser, Subcommand};
 use once_cell::sync::Lazy;
 use plotline::{
-    entity::{cli::EntityCommand, service::EntityService},
-    event::{cli::EventCommand, service::EventService},
+    entity::{cli::EntityCommand, application::EntityApplication},
+    event::{cli::EventCommand, application::EventApplication},
     snapshot::Snapshot,
 };
 use std::{
@@ -76,11 +76,11 @@ fn main() {
     };
 
     // Build dependencies
-    let entity_srv = EntityService {
+    let entity_srv = EntityApplication {
         entity_repo: snapshot.entities.clone(),
     };
 
-    let event_srv = EventService {
+    let event_srv = EventApplication {
         event_repo: snapshot.events.clone(),
     };
 

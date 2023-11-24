@@ -1,4 +1,4 @@
-use super::{service::EventRepository, Error, Event, Result};
+use super::{application::EventRepository, Error, Event, Result};
 use crate::{
     id::Id,
     interval::Interval,

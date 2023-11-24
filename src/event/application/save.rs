@@ -1,4 +1,4 @@
-use super::{EventRepository, EventService};
+use super::{EventRepository, EventApplication};
 use crate::{
     event::Event,
     event::{Error, Result},
@@ -72,7 +72,7 @@ where
     }
 }
 
-impl<EventRepo> EventService<EventRepo>
+impl<EventRepo> EventApplication<EventRepo>
 where
     EventRepo: EventRepository,
 {

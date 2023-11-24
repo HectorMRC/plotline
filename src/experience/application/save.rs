@@ -1,7 +1,7 @@
 use super::{ExperienceFilter, ExperienceRepository};
 use crate::{
-    entity::{service::EntityRepository, Entity},
-    event::{service::EventRepository, Event},
+    entity::{application::EntityRepository, Entity},
+    event::{application::EventRepository, Event},
     experience::{Error, ExperienceBuilder, ExperiencedEvent, Result},
     id::{Id, Identifiable},
     transaction::Tx,

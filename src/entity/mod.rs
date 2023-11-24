@@ -4,7 +4,7 @@ pub mod cli;
 pub mod fmt;
 #[cfg(feature = "in_memory")]
 pub mod repository;
-pub mod service;
+pub mod application;
 
 mod error;
 pub use error::*;

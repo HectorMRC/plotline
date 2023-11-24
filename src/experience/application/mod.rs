@@ -1,3 +1,5 @@
+//! The application service.
+
 mod save;
 pub use save::*;
 
@@ -16,6 +18,6 @@ pub trait ExperienceRepository {
     fn filter(&self, filter: ExperienceFilter<Self::Interval>) -> Result<Vec<Self::Tx>>;
 }
 
-pub struct EventService<EventRepo> {
+pub struct ExperienceApplication<EventRepo> {
     pub event_repo: Arc<EventRepo>,
 }

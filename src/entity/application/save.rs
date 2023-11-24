@@ -1,4 +1,4 @@
-use super::{EntityRepository, EntityService};
+use super::{EntityRepository, EntityApplication};
 use crate::{
     entity::{Entity, Error, Result},
     id::Id,
@@ -41,7 +41,7 @@ where
     }
 }
 
-impl<EntityRepo> EntityService<EntityRepo>
+impl<EntityRepo> EntityApplication<EntityRepo>
 where
     EntityRepo: EntityRepository,
 {

@@ -1,4 +1,4 @@
-use super::{EntityFilter, EntityRepository, EntityService};
+use super::{EntityFilter, EntityRepository, EntityApplication};
 use crate::{
     entity::{error::Result, Entity, Error},
     transaction::Tx,
@@ -40,7 +40,7 @@ impl<EntityRepo> FindEntity<EntityRepo> {
     }
 }
 
-impl<EntityRepo> EntityService<EntityRepo>
+impl<EntityRepo> EntityApplication<EntityRepo>
 where
     EntityRepo: EntityRepository,
 {

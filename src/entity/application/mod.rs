@@ -1,3 +1,5 @@
+//! The application service.
+
 mod save;
 pub use save::*;
 
@@ -23,6 +25,6 @@ pub trait EntityRepository {
     fn delete(&self, id: Id<Entity>) -> Result<()>;
 }
 
-pub struct EntityService<EntityRepo> {
+pub struct EntityApplication<EntityRepo> {
     pub entity_repo: Arc<EntityRepo>,
 }

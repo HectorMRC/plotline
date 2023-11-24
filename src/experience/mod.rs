@@ -1,5 +1,5 @@
-pub mod constraint;
-pub mod service;
+pub mod application;
+pub mod domain;
 
 mod error;
 pub use error::*;
@@ -64,7 +64,7 @@ impl<Intv> ExperienceBuilder<Intv> {
 
 /// An ExperiencedEvent represents the union between an [Experience] and the [Event] where it takes
 /// place.
-struct ExperiencedEvent<'a, Intv> {
+pub struct ExperiencedEvent<'a, Intv> {
     _experience: &'a Experience<Intv>,
     event: &'a Event<Intv>,
 }
@@ -74,37 +74,3 @@ impl<'a, Intv> AsRef<Intv> for ExperiencedEvent<'a, Intv> {
         &self.event.interval
     }
 }
-
-// impl<'a, Intv> Eq for ExperiencedEvent<'a, Intv> where Intv: Interval {}
-// impl<'a, Intv> PartialEq for ExperiencedEvent<'a, Intv>
-// where
-//     Intv: Interval,
-// {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.event.intersects(&other.event)
-//     }
-// }
-
-// impl<'a, Intv> Ord for ExperiencedEvent<'a, Intv>
-// where
-//     Intv: Interval,
-// {
-//     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-//         if self.event.lo() > other.event.hi() {
-//             std::cmp::Ordering::Greater
-//         } else if self.event.hi() < other.event.lo() {
-//             std::cmp::Ordering::Less
-//         } else {
-//             std::cmp::Ordering::Equal
-//         }
-//     }
-// }
-
-// impl<'a, Intv> PartialOrd for ExperiencedEvent<'a, Intv>
-// where
-//     Intv: Interval,
-// {
-//     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-//         Some(self.cmp(other))
-//     }
-// }

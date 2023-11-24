@@ -1,5 +1,5 @@
 use super::{
-    service::{EventRepository, EventService},
+    application::{EventRepository, EventApplication},
     Event,
 };
 use crate::{
@@ -38,7 +38,7 @@ pub struct EventCommand {
     command: Option<EventSubCommand>,
 }
 
-impl<EventRepo> EventService<EventRepo>
+impl<EventRepo> EventApplication<EventRepo>
 where
     EventRepo: 'static + EventRepository + Sync + Send,
     EventRepo::Interval: TryFrom<Vec<String>> + Sync + Send,
