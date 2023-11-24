@@ -2,7 +2,7 @@ use super::{ExperienceFilter, ExperienceRepository};
 use crate::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
-    experience::{domain::ExperienceService, Error, ExperiencedEvent, Result},
+    experience::{domain, Error, ExperiencedEvent, Result},
     id::{Id, Identifiable},
     transaction::Tx,
 };
@@ -82,7 +82,7 @@ where
             })
             .collect::<Vec<_>>();
 
-        let experience = ExperienceService::create_experience(&event, &experienced_events)?;
+        let experience = domain::create_experience(&event, &experienced_events)?;
         self.experience_repo.create(&experience)?;
         Ok(())
     }
