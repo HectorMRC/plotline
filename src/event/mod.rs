@@ -1,8 +1,8 @@
+pub mod application;
 #[cfg(feature = "cli")]
 pub mod cli;
 #[cfg(feature = "in_memory")]
 pub mod repository;
-pub mod application;
 
 mod error;
 pub use error::*;
@@ -15,17 +15,23 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 /// An Event is a specific happening in which one or more entities are involved.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Eq, Serialize, Deserialize)]
 pub struct Event<Intv> {
     id: Id<Self>,
     name: Name<Self>,
     /// the interval is the time during which the event takes place.
-    pub(crate) interval: Intv,
+    interval: Intv,
 }
 
 impl<Intv> Identifiable<Event<Intv>> for Event<Intv> {
     fn id(&self) -> Id<Self> {
         self.id
+    }
+}
+
+impl<Intv> PartialEq for Event<Intv> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
     }
 }
 

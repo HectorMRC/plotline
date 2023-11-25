@@ -76,10 +76,7 @@ where
         let experienced_events = experiences
             .iter()
             .zip(events.iter())
-            .map(|(experience, event)| ExperiencedEvent {
-                _experience: experience,
-                event,
-            })
+            .map(|(experience, event)| ExperiencedEvent { experience, event })
             .collect::<Vec<_>>();
 
         let experience = domain::create(&event, &experienced_events)?;

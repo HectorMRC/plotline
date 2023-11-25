@@ -4,20 +4,20 @@ pub mod domain;
 mod error;
 pub use error::*;
 
-use crate::{entity::Entity, event::Event, id::Id};
+use crate::{entity::Entity, event::Event, id::Id, interval::Interval};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// A Profile describes an [Entity] during the time being between two periods
 /// of time.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Profile {
     entity: Id<Entity>,
     values: HashMap<String, String>,
 }
 
 /// An Experience represents the change caused by an [Event] on an [Entity].
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Experience<Intv> {
     event: Id<Event<Intv>>,
     before: Option<Profile>,
@@ -66,13 +66,32 @@ impl<Intv> ExperienceBuilder<Intv> {
 
 /// An ExperiencedEvent represents the union between an [Experience] and the
 /// [Event] that causes it.
+#[derive(PartialEq, Eq)]
 pub struct ExperiencedEvent<'a, Intv> {
-    _experience: &'a Experience<Intv>,
+    experience: &'a Experience<Intv>,
     event: &'a Event<Intv>,
 }
 
-impl<'a, Intv> AsRef<Intv> for ExperiencedEvent<'a, Intv> {
-    fn as_ref(&self) -> &Intv {
-        &self.event.interval
+impl<'a, Intv> Ord for ExperiencedEvent<'a, Intv>
+where
+    Intv: Interval,
+{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self.event.lo() > other.event.hi() {
+            std::cmp::Ordering::Greater
+        } else if self.event.hi() < other.event.lo() {
+            std::cmp::Ordering::Less
+        } else {
+            std::cmp::Ordering::Equal
+        }
+    }
+}
+
+impl<'a, Intv> PartialOrd for ExperiencedEvent<'a, Intv>
+where
+    Intv: Interval,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }

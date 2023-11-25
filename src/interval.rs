@@ -8,7 +8,7 @@ pub trait Bound: Eq + Ord + Copy {}
 impl<T> Bound for T where T: Eq + Ord + Copy {}
 
 /// An Interval is anything delimited by two bounds.
-pub trait Interval: Clone {
+pub trait Interval: Eq + Clone {
     type Bound: Bound;
 
     /// Retrives the lowest bound in the interval.
@@ -291,7 +291,7 @@ mod tests {
     use super::{Interval, IntervalST, Node};
     use std::fmt::Debug;
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     struct IntervalMock(usize, usize);
 
     impl Interval for IntervalMock {

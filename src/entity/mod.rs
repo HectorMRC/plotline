@@ -14,13 +14,12 @@ use crate::name::Name;
 use serde::{Deserialize, Serialize};
 
 /// An Entity is anything which to interact with.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Eq, Serialize, Deserialize)]
 pub struct Entity {
     id: Id<Self>,
     name: Name<Self>,
 }
 
-impl Eq for Entity {}
 impl PartialEq for Entity {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
