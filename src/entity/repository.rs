@@ -1,6 +1,6 @@
 use super::{
-    error::{Error, Result},
     application::{EntityFilter, EntityRepository},
+    error::{Error, Result},
     Entity,
 };
 use crate::{
@@ -9,10 +9,7 @@ use crate::{
     transaction::{Resource, Tx},
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    sync::RwLock,
-};
+use std::{collections::HashMap, sync::RwLock};
 
 type Repository<T> = RwLock<HashMap<Id<T>, Resource<T>>>;
 
@@ -46,10 +43,8 @@ impl EntityRepository for InMemoryEntityRepository {
             .read()
             .map_err(|err| Error::Lock(err.to_string()))?
             .values()
+            .filter(|&entity| filter.filter(&entity.clone().begin()))
             .cloned()
-            .filter(|entity| {
-                filter.filter(&entity.clone().begin())
-            })
             .map(Resource::from)
             .collect())
     }
