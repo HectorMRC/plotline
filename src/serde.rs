@@ -3,10 +3,7 @@ use crate::{
     transaction::Resource,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{
-    collections::HashMap,
-    sync::RwLock,
-};
+use std::{collections::HashMap, sync::RwLock};
 
 /// Serializes a hashmap into a slice of items.
 pub fn slice_from_hashmap<S, T>(
@@ -29,7 +26,8 @@ where
 
 type Repository<T> = RwLock<HashMap<Id<T>, Resource<T>>>;
 
-/// Deserializes an slice of [Identified] items as a hasmap indexed by the [Id] of each value.
+/// Deserializes an slice of [Identified] items as a hashmap indexed by the
+/// [Id] of each value.
 pub fn hashmap_from_slice<'de, D, T>(deserializer: D) -> Result<Repository<T>, D::Error>
 where
     D: Deserializer<'de>,

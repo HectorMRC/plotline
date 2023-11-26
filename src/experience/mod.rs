@@ -21,7 +21,7 @@ pub struct Profile {
 pub struct Experience<Intv> {
     event: Id<Event<Intv>>,
     before: Option<Profile>,
-    after: Option<Profile>,
+    after: Vec<Profile>,
 }
 
 /// ExperienceBuilder makes sure an [Experience] is created if, and only if,
@@ -29,7 +29,7 @@ pub struct Experience<Intv> {
 pub struct ExperienceBuilder<Intv> {
     event: Id<Event<Intv>>,
     before: Option<Profile>,
-    after: Option<Profile>,
+    after: Vec<Profile>,
 }
 
 impl<Intv> ExperienceBuilder<Intv> {
@@ -46,13 +46,13 @@ impl<Intv> ExperienceBuilder<Intv> {
         self
     }
 
-    pub fn with_after(mut self, after: Option<Profile>) -> Self {
+    pub fn with_after(mut self, after: Vec<Profile>) -> Self {
         self.after = after;
         self
     }
 
     pub fn build(self) -> Result<Experience<Intv>> {
-        if self.before.is_none() && self.after.is_none() {
+        if self.before.is_none() && self.after.is_empty() {
             return Err(Error::MustBeforeOrAfter);
         }
 
@@ -61,6 +61,25 @@ impl<Intv> ExperienceBuilder<Intv> {
             before: self.before,
             after: self.after,
         })
+    }
+}
+
+/// An ExperienceKind determines the cardinality of an [Experience].
+pub enum ExperienceKind {
+    Initial,
+    Terminal,
+    Evolving,
+}
+
+impl<Intv> From<Experience<Intv>> for ExperienceKind {
+    fn from(experience: Experience<Intv>) -> Self {
+        if experience.before.is_none() {
+            ExperienceKind::Initial
+        } else if experience.after.is_empty() {
+            ExperienceKind::Terminal
+        } else {
+            ExperienceKind::Evolving
+        }
     }
 }
 

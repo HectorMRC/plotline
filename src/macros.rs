@@ -14,7 +14,7 @@ macro_rules! equals_or_return {
 }
 
 /// Given the constraint for a type that implements the [Interval] trait,
-/// implements the [Ord] and [PartialOrd] traits for that type.
+/// implements the [Ord] and [PartialOrd] traits for that same type.
 macro_rules! impl_interval_based_ord_for {
     ($type:ty where $generic:ident: $trait:ident) => {
         impl<$generic> Ord for $type
@@ -23,17 +23,7 @@ macro_rules! impl_interval_based_ord_for {
             $generic: $trait,
         {
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                if self == other {
-                    std::cmp::Ordering::Equal
-                } else if self.lo() > other.hi() {
-                    std::cmp::Ordering::Greater
-                } else if self.hi() < other.lo() {
-                    std::cmp::Ordering::Less
-                } else if self.lo() < other.lo() {
-                    std::cmp::Ordering::Less
-                } else {
-                    std::cmp::Ordering::Greater
-                }
+                self.lo().cmp(&other.lo())
             }
         }
 

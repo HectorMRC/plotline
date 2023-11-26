@@ -1,5 +1,9 @@
 use crate::{
-    entity::Entity, event::Event, experience::Experience, id::Id, macros::equals_or_return,
+    entity::Entity,
+    event::Event,
+    experience::{Experience, Profile},
+    id::Id,
+    macros::equals_or_return,
 };
 
 /// Implements the filter query, through which zero o more experiences may be
@@ -42,9 +46,13 @@ impl<Intv> ExperienceFilter<Intv> {
             return true; // no filter by entity has been set
         };
 
-        [&experience.before, &experience.after]
+        let mut profiles = experience.after.iter().collect::<Vec<&Profile>>();
+        if let Some(before) = &experience.before {
+            profiles.push(before);
+        }
+
+        profiles
             .into_iter()
-            .flatten()
             .any(|profile| profile.entity == entity_id)
     }
 }
