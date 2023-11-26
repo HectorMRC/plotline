@@ -73,12 +73,13 @@ where
             .map(Tx::begin)
             .collect::<Vec<_>>();
 
-        let experienced_events = experiences
+        let mut experienced_events = experiences
             .iter()
             .zip(events.iter())
             .map(|(experience, event)| ExperiencedEvent { experience, event })
             .collect::<Vec<_>>();
 
+        experienced_events.sort_by(|a, b| a.event.cmp(b.event));
         let experience = domain::create(&event, &experienced_events)?;
         self.experience_repo.create(&experience)?;
         Ok(())

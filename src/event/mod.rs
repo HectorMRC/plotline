@@ -10,7 +10,7 @@ pub use error::*;
 use crate::{
     id::{Id, Identifiable},
     interval::Interval,
-    name::Name,
+    name::Name, macros,
 };
 use serde::{Deserialize, Serialize};
 
@@ -56,3 +56,5 @@ impl<Intv> Event<Intv> {
         Self { id, name, interval }
     }
 }
+
+macros::impl_interval_based_ord_for!(Event<Intv> where Intv: Interval);

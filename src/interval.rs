@@ -8,7 +8,7 @@ pub trait Bound: Eq + Ord + Copy {}
 impl<T> Bound for T where T: Eq + Ord + Copy {}
 
 /// An Interval is anything delimited by two bounds.
-pub trait Interval: Eq + Clone {
+pub trait Interval: Eq + Ord + Clone {
     type Bound: Bound;
 
     /// Retrives the lowest bound in the interval.
@@ -288,77 +288,64 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{Interval, IntervalST, Node};
+    use crate::period::Period;
+    use super::{IntervalST, Node};
     use std::fmt::Debug;
 
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    struct IntervalMock(usize, usize);
-
-    impl Interval for IntervalMock {
-        type Bound = usize;
-
-        fn lo(&self) -> Self::Bound {
-            self.0
-        }
-
-        fn hi(&self) -> Self::Bound {
-            self.1
-        }
-    }
-
-    impl Debug for IntervalST<IntervalMock> {
+    impl Debug for IntervalST<Period<usize>> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             f.debug_tuple("IntervalST").field(&self.0).finish()
         }
     }
 
+
     #[test]
     fn intersects_with_tree() {
         struct Test<'a> {
             name: &'a str,
-            tree: Node<IntervalMock>,
-            query: IntervalMock,
+            tree: Node<Period<usize>>,
+            query: Period<usize>,
             output: bool,
         }
 
         vec![
             Test {
                 name: "no intersaction",
-                tree: Node::new(IntervalMock(0, 2)),
-                query: IntervalMock(3, 3),
+                tree: Node::new([0, 2].into()),
+                query: [3, 3].into(),
                 output: false,
             },
             Test {
                 name: "left-hand intersaction",
-                tree: Node::new(IntervalMock(0, 2)),
-                query: IntervalMock(1, 3),
+                tree: Node::new([0, 2].into()),
+                query: [1, 3].into(),
                 output: true,
             },
             Test {
                 name: "right-hand intersaction",
-                tree: Node::new(IntervalMock(2, 4)),
-                query: IntervalMock(0, 3),
+                tree: Node::new([2, 4].into()),
+                query: [0, 3].into(),
                 output: true,
             },
             Test {
                 name: "superset intersaction",
-                tree: Node::new(IntervalMock(0, 3)),
-                query: IntervalMock(1, 2),
+                tree: Node::new([0, 3].into()),
+                query: [1, 2].into(),
                 output: true,
             },
             Test {
                 name: "subset intersaction",
-                tree: Node::new(IntervalMock(1, 2)),
-                query: IntervalMock(0, 3),
+                tree: Node::new([1, 2].into()),
+                query: [0, 3].into(),
                 output: true,
             },
             Test {
                 name: "complex tree",
-                tree: Node::new(IntervalMock(5, 6))
-                    ._with_interval(IntervalMock(0, 4))
-                    ._with_interval(IntervalMock(2, 6))
-                    ._with_interval(IntervalMock(7, 9)),
-                query: IntervalMock(1, 2),
+                tree: Node::new([5, 6].into())
+                    ._with_interval([0, 4].into())
+                    ._with_interval([2, 6].into())
+                    ._with_interval([7, 9].into()),
+                query: [1, 2].into(),
                 output: true,
             },
         ]
@@ -377,27 +364,27 @@ mod tests {
     fn for_each_intersection_in_tree() {
         struct Test<'a> {
             name: &'a str,
-            tree: Node<IntervalMock>,
-            query: IntervalMock,
-            output: Vec<IntervalMock>,
+            tree: Node<Period<usize>>,
+            query: Period<usize>,
+            output: Vec<Period<usize>>,
         }
 
         vec![
             Test {
                 name: "no intersactions",
-                tree: Node::new(IntervalMock(1, 2)),
-                query: IntervalMock(0, 0),
+                tree: Node::new([1, 2].into()),
+                query: [0, 0].into(),
                 output: Vec::default(),
             },
             Test {
                 name: "multiple intersactions",
-                tree: Node::new(IntervalMock(5, 6))
-                    ._with_interval(IntervalMock(0, 2))
-                    ._with_interval(IntervalMock(3, 3))
-                    ._with_interval(IntervalMock(5, 9))
-                    ._with_interval(IntervalMock(6, 6)),
-                query: IntervalMock(3, 5),
-                output: vec![IntervalMock(5, 6), IntervalMock(3, 3), IntervalMock(5, 9)],
+                tree: Node::new([5, 6].into())
+                    ._with_interval([0, 2].into())
+                    ._with_interval([3, 3].into())
+                    ._with_interval([5, 9].into())
+                    ._with_interval([6, 6].into()),
+                query: [3, 5].into(),
+                output: vec![[5, 6].into(), [3, 3].into(), [5, 9].into()],
             },
         ]
         .into_iter()
@@ -417,8 +404,8 @@ mod tests {
     fn interval_search_tree_from_vector() {
         struct Test<'a> {
             name: &'a str,
-            input: Vec<IntervalMock>,
-            output: IntervalST<IntervalMock>,
+            input: Vec<Period<usize>>,
+            output: IntervalST<Period<usize>>,
         }
 
         vec![
@@ -430,24 +417,24 @@ mod tests {
             Test {
                 name: "node from non empty vec must not fail",
                 input: vec![
-                    IntervalMock(0, 0),
-                    IntervalMock(3, 3),
-                    IntervalMock(5, 6),
-                    IntervalMock(5, 9),
-                    IntervalMock(6, 6),
+                    [0, 0].into(),
+                    [3, 3].into(),
+                    [5, 6].into(),
+                    [5, 9].into(),
+                    [6, 6].into(),
                 ],
                 output: IntervalST(Some(
-                    Node::new(IntervalMock(5, 6))
-                        ._with_interval(IntervalMock(3, 3))
-                        ._with_interval(IntervalMock(0, 0))
-                        ._with_interval(IntervalMock(6, 6))
-                        ._with_interval(IntervalMock(5, 9)),
+                    Node::new([5, 6].into())
+                        ._with_interval([3, 3].into())
+                        ._with_interval([0, 0].into())
+                        ._with_interval([6, 6].into())
+                        ._with_interval([5, 9].into()),
                 )),
             },
         ]
         .into_iter()
         .for_each(|test| {
-            let tree: IntervalST<IntervalMock> = test.input.into();
+            let tree: IntervalST<Period<usize>> = test.input.into();
             assert_eq!(tree, test.output, "{0}", test.name);
         });
     }

@@ -6,6 +6,11 @@ use crate::{
 };
 use std::cmp;
 
+pub trait Constraint<Intv> {
+    fn with(&mut self, experienced_event: &'_ ExperiencedEvent<Intv>) -> Result<()>;
+    fn result(self) -> Result<()>;
+}
+
 /// Creates a new experience caused by the given event as long as it fits in
 /// the given ordered succession of experienced events.
 pub fn create<Intv: Interval>(

@@ -72,22 +72,16 @@ pub struct ExperiencedEvent<'a, Intv> {
     event: &'a Event<Intv>,
 }
 
-impl<'a, Intv> Ord for ExperiencedEvent<'a, Intv>
+impl<Intv> Ord for ExperiencedEvent<'_, Intv>
 where
     Intv: Interval,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        if self.event.lo() > other.event.hi() {
-            std::cmp::Ordering::Greater
-        } else if self.event.hi() < other.event.lo() {
-            std::cmp::Ordering::Less
-        } else {
-            std::cmp::Ordering::Equal
-        }
+        self.event.cmp(other.event)
     }
 }
 
-impl<'a, Intv> PartialOrd for ExperiencedEvent<'a, Intv>
+impl<Intv> PartialOrd for ExperiencedEvent<'_, Intv>
 where
     Intv: Interval,
 {

@@ -1,4 +1,7 @@
-use crate::interval::{Bound, Interval};
+use crate::{
+    interval::{Bound, Interval},
+    macros,
+};
 use serde::{Deserialize, Serialize};
 use std::num::ParseIntError;
 
@@ -39,3 +42,14 @@ impl TryFrom<Vec<String>> for Period<usize> {
         Ok(Self { lo, hi })
     }
 }
+
+impl From<[usize; 2]> for Period<usize> {
+    fn from(bounds: [usize; 2]) -> Self {
+        Self {
+            lo: bounds[0],
+            hi: bounds[1],
+        }
+    }
+}
+
+macros::impl_interval_based_ord_for!(Period<M> where M: Bound);
