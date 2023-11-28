@@ -2,7 +2,7 @@ use super::{ExperienceFilter, ExperienceRepository};
 use crate::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
-    experience::{domain, Error, ExperiencedEvent, Result},
+    experience::{domain, Error, ExperienceBuilder, ExperiencedEvent, Result},
     id::{Id, Identifiable},
     transaction::Tx,
 };
@@ -80,7 +80,7 @@ where
             .collect::<Vec<_>>();
 
         experienced_events.sort_by(|a, b| a.event.cmp(b.event));
-        let experience = domain::create(&event, &experienced_events)?;
+        let experience = domain::create(ExperienceBuilder::new(&event), &experienced_events)?;
         self.experience_repo.create(&experience)?;
         Ok(())
     }

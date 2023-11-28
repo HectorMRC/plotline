@@ -4,7 +4,12 @@ pub mod domain;
 mod error;
 pub use error::*;
 
-use crate::{entity::Entity, event::Event, id::Id, interval::Interval};
+use crate::{
+    entity::Entity,
+    event::Event,
+    id::{Id, Identifiable},
+    interval::Interval,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -26,14 +31,14 @@ pub struct Experience<Intv> {
 
 /// ExperienceBuilder makes sure an [Experience] is created if, and only if,
 /// all of its requirements are meet.
-pub struct ExperienceBuilder<Intv> {
-    event: Id<Event<Intv>>,
+pub struct ExperienceBuilder<'a, Intv> {
+    event: &'a Event<Intv>,
     before: Option<Profile>,
     after: Vec<Profile>,
 }
 
-impl<Intv> ExperienceBuilder<Intv> {
-    pub fn new(event: Id<Event<Intv>>) -> Self {
+impl<'a, Intv> ExperienceBuilder<'a, Intv> {
+    pub fn new(event: &'a Event<Intv>) -> Self {
         Self {
             event,
             before: Default::default(),
@@ -57,7 +62,7 @@ impl<Intv> ExperienceBuilder<Intv> {
         }
 
         Ok(Experience {
-            event: self.event,
+            event: self.event.id(),
             before: self.before,
             after: self.after,
         })
@@ -68,18 +73,24 @@ impl<Intv> ExperienceBuilder<Intv> {
 pub enum ExperienceKind {
     Initial,
     Terminal,
-    Evolving,
+    Transition,
 }
 
-impl<Intv> From<Experience<Intv>> for ExperienceKind {
-    fn from(experience: Experience<Intv>) -> Self {
+impl<Intv> From<&Experience<Intv>> for ExperienceKind {
+    fn from(experience: &Experience<Intv>) -> Self {
         if experience.before.is_none() {
             ExperienceKind::Initial
         } else if experience.after.is_empty() {
             ExperienceKind::Terminal
         } else {
-            ExperienceKind::Evolving
+            ExperienceKind::Transition
         }
+    }
+}
+
+impl ExperienceKind {
+    pub fn is_initial(&self) -> bool {
+        matches!(self, ExperienceKind::Initial)
     }
 }
 
