@@ -1,11 +1,11 @@
 use crate::{
     entity::Entity,
-    event::Event,
-    experience::{Error, Experience, ExperienceBuilder, ExperienceKind, ExperiencedEvent, Result},
+    experience::{Error, Experience, ExperienceBuilder, ExperiencedEvent, Result},
     id::Id,
     interval::Interval,
 };
-use std::{cmp, collections::HashSet};
+use std::collections::HashSet;
+use super::{ConstraintGroup, constraint::Constraint, SelectCloserExperiences};
 
 /// Creates a new experience caused by the given event as long as it fits in
 /// the given ordered succession of experienced events.
@@ -67,131 +67,5 @@ where
         }
 
         Ok(self)
-    }
-}
-
-/// SelectCloserExperiences implements the filter that selects from an iterator
-/// of [ExperiencedEvent]s those two happening immediately before and after the
-/// given [Event].
-struct SelectCloserExperiences<'a, 'b: 'a, Intv> {
-    event: &'a Event<Intv>,
-    before: Option<&'b ExperiencedEvent<'b, Intv>>,
-    after: Option<&'b ExperiencedEvent<'b, Intv>>,
-}
-
-impl<'a, 'b: 'a, Intv> SelectCloserExperiences<'a, 'b, Intv> {
-    fn from_builder(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
-        SelectCloserExperiences {
-            event: builder.event,
-            before: None,
-            after: None,
-        }
-    }
-}
-
-impl<'a, 'b, Intv> SelectCloserExperiences<'a, 'b, Intv>
-where
-    'b: 'a,
-    Intv: Interval,
-{
-    /// Consumes the iterator selecting from it those [ExperiencedEvent]s
-    /// happening immediately before and after of the given [Event].
-    ///
-    /// Calling to `with_iter` multiple times will end up with the closest
-    /// before and after among all the consumed iterators.
-    fn with_iter(mut self, iter: impl Iterator<Item = &'b ExperiencedEvent<'b, Intv>>) -> Self {
-        iter.for_each(|experienced_event| {
-            if experienced_event.event.hi() < self.event.lo() {
-                self.before = cmp::max(self.before, Some(experienced_event));
-            } else if experienced_event.event.lo() > self.event.hi() {
-                self.after = cmp::min(self.after, Some(experienced_event));
-            }
-        });
-
-        self
-    }
-}
-
-impl<'a, 'b: 'a, Intv> SelectCloserExperiences<'a, 'b, Intv> {
-    /// Returns the tuple containing the selected before and after.
-    fn result(
-        self,
-    ) -> (
-        Option<&'b ExperiencedEvent<'b, Intv>>,
-        Option<&'b ExperiencedEvent<'b, Intv>>,
-    ) {
-        (self.before, self.after)
-    }
-}
-
-trait Constraint<Intv> {
-    fn with(&mut self, experienced_event: &ExperiencedEvent<Intv>) -> Result<()>;
-    fn result(&self) -> Result<()>;
-}
-
-#[derive(Default)]
-struct ConstraintGroup<'a, Intv> {
-    constraints: Vec<Box<dyn Constraint<Intv> + 'a>>,
-}
-
-impl<'a, Intv> ConstraintGroup<'a, Intv> {
-    /// Inserts the given constraint in the constraint group.
-    pub fn _with_constraint(mut self, constraint: impl Constraint<Intv> + 'a) -> Self {
-        self.constraints.push(Box::new(constraint));
-        self
-    }
-}
-
-impl<'a, Intv> Constraint<Intv> for ConstraintGroup<'a, Intv> {
-    fn with(&mut self, experienced_event: &ExperiencedEvent<Intv>) -> Result<()> {
-        self.constraints
-            .iter_mut()
-            .try_for_each(|constraint| constraint.with(experienced_event))
-    }
-
-    fn result(&self) -> Result<()> {
-        self.constraints
-            .iter()
-            .try_for_each(|constraint| constraint.result())
-    }
-}
-
-impl<'a, Intv> ConstraintGroup<'a, Intv>
-where
-    Intv: Interval,
-{
-    /// Creates a [ConstraintGroup] with all the default constraints.
-    pub fn with_defaults(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
-        Self {
-            constraints: vec![Box::new(InitialMustBeBeforeOrEqual::new(builder))],
-        }
-    }
-}
-
-struct InitialMustBeBeforeOrEqual<'a, Intv> {
-    builder: &'a ExperienceBuilder<'a, Intv>,
-}
-
-impl<'a, Intv> Constraint<Intv> for InitialMustBeBeforeOrEqual<'a, Intv>
-where
-    Intv: Interval,
-{
-    fn with(&mut self, experienced_event: &ExperiencedEvent<Intv>) -> Result<()> {
-        let kind: ExperienceKind = experienced_event.experience.into();
-        if kind.is_initial() && self.builder.event < experienced_event.event {
-            return Err(Error::BeforeInitial);
-        }
-
-        Ok(())
-    }
-
-    fn result(&self) -> Result<()> {
-        Ok(())
-    }
-}
-
-impl<'a, Intv> InitialMustBeBeforeOrEqual<'a, Intv> {
-    fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
-        Self { builder }
     }
 }
