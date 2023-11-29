@@ -39,7 +39,8 @@ where
         } else if experiences_tx.len() == 1 {
             self.update(experiences_tx.remove(0))
         } else {
-            Err(Error::Collition)
+            // this must be impossible
+            Err(Error::MoreThanOne)
         }
     }
 

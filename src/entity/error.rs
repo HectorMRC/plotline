@@ -2,13 +2,13 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("Invalid entity name")]
+    #[error("invalid entity name")]
     NotAnEntityName,
-    #[error("Entity already exists")]
+    #[error("entity already exists")]
     AlreadyExists,
-    #[error("Entity not found")]
+    #[error("entity not found")]
     NotFound,
-    #[error("Entity not found")]
+    #[error("more than one entity have been found")]
     MoreThanOne,
     #[error("{0}")]
     Name(#[from] crate::name::Error),

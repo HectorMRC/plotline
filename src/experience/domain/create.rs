@@ -1,5 +1,5 @@
 use crate::{
-    experience::{Experience, ExperienceBuilder, ExperienceKind, ExperiencedEvent, Result},
+    experience::{Experience, ExperienceBuilder, ExperienceKind, ExperiencedEvent, Result, Error},
     interval::Interval,
 };
 use std::cmp;
@@ -12,7 +12,7 @@ pub fn create<'a, Intv: Interval>(
 ) -> Result<Experience<Intv>> {
     {
         let mut closer_experiences = SelectCloserExperiences::new(&builder);
-        let mut constaints_group = ConstraintGroup::new(&builder);
+        let mut constaints_group = ConstraintGroup::with_defaults(&builder);
 
         experienced_events
             .iter()
@@ -33,10 +33,7 @@ struct SelectCloserExperiences<'a, Intv> {
     after: Option<&'a ExperiencedEvent<'a, Intv>>,
 }
 
-impl<'a, Intv> SelectCloserExperiences<'a, Intv>
-where
-    Intv: Interval,
-{
+impl<'a, Intv> SelectCloserExperiences<'a, Intv> {
     fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
         SelectCloserExperiences {
             builder,
@@ -44,7 +41,12 @@ where
             after: None,
         }
     }
+}
 
+impl<'a, Intv> SelectCloserExperiences<'a, Intv>
+where
+    Intv: Interval,
+{
     fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) {
         if experienced_event.event.hi() < self.builder.event.lo() {
             self.before = cmp::max(self.before, Some(experienced_event));
@@ -59,8 +61,17 @@ trait Constraint<Intv> {
     fn result(&self) -> Result<()>;
 }
 
+#[derive(Default)]
 struct ConstraintGroup<'a, Intv> {
     constraints: Vec<Box<dyn Constraint<Intv> + 'a>>,
+}
+
+impl<'a, Intv> ConstraintGroup<'a, Intv> {
+    /// Inserts the given constraint in the constraint group.
+    pub fn _with_constraint(mut self, constraint: impl Constraint<Intv> + 'a) -> Self {
+        self.constraints.push(Box::new(constraint));
+        self
+    }
 }
 
 impl<'a, Intv> Constraint<Intv> for ConstraintGroup<'a, Intv> {
@@ -77,8 +88,12 @@ impl<'a, Intv> Constraint<Intv> for ConstraintGroup<'a, Intv> {
     }
 }
 
-impl<'a, Intv> ConstraintGroup<'a, Intv> {
-    fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
+impl<'a, Intv> ConstraintGroup<'a, Intv>
+where
+    Intv: Interval
+{
+    /// Creates a [ConstraintGroup] with all the default constraints. 
+    pub fn with_defaults(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
         Self {
             constraints: vec![Box::new(InitialMustBeBeforeOrEqual::new(builder))],
         }
@@ -90,7 +105,10 @@ struct InitialMustBeBeforeOrEqual<'a, Intv> {
     found: bool,
 }
 
-impl<'a, Intv> Constraint<Intv> for InitialMustBeBeforeOrEqual<'a, Intv> {
+impl<'a, Intv> Constraint<Intv> for InitialMustBeBeforeOrEqual<'a, Intv>
+where
+    Intv: Interval
+{
     fn with(&mut self, experienced_event: &ExperiencedEvent<Intv>) -> Result<()> {
         let kind: ExperienceKind = experienced_event.experience.into();
         self.found |= kind.is_initial();
@@ -112,7 +130,7 @@ impl<'a, Intv> Constraint<Intv> for InitialMustBeBeforeOrEqual<'a, Intv> {
 }
 
 impl<'a, Intv> InitialMustBeBeforeOrEqual<'a, Intv> {
-    fn new(_builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
+    fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
         Self {
             builder,
             found: false,

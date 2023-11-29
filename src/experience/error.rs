@@ -2,14 +2,18 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Experience not found")]
+    #[error("experience not found")]
     NotFound,
-    #[error("Multiple experiences for the same entity and event")]
-    Collition,
-    #[error("An experience must include at least one before or after")]
+    #[error("more than one experience for the same entity and event")]
+    MoreThanOne,
+    #[error("an experience must include at least one before or after")]
     MustBeforeOrAfter,
-    #[error("The event has already been experienced by the entity")]
+    #[error("the event has already been experienced by the entity")]
     EventAlreadyExperienced,
+    #[error("an experience cannot happen before the initial one")]
+    BeforeInitial,
+    #[error("an initial experience must exists for an entity")]
+    NoInitial,
     #[error("{0}")]
     Entity(#[from] crate::entity::Error),
     #[error("{0}")]
