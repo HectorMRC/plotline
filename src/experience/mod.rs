@@ -34,7 +34,7 @@ pub struct Experience<Intv> {
 pub struct ExperienceBuilder<'a, Intv> {
     event: &'a Event<Intv>,
     before: Option<Profile>,
-    after: Vec<Profile>,
+    after: Option<Vec<Profile>>,
 }
 
 impl<'a, Intv> ExperienceBuilder<'a, Intv> {
@@ -51,20 +51,20 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
         self
     }
 
-    pub fn with_after(mut self, after: Vec<Profile>) -> Self {
+    pub fn with_after(mut self, after: Option<Vec<Profile>>) -> Self {
         self.after = after;
         self
     }
 
     pub fn build(self) -> Result<Experience<Intv>> {
-        if self.before.is_none() && self.after.is_empty() {
+        if self.before.is_none() && self.after.as_ref().map(Vec::is_empty).unwrap_or(true) {
             return Err(Error::MustBeforeOrAfter);
         }
 
         Ok(Experience {
             event: self.event.id(),
             before: self.before,
-            after: self.after,
+            after: self.after.unwrap_or_default(),
         })
     }
 }

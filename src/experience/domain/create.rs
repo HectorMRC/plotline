@@ -10,6 +10,8 @@ pub fn create<'a, Intv: Interval>(
     builder: ExperienceBuilder<'a, Intv>,
     experienced_events: &[ExperiencedEvent<'a, Intv>],
 ) -> Result<Experience<Intv>> {
+    
+
     {
         let mut closer_experiences = SelectCloserExperiences::new(&builder);
         let mut constaints_group = ConstraintGroup::with_defaults(&builder);
@@ -25,6 +27,15 @@ pub fn create<'a, Intv: Interval>(
     }
 
     builder.build()
+}
+
+/// Tries to fill the optional fields of the given builder that are set to [Option::None].
+pub fn fill_optional_fields<'a, Intv: Interval>(
+    builder: &mut ExperienceBuilder<'a, Intv>,
+    experienced_events: &[ExperiencedEvent<'a, Intv>],
+) {
+    let closer_experiences = SelectCloserExperiences::new(&builder).with_iter(experienced_events.iter());
+    builder.before = builder.before.or(closer_experiences.before.map(|experienced_event| experienced_event.experience.after));
 }
 
 struct SelectCloserExperiences<'a, Intv> {
@@ -47,12 +58,17 @@ impl<'a, Intv> SelectCloserExperiences<'a, Intv>
 where
     Intv: Interval,
 {
-    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) {
-        if experienced_event.event.hi() < self.builder.event.lo() {
-            self.before = cmp::max(self.before, Some(experienced_event));
-        } else if experienced_event.event.lo() > self.builder.event.hi() {
-            self.after = cmp::min(self.after, Some(experienced_event));
-        }
+    /// Consumes the iterator selecting from it the closest experiences to the subject event.
+    fn with_iter(mut self, iter: impl Iterator<Item = &'a ExperiencedEvent<'a, Intv>>) -> Self {
+        iter.for_each(|experienced_event| {
+            if experienced_event.event.hi() < self.builder.event.lo() {
+                self.before = cmp::max(self.before, Some(experienced_event));
+            } else if experienced_event.event.lo() > self.builder.event.hi() {
+                self.after = cmp::min(self.after, Some(experienced_event));
+            }
+        });
+
+        self  
     }
 }
 
