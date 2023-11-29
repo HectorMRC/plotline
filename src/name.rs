@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize, Serializer, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt::Display, marker::PhantomData};
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -9,14 +9,14 @@ pub enum Error {
     NotAName,
 }
 
-/// Returns true if, and only if, the given char c is an invalid character inside a name. 
+/// Returns true if, and only if, the given char c is an invalid character inside a name.
 fn is_invalid_char(c: char) -> bool {
-    const INVALID_CHARS: [char;3] = ['\n', '\r', ' '];
+    const INVALID_CHARS: [char; 3] = ['\n', '\r', ' '];
     INVALID_CHARS.contains(&c)
 }
 
 /// An Name identifies one or more resources.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Name<T> {
     name: String,
     _marker: PhantomData<T>,
@@ -24,20 +24,25 @@ pub struct Name<T> {
 
 impl<T> Serialize for Name<T> {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-        where
-            S: Serializer {
+    where
+        S: Serializer,
+    {
         serializer.serialize_str(&self.name)
     }
 }
 
 impl<'de, T> Deserialize<'de> for Name<T> {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-        where
-            D: Deserializer<'de> {
+    where
+        D: Deserializer<'de>,
+    {
         use serde::de::Error;
 
         String::deserialize(deserializer)
-            .map(|name| Self{name, _marker: PhantomData})
+            .map(|name| Self {
+                name,
+                _marker: PhantomData,
+            })
             .map_err(|err| err.to_string())
             .map_err(Error::custom)
     }
@@ -61,7 +66,6 @@ impl<T> Display for Name<T> {
         write!(f, "{}", self.name)
     }
 }
-
 
 impl<T> TryFrom<String> for Name<T> {
     type Error = Error;

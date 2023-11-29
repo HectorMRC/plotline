@@ -1,10 +1,10 @@
+pub mod application;
 #[cfg(feature = "cli")]
 pub mod cli;
 #[cfg(feature = "fmt")]
 pub mod fmt;
 #[cfg(feature = "in_memory")]
 pub mod repository;
-pub mod application;
 
 mod error;
 pub use error::*;
@@ -14,7 +14,7 @@ use crate::name::Name;
 use serde::{Deserialize, Serialize};
 
 /// An Entity is anything which to interact with.
-#[derive(Clone, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, Serialize, Deserialize)]
 pub struct Entity {
     id: Id<Self>,
     name: Name<Self>,

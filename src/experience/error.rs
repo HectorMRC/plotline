@@ -12,8 +12,8 @@ pub enum Error {
     EventAlreadyExperienced,
     #[error("an experience cannot happen before the initial one")]
     BeforeInitial,
-    #[error("an initial experience must exists for an entity")]
-    NoInitial,
+    #[error("the profile before of the experience must be set")]
+    BeforeIsRequired,
     #[error("{0}")]
     Entity(#[from] crate::entity::Error),
     #[error("{0}")]
