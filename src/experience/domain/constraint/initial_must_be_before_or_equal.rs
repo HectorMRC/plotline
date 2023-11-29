@@ -4,6 +4,8 @@ use crate::{
     interval::Interval,
 };
 
+/// InitialMustBeBeforeOrEqual makes sure no experience takes places before the
+/// initial experience of the corresponding [Entity].
 pub struct InitialMustBeBeforeOrEqual<'a, Intv> {
     builder: &'a ExperienceBuilder<'a, Intv>,
 }
