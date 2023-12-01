@@ -62,8 +62,16 @@ where
             .filter(|profile| afters.contains(&profile.entity));
 
         self.before = befores.next();
-        if befores.next().is_some() {
-            return Err(Error::BeforeIsRequired);
+
+        if let Some(other) = befores.next() {
+            // there are multiple candidates to be choosen, one has to be specified
+            let mut entities = vec![other.entity];
+            if let Some(before) = self.before {
+                entities.push(before.entity);
+            }
+
+            entities.extend(befores.map(|profile| profile.entity));
+            return Err(Error::ExperienceMustBelongToOneOf(entities));
         }
 
         Ok(self)

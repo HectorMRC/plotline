@@ -10,7 +10,7 @@ pub struct InitialMustBeBeforeOrEqual<'a, Intv> {
     builder: &'a ExperienceBuilder<'a, Intv>,
 }
 
-impl<'a, Intv> Constraint<Intv> for InitialMustBeBeforeOrEqual<'a, Intv>
+impl<'a, Intv> Constraint<'a, Intv> for InitialMustBeBeforeOrEqual<'a, Intv>
 where
     Intv: Interval,
 {
