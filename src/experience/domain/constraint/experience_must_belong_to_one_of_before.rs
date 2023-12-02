@@ -53,9 +53,7 @@ where
             return Ok(());
         }
 
-        Err(Error::ExperienceMustBelongToOneOf(
-            previous_afters.into_iter().collect(),
-        ))
+        Err(Error::NotInPreviousExperience)
     }
 }
 

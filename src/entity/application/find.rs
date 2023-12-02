@@ -1,6 +1,7 @@
-use super::{EntityFilter, EntityRepository, EntityApplication};
+use super::{EntityApplication, EntityRepository};
 use crate::{
-    entity::{error::Result, Entity, Error},
+    entity::{error::Result, Entity},
+    id::Id,
     transaction::Tx,
 };
 use std::sync::Arc;
@@ -10,7 +11,7 @@ use std::sync::Arc;
 #[derive(Default)]
 pub struct FindEntity<EntityRepo> {
     entity_repo: Arc<EntityRepo>,
-    filter: EntityFilter,
+    id: Id<Entity>,
 }
 
 impl<EntityRepo> FindEntity<EntityRepo>
@@ -20,23 +21,7 @@ where
     /// Executes the find query, through which one, and exactly one, entity must
     /// be retrived.
     pub fn execute(self) -> Result<Entity> {
-        let mut entities = self.entity_repo.filter(&self.filter)?;
-        if entities.is_empty() {
-            return Err(Error::NotFound);
-        }
-
-        if entities.len() > 1 {
-            return Err(Error::MoreThanOne);
-        }
-
-        Ok(entities.remove(0).begin().clone())
-    }
-}
-
-impl<EntityRepo> FindEntity<EntityRepo> {
-    pub fn with_filter(mut self, filter: EntityFilter) -> Self {
-        self.filter = filter;
-        self
+        Ok(self.entity_repo.find(self.id)?.begin().clone())
     }
 }
 
@@ -44,10 +29,10 @@ impl<EntityRepo> EntityApplication<EntityRepo>
 where
     EntityRepo: EntityRepository,
 {
-    pub fn find_entity(&self) -> FindEntity<EntityRepo> {
+    pub fn find_entity(&self, id: Id<Entity>) -> FindEntity<EntityRepo> {
         FindEntity {
             entity_repo: self.entity_repo.clone(),
-            filter: Default::default(),
+            id,
         }
     }
 }

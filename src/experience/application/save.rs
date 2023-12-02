@@ -28,19 +28,17 @@ where
 {
     /// Executes the save experience transaction.
     pub fn execute(self) -> Result<()> {
-        let mut experiences_tx = self.experience_repo.filter(
+        let experiences_tx = self.experience_repo.filter(
             ExperienceFilter::default()
                 .with_event(Some(self.event))
                 .with_entity(Some(self.entity)),
         )?;
 
-        if experiences_tx.is_empty() {
-            self.create()
-        } else if experiences_tx.len() == 1 {
-            self.update(experiences_tx.remove(0))
+        // there should be impossible to have more than one
+        if let Some(experience) = experiences_tx.into_iter().next() {
+            self.update(experience)
         } else {
-            // this must be impossible
-            Err(Error::MoreThanOne)
+            self.create()
         }
     }
 

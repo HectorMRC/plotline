@@ -1,6 +1,6 @@
 use super::{
+    application::{EntityApplication, EntityRepository},
     fmt::EntityFmt,
-    application::{EntityFilter, EntityRepository, EntityApplication},
     Entity,
 };
 use crate::{
@@ -54,12 +54,11 @@ where
             return self.execute_subcommand(command, entity_id);
         }
 
-        if entity_id.is_none() {
+        let Some(entity_id) = entity_id else {
             return self.execute_subcommand(EntitySubCommand::List, None);
         };
 
-        let filter = EntityFilter::default().with_id(entity_id);
-        let entity = self.find_entity().with_filter(filter).execute()?;
+        let entity = self.find_entity(entity_id).execute()?;
         print!("{}", EntityFmt::column(&entity));
 
         Ok(())

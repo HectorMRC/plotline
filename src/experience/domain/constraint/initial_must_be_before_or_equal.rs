@@ -30,7 +30,7 @@ where
         };
 
         if self.builder.event < initial.event {
-            return Err(Error::BeforeInitial);
+            return Err(Error::ExperienceBeforeInitial);
         }
 
         Ok(())

@@ -58,7 +58,7 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
 
     pub fn build(mut self) -> Result<Experience<Intv>> {
         if self.before.is_none() && self.after.as_ref().map(Vec::is_empty).unwrap_or(true) {
-            return Err(Error::MustBeforeOrAfter);
+            return Err(Error::EmptyBeforeAndAfter);
         }
 
         if let Some(after) = self.after.as_mut() {

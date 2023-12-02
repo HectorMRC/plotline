@@ -305,7 +305,7 @@ mod tests {
             name: &'a str,
             tree: Node<Period<usize>>,
             query: Period<usize>,
-            output: bool,
+            intersects: bool,
         }
 
         vec![
@@ -313,31 +313,31 @@ mod tests {
                 name: "no intersaction",
                 tree: Node::new([0, 2].into()),
                 query: [3, 3].into(),
-                output: false,
+                intersects: false,
             },
             Test {
                 name: "left-hand intersaction",
                 tree: Node::new([0, 2].into()),
                 query: [1, 3].into(),
-                output: true,
+                intersects: true,
             },
             Test {
                 name: "right-hand intersaction",
                 tree: Node::new([2, 4].into()),
                 query: [0, 3].into(),
-                output: true,
+                intersects: true,
             },
             Test {
                 name: "superset intersaction",
                 tree: Node::new([0, 3].into()),
                 query: [1, 2].into(),
-                output: true,
+                intersects: true,
             },
             Test {
                 name: "subset intersaction",
                 tree: Node::new([1, 2].into()),
                 query: [0, 3].into(),
-                output: true,
+                intersects: true,
             },
             Test {
                 name: "complex tree",
@@ -346,14 +346,14 @@ mod tests {
                     ._with_interval([2, 6].into())
                     ._with_interval([7, 9].into()),
                 query: [1, 2].into(),
-                output: true,
+                intersects: true,
             },
         ]
         .into_iter()
         .for_each(|test| {
             assert_eq!(
                 test.tree._intersects(&test.query),
-                test.output,
+                test.intersects,
                 "{}",
                 test.name
             );

@@ -1,23 +1,22 @@
-use crate::{entity::Entity, id::Id};
-
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("experience not found")]
-    NotFound,
-    #[error("more than one experience for the same entity and event")]
-    MoreThanOne,
-    #[error("an experience must include at least one before or after")]
-    MustBeforeOrAfter,
-    #[error("the event has already been experienced by the entity")]
+    // application
+    #[error("an experience cannot be empty of before and after simultaneously")]
+    EmptyBeforeAndAfter,
+    #[error("an entity cannot experience an event more than once")]
     EventAlreadyExperienced,
+    // constraint
     #[error("an experience cannot happen before the initial one")]
-    BeforeInitial,
+    ExperienceBeforeInitial,
     #[error("an entity cannot be after of the same experience more than once")]
     RepeatedEntity,
-    #[error("the profile before of the experience must belong to one of {0:?}")]
-    ExperienceMustBelongToOneOf(Vec<Id<Entity>>),
+    #[error("an experience cannot belong to an entity not listed in the previous experience")]
+    NotInPreviousExperience,
+    #[error("an entity cannot experience simultaneous events")]
+    SimultaneousEvents,
+    // foreign
     #[error("{0}")]
     Entity(#[from] crate::entity::Error),
     #[error("{0}")]
