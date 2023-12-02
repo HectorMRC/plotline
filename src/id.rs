@@ -65,7 +65,7 @@ impl<T> Clone for Id<T> {
 
 impl<T> PartialOrd for Id<T> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.uuid.partial_cmp(&other.uuid)
+        Some(self.cmp(other))
     }
 }
 

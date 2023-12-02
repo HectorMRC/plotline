@@ -1,5 +1,5 @@
 use crate::experience::ExperienceBuilder;
 
-pub struct ExperienceCannotBeSimultaneous<'a, Intv> {
-    builder: ExperienceBuilder<'a, Intv>,
+pub struct _ExperienceCannotBeSimultaneous<'a, Intv> {
+    _builder: ExperienceBuilder<'a, Intv>,
 }
