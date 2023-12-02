@@ -1,4 +1,4 @@
-use crate::{id::Id, entity::Entity};
+use crate::{entity::Entity, id::Id};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -14,6 +14,8 @@ pub enum Error {
     EventAlreadyExperienced,
     #[error("an experience cannot happen before the initial one")]
     BeforeInitial,
+    #[error("an entity cannot be after of the same experience more than once")]
+    RepeatedEntity,
     #[error("the profile before of the experience must belong to one of {0:?}")]
     ExperienceMustBelongToOneOf(Vec<Id<Entity>>),
     #[error("{0}")]

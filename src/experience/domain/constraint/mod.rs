@@ -11,7 +11,7 @@ use crate::{
 
 pub trait Constraint<'a, Intv> {
     /// Determines the constraint must take into account the given [ExperiencedEvent].
-    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<()>;
+    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>);
     /// Returns the final veredict of the constraint.
     fn result(&self) -> Result<()>;
 }
@@ -30,10 +30,10 @@ impl<'a, Intv> ConstraintGroup<'a, Intv> {
 }
 
 impl<'a, Intv> Constraint<'a, Intv> for ConstraintGroup<'a, Intv> {
-    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<()> {
+    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) {
         self.constraints
             .iter_mut()
-            .try_for_each(|constraint| constraint.with(experienced_event))
+            .for_each(|constraint| constraint.with(experienced_event))
     }
 
     fn result(&self) -> Result<()> {

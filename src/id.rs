@@ -63,6 +63,18 @@ impl<T> Clone for Id<T> {
     }
 }
 
+impl<T> PartialOrd for Id<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.uuid.partial_cmp(&other.uuid)
+    }
+}
+
+impl<T> Ord for Id<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.uuid.cmp(&other.uuid)
+    }
+}
+
 impl<T> Hash for Id<T> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.uuid.hash(state);

@@ -8,28 +8,38 @@ use crate::{
 /// initial experience of the corresponding [Entity].
 pub struct InitialMustBeBeforeOrEqual<'a, Intv> {
     builder: &'a ExperienceBuilder<'a, Intv>,
+    initial: Option<&'a ExperiencedEvent<'a, Intv>>,
 }
 
 impl<'a, Intv> Constraint<'a, Intv> for InitialMustBeBeforeOrEqual<'a, Intv>
 where
     Intv: Interval,
 {
-    fn with(&mut self, experienced_event: &ExperiencedEvent<Intv>) -> Result<()> {
+    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) {
         let kind: ExperienceKind = experienced_event.experience.into();
-        if kind.is_initial() && self.builder.event < experienced_event.event {
-            return Err(Error::BeforeInitial);
+        if kind.is_initial() {
+            self.initial = Some(experienced_event);
         }
-
-        Ok(())
     }
 
     fn result(&self) -> Result<()> {
+        let Some(initial) = self.initial else {
+            return Ok(());
+        };
+
+        if self.builder.event < initial.event {
+            return Err(Error::BeforeInitial);
+        }
+
         Ok(())
     }
 }
 
 impl<'a, Intv> InitialMustBeBeforeOrEqual<'a, Intv> {
     pub fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
-        Self { builder }
+        Self {
+            builder,
+            initial: None,
+        }
     }
 }

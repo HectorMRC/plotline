@@ -11,7 +11,7 @@ use crate::{
     interval::Interval,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// A Profile describes an [Entity] during the time being between two periods
 /// of time.
@@ -56,9 +56,16 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
         self
     }
 
-    pub fn build(self) -> Result<Experience<Intv>> {
+    pub fn build(mut self) -> Result<Experience<Intv>> {
         if self.before.is_none() && self.after.as_ref().map(Vec::is_empty).unwrap_or(true) {
             return Err(Error::MustBeforeOrAfter);
+        }
+
+        if let Some(after) = self.after.as_mut() {
+            let mut uniq = HashSet::new();
+            if !after.iter().all(move |profile| uniq.insert(profile.entity)) {
+                return Err(Error::RepeatedEntity);
+            }
         }
 
         Ok(Experience {

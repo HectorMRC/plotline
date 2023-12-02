@@ -1,11 +1,11 @@
+use super::{constraint::Constraint, ConstraintGroup, SelectCloserExperiences};
 use crate::{
     entity::Entity,
-    experience::{Error, Experience, ExperienceBuilder, ExperiencedEvent, Result},
+    experience::{Experience, ExperienceBuilder, ExperiencedEvent, Result},
     id::Id,
     interval::Interval,
 };
 use std::collections::HashSet;
-use super::{ConstraintGroup, constraint::Constraint, SelectCloserExperiences};
 
 /// Creates a new experience caused by the given event as long as it fits in
 /// the given ordered succession of experienced events.
@@ -13,13 +13,13 @@ pub fn create<'a, Intv: Interval>(
     builder: ExperienceBuilder<'a, Intv>,
     experienced_events: &[ExperiencedEvent<'a, Intv>],
 ) -> Result<Experience<Intv>> {
-    let builder = builder.with_fallbacks(experienced_events)?;
+    let builder = builder.with_fallbacks(experienced_events);
 
     {
         let mut constaints_group = ConstraintGroup::with_defaults(&builder);
         experienced_events
             .iter()
-            .try_for_each(|experienced_event| constaints_group.with(experienced_event))?;
+            .for_each(|experienced_event| constaints_group.with(experienced_event));
 
         constaints_group.result()?;
     }
@@ -32,9 +32,9 @@ where
     Intv: Interval,
 {
     /// Tries to compute some value for any field set to [Option::None].
-    fn with_fallbacks(mut self, experienced_events: &[ExperiencedEvent<'a, Intv>]) -> Result<Self> {
+    fn with_fallbacks(mut self, experienced_events: &[ExperiencedEvent<'a, Intv>]) -> Self {
         if self.before.is_some() && self.after.is_some() {
-            return Ok(self);
+            return self;
         }
 
         let (before, after) = SelectCloserExperiences::from_builder(&self)
@@ -61,19 +61,11 @@ where
             .into_iter()
             .filter(|profile| afters.contains(&profile.entity));
 
-        self.before = befores.next();
-
-        if let Some(other) = befores.next() {
-            // there are multiple candidates to be choosen, one has to be specified
-            let mut entities = vec![other.entity];
-            if let Some(before) = self.before {
-                entities.push(before.entity);
-            }
-
-            entities.extend(befores.map(|profile| profile.entity));
-            return Err(Error::ExperienceMustBelongToOneOf(entities));
+        let before = befores.next();
+        if befores.next().is_none() {
+            self.before = before;
         }
 
-        Ok(self)
+        self
     }
 }
