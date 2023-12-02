@@ -3,10 +3,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     // application
-    #[error("an experience cannot be empty of before and after simultaneously")]
-    EmptyBeforeAndAfter,
     #[error("an entity cannot experience an event more than once")]
     EventAlreadyExperienced,
+    // domain
+    #[error("an experience cannot be empty of before and after simultaneously")]
+    EmptyBeforeAndAfter,
     // constraint
     #[error("an experience cannot happen before the initial one")]
     ExperienceBeforeInitial,
