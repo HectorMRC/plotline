@@ -4,15 +4,25 @@ pub use initial_must_be_before_or_equal::*;
 mod experience_must_belong_to_one_of_before;
 pub use experience_must_belong_to_one_of_before::*;
 
+mod experience_cannot_be_simultaneous;
+pub use experience_cannot_be_simultaneous::*;
+
 use crate::{
     experience::{ExperienceBuilder, ExperiencedEvent, Result},
     interval::Interval,
 };
 
+/// A Constraint is a condition that must be satified.
 pub trait Constraint<'a, Intv> {
-    /// Determines the constraint must take into account the given [ExperiencedEvent].
-    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>);
-    /// Returns the final veredict of the constraint.
+    /// Determines the constraint must take into account the given
+    /// [ExperiencedEvent].
+    ///
+    /// Short-Circuiting: this method may return an error if, and only if, the
+    /// given [ExperiencedEvent] already violates the constraint.
+    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<()>;
+
+    /// Returns the same error as `with`, if any. Otherwise returns the final
+    /// veredict of the constraint.
     fn result(&self) -> Result<()>;
 }
 
@@ -27,13 +37,18 @@ impl<'a, Intv> ConstraintGroup<'a, Intv> {
         self.constraints.push(Box::new(constraint));
         self
     }
+
+    /// Calls the [Constraint]'s result method consuming self.
+    pub fn result(self) -> Result<()> {
+        Constraint::<'a, Intv>::result(&self)
+    }
 }
 
 impl<'a, Intv> Constraint<'a, Intv> for ConstraintGroup<'a, Intv> {
-    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) {
+    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<()> {
         self.constraints
             .iter_mut()
-            .for_each(|constraint| constraint.with(experienced_event))
+            .try_for_each(|constraint| constraint.with(experienced_event))
     }
 
     fn result(&self) -> Result<()> {

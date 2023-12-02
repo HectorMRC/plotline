@@ -14,16 +14,12 @@ pub fn create<'a, Intv: Interval>(
     experienced_events: &[ExperiencedEvent<'a, Intv>],
 ) -> Result<Experience<Intv>> {
     let builder = builder.with_fallbacks(experienced_events);
+    let mut constaints_group = ConstraintGroup::with_defaults(&builder);
+    experienced_events
+        .iter()
+        .try_for_each(|experienced_event| constaints_group.with(experienced_event))?;
 
-    {
-        let mut constaints_group = ConstraintGroup::with_defaults(&builder);
-        experienced_events
-            .iter()
-            .for_each(|experienced_event| constaints_group.with(experienced_event));
-
-        constaints_group.result()?;
-    }
-
+    constaints_group.result()?;
     builder.build()
 }
 

@@ -15,11 +15,13 @@ impl<'a, Intv> Constraint<'a, Intv> for InitialMustBeBeforeOrEqual<'a, Intv>
 where
     Intv: Interval,
 {
-    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) {
+    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<()> {
         let kind: ExperienceKind = experienced_event.experience.into();
         if kind.is_initial() {
             self.initial = Some(experienced_event);
         }
+
+        self.result()
     }
 
     fn result(&self) -> Result<()> {

@@ -7,21 +7,23 @@ use crate::{
 };
 use std::{cmp, collections::HashSet};
 
-/// ExperienceMustBelongToOneOf makes sure no experience belongs to an [Entity]
-/// that is not listed as one of the afters of the previous experience.
-pub struct ExperienceMustBelongToOneOf<'a, Intv> {
+/// ExperienceMustBelongToOneOfBefore makes sure no experience belongs to an
+/// [Entity] that is not listed as one of the afters of the previous one.
+pub struct ExperienceMustBelongToOneOfBefore<'a, Intv> {
     builder: &'a ExperienceBuilder<'a, Intv>,
     previous: Option<&'a ExperiencedEvent<'a, Intv>>,
 }
 
-impl<'a, Intv> Constraint<'a, Intv> for ExperienceMustBelongToOneOf<'a, Intv>
+impl<'a, Intv> Constraint<'a, Intv> for ExperienceMustBelongToOneOfBefore<'a, Intv>
 where
     Intv: Interval,
 {
-    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) {
+    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<()> {
         if experienced_event.event < self.builder.event {
             self.previous = cmp::max(self.previous, Some(experienced_event))
         }
+
+        Ok(())
     }
 
     fn result(&self) -> Result<()> {
@@ -57,7 +59,7 @@ where
     }
 }
 
-impl<'a, Intv> ExperienceMustBelongToOneOf<'a, Intv> {
+impl<'a, Intv> ExperienceMustBelongToOneOfBefore<'a, Intv> {
     pub fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
         Self {
             builder,
