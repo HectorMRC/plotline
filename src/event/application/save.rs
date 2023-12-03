@@ -1,4 +1,4 @@
-use super::{EventRepository, EventApplication};
+use super::{EventApplication, EventRepository};
 use crate::{
     event::Event,
     event::{Error, Result},
@@ -44,11 +44,11 @@ where
 
     fn create(self) -> Result<()> {
         let Some(name) = self.name else {
-            return Err(Error::NameRequired);
+            return Err(Error::EmptyName);
         };
 
         let Some(interval) = self.interval else {
-            return Err(Error::IntervalRequired);
+            return Err(Error::EmptyInterval);
         };
 
         let event = Event::new(self.id, name, interval);

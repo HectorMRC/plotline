@@ -1,6 +1,6 @@
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, PartialEq, thiserror::Error)]
 pub enum Error {
     // application
     #[error("an entity cannot experience an event more than once")]

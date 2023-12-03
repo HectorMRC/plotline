@@ -1,6 +1,6 @@
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, PartialEq, thiserror::Error)]
 pub enum Error {
     // repo
     #[error("event already exists")]
@@ -8,10 +8,10 @@ pub enum Error {
     #[error("event not found")]
     NotFound,
     // input
-    #[error("event name must be set")]
-    NameRequired,
-    #[error("event interval must be set")]
-    IntervalRequired,
+    #[error("an event name cannot be empty")]
+    EmptyName,
+    #[error("an event interval cannot be empty")]
+    EmptyInterval,
     // foreign
     #[error("{0}")]
     Entity(#[from] crate::entity::Error),
@@ -19,6 +19,4 @@ pub enum Error {
     Id(#[from] crate::id::Error),
     #[error("{0}")]
     Lock(String),
-    #[error("{0}")]
-    Custom(&'static str),
 }

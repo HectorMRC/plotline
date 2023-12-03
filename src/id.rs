@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(thiserror::Error, Debug)]
+#[derive(Debug, PartialEq, thiserror::Error)]
 pub enum Error {
     #[error("uuid: {0}")]
     Uuid(#[from] uuid::Error),
