@@ -68,7 +68,12 @@ where
     /// Creates a [ConstraintGroup] with all the default constraints.
     pub fn with_defaults(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
         Self {
-            constraints: vec![Box::new(ExperienceKindMustFollowPrevious::new(builder))],
+            constraints: vec![
+                Box::new(ExperienceKindMustFollowPrevious::new(builder)),
+                Box::new(ExperienceKindMustPrecedeNext::new(builder)),
+                Box::new(ExperienceCannotBeSimultaneous::new(builder)),
+                Box::new(ExperienceMustBelongToOneOfPrevious::new(builder)),
+            ],
         }
     }
 }

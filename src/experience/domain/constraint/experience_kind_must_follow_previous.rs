@@ -87,23 +87,15 @@ mod tests {
             // initial
             Test {
                 name: "initial without previous experience",
-                builder: ExperienceBuilder::new(&Event::new(
-                    Id::default(),
-                    "test".to_string().try_into().unwrap(),
-                    [1, 1].into(),
-                ))
-                .with_after(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(&event([1, 1]))
+                    .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![],
                 result: Ok(()),
             },
             Test {
                 name: "initial with initial previous experience",
-                builder: ExperienceBuilder::new(&Event::new(
-                    Id::default(),
-                    "test".to_string().try_into().unwrap(),
-                    [1, 1].into(),
-                ))
-                .with_after(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(&event([1, 1]))
+                    .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &initial_experience(),
                     event: &Event::new(
@@ -116,12 +108,8 @@ mod tests {
             },
             Test {
                 name: "initial with transitive previous experience",
-                builder: ExperienceBuilder::new(&Event::new(
-                    Id::default(),
-                    "test".to_string().try_into().unwrap(),
-                    [1, 1].into(),
-                ))
-                .with_after(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(&event([1, 1]))
+                    .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &event([0, 0]),
@@ -130,12 +118,8 @@ mod tests {
             },
             Test {
                 name: "initial with terminal previous experience",
-                builder: ExperienceBuilder::new(&Event::new(
-                    Id::default(),
-                    "test".to_string().try_into().unwrap(),
-                    [1, 1].into(),
-                ))
-                .with_after(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(&event([1, 1]))
+                    .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
                     event: &event([0, 0]),
@@ -145,25 +129,17 @@ mod tests {
             // transitive
             Test {
                 name: "transitive without previous experience",
-                builder: ExperienceBuilder::new(&Event::new(
-                    Id::default(),
-                    "test".to_string().try_into().unwrap(),
-                    [1, 1].into(),
-                ))
-                .with_before(Some(Profile::new(Id::default())))
-                .with_after(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(&event([1, 1]))
+                    .with_before(Some(Profile::new(Id::default())))
+                    .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![],
                 result: Err(Error::TransitiveFollowsTerminal),
             },
             Test {
                 name: "transitive with initial previous experience",
-                builder: ExperienceBuilder::new(&Event::new(
-                    Id::default(),
-                    "test".to_string().try_into().unwrap(),
-                    [1, 1].into(),
-                ))
-                .with_before(Some(Profile::new(Id::default())))
-                .with_after(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(&event([1, 1]))
+                    .with_before(Some(Profile::new(Id::default())))
+                    .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &initial_experience(),
                     event: &Event::new(
@@ -176,13 +152,9 @@ mod tests {
             },
             Test {
                 name: "transitive with transitive previous experience",
-                builder: ExperienceBuilder::new(&Event::new(
-                    Id::default(),
-                    "test".to_string().try_into().unwrap(),
-                    [1, 1].into(),
-                ))
-                .with_before(Some(Profile::new(Id::default())))
-                .with_after(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(&event([1, 1]))
+                    .with_before(Some(Profile::new(Id::default())))
+                    .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &event([0, 0]),
@@ -191,13 +163,9 @@ mod tests {
             },
             Test {
                 name: "transitive with terminal previous experience",
-                builder: ExperienceBuilder::new(&Event::new(
-                    Id::default(),
-                    "test".to_string().try_into().unwrap(),
-                    [1, 1].into(),
-                ))
-                .with_before(Some(Profile::new(Id::default())))
-                .with_after(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(&event([1, 1]))
+                    .with_before(Some(Profile::new(Id::default())))
+                    .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
                     event: &event([0, 0]),
@@ -207,23 +175,15 @@ mod tests {
             // terminal
             Test {
                 name: "terminal without previous experience",
-                builder: ExperienceBuilder::new(&Event::new(
-                    Id::default(),
-                    "test".to_string().try_into().unwrap(),
-                    [1, 1].into(),
-                ))
-                .with_before(Some(Profile::new(Id::default()))),
+                builder: ExperienceBuilder::new(&event([1, 1]))
+                    .with_before(Some(Profile::new(Id::default()))),
                 with: vec![],
                 result: Err(Error::TerminalFollowsTerminal),
             },
             Test {
                 name: "terminal with initial previous experience",
-                builder: ExperienceBuilder::new(&Event::new(
-                    Id::default(),
-                    "test".to_string().try_into().unwrap(),
-                    [1, 1].into(),
-                ))
-                .with_before(Some(Profile::new(Id::default()))),
+                builder: ExperienceBuilder::new(&event([1, 1]))
+                    .with_before(Some(Profile::new(Id::default()))),
                 with: vec![ExperiencedEvent {
                     experience: &initial_experience(),
                     event: &Event::new(
@@ -236,12 +196,8 @@ mod tests {
             },
             Test {
                 name: "terminal with transitive previous experience",
-                builder: ExperienceBuilder::new(&Event::new(
-                    Id::default(),
-                    "test".to_string().try_into().unwrap(),
-                    [1, 1].into(),
-                ))
-                .with_before(Some(Profile::new(Id::default()))),
+                builder: ExperienceBuilder::new(&event([1, 1]))
+                    .with_before(Some(Profile::new(Id::default()))),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &event([0, 0]),
@@ -250,12 +206,8 @@ mod tests {
             },
             Test {
                 name: "terminal with terminal previous experience",
-                builder: ExperienceBuilder::new(&Event::new(
-                    Id::default(),
-                    "test".to_string().try_into().unwrap(),
-                    [1, 1].into(),
-                ))
-                .with_before(Some(Profile::new(Id::default()))),
+                builder: ExperienceBuilder::new(&event([1, 1]))
+                    .with_before(Some(Profile::new(Id::default()))),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
                     event: &event([0, 0]),
