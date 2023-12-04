@@ -38,6 +38,18 @@ pub struct Experience<Intv> {
     after: Vec<Profile>,
 }
 
+impl<Intv> Experience<Intv> {
+    pub fn with_before(mut self, before: Option<Profile>) -> Self {
+        self.before = before;
+        self
+    }
+
+    pub fn with_after(mut self, after: Vec<Profile>) -> Self {
+        self.after = after;
+        self
+    }
+}
+
 /// ExperienceBuilder makes sure an [Experience] is created if, and only if,
 /// all of its requirements are meet.
 pub struct ExperienceBuilder<'a, Intv> {
