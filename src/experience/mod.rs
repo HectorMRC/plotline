@@ -21,6 +21,15 @@ pub struct Profile {
     values: HashMap<String, String>,
 }
 
+impl Profile {
+    pub fn new(entity: Id<Entity>) -> Self {
+        Self {
+            entity,
+            values: HashMap::new(),
+        }
+    }
+}
+
 /// An Experience represents the change caused by an [Event] on an [Entity].
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Experience<Intv> {
@@ -80,7 +89,7 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
 pub enum ExperienceKind {
     Initial,
     Terminal,
-    Transition,
+    Transitive,
 }
 
 impl<Intv> From<&Experience<Intv>> for ExperienceKind {
@@ -90,7 +99,19 @@ impl<Intv> From<&Experience<Intv>> for ExperienceKind {
         } else if experience.after.is_empty() {
             ExperienceKind::Terminal
         } else {
-            ExperienceKind::Transition
+            ExperienceKind::Transitive
+        }
+    }
+}
+
+impl<'a, Intv> From<&ExperienceBuilder<'a, Intv>> for ExperienceKind {
+    fn from(experience: &ExperienceBuilder<'a, Intv>) -> Self {
+        if experience.after.as_ref().map(Vec::is_empty).unwrap_or(true) {
+            ExperienceKind::Terminal
+        } else if experience.before.is_none() {
+            ExperienceKind::Initial
+        } else {
+            ExperienceKind::Transitive
         }
     }
 }
@@ -98,6 +119,14 @@ impl<Intv> From<&Experience<Intv>> for ExperienceKind {
 impl ExperienceKind {
     pub fn is_initial(&self) -> bool {
         matches!(self, ExperienceKind::Initial)
+    }
+
+    pub fn is_transitive(&self) -> bool {
+        matches!(self, ExperienceKind::Transitive)
+    }
+
+    pub fn is_terminal(&self) -> bool {
+        matches!(self, ExperienceKind::Terminal)
     }
 }
 
@@ -124,5 +153,35 @@ where
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Experience, Profile};
+    use crate::id::Id;
+
+    pub fn initial_experience<Intv>() -> Experience<Intv> {
+        Experience {
+            event: Id::default(),
+            before: None,
+            after: vec![Profile::new(Id::default())],
+        }
+    }
+
+    pub fn transitive_experience<Intv>() -> Experience<Intv> {
+        Experience {
+            event: Id::default(),
+            before: Some(Profile::new(Id::default())),
+            after: vec![Profile::new(Id::default())],
+        }
+    }
+
+    pub fn terminal_experience<Intv>() -> Experience<Intv> {
+        Experience {
+            event: Id::default(),
+            before: Some(Profile::new(Id::default())),
+            after: Vec::default(),
+        }
     }
 }

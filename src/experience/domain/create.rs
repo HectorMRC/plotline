@@ -1,4 +1,6 @@
-use super::{constraint::Constraint, ConstraintGroup, SelectCloserExperiences};
+use super::{
+    constraint::Constraint, ConstraintGroup, SelectNextExperience, SelectPreviousExperience,
+};
 use crate::{
     entity::Entity,
     experience::{Experience, ExperienceBuilder, ExperiencedEvent, Result},
@@ -33,12 +35,18 @@ where
             return self;
         }
 
-        let (before, after) = SelectCloserExperiences::from_builder(&self)
-            .with_iter(experienced_events.iter())
-            .result();
+        let mut previous = SelectPreviousExperience::from_builder(&self);
+        let mut next = SelectNextExperience::from_builder(&self);
+        for experienced_event in experienced_events.iter() {
+            previous = previous.with(experienced_event);
+            next = next.with(experienced_event);
+        }
+
+        let previous = previous.value();
+        let next = next.value();
 
         if self.after.is_none() {
-            self.after = after
+            self.after = next
                 .and_then(|experienced_event| experienced_event.experience.before.clone())
                 .map(|before| vec![before]);
         }
@@ -51,7 +59,7 @@ where
             })
             .unwrap_or_default();
 
-        let mut befores = before
+        let mut befores = previous
             .map(|experienced_event| experienced_event.experience.after.clone())
             .unwrap_or_default()
             .into_iter()

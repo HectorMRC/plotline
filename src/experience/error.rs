@@ -17,6 +17,18 @@ pub enum Error {
     NotInPreviousExperience,
     #[error("an entity cannot experience simultaneous events")]
     SimultaneousEvents,
+    #[error("an initial experience cannot follows a non-terminal one")]
+    InitialFollowsNonTerminal,
+    #[error("a transitive experience cannot follows a terminal one")]
+    TransitiveFollowsTerminal,
+    #[error("a terminal experience cannot follows a terminal one")]
+    TerminalFollowsTerminal,
+    #[error("an initial experience cannot precede an initial one")]
+    InitialPrecedesInitial,
+    #[error("a transitive experience cannot precede an initial one")]
+    TransitivePrecedesInitial,
+    #[error("a terminal experience cannot precede a non-initial one")]
+    TerminalPrecedesNonInitial,
     // foreign
     #[error("{0}")]
     Entity(#[from] crate::entity::Error),

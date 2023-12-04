@@ -1,33 +1,30 @@
 use super::Constraint;
 use crate::{
     entity::Entity,
-    experience::{Error, ExperienceBuilder, ExperiencedEvent, Result},
+    experience::{
+        domain::SelectPreviousExperience, Error, ExperienceBuilder, ExperiencedEvent, Result,
+    },
     id::Id,
     interval::Interval,
 };
-use std::{cmp, collections::HashSet};
+use std::collections::HashSet;
 
-/// ExperienceMustBelongToOneOfBefore makes sure no experience belongs to an
-/// [Entity] that is not listed as one of the afters of the previous one.
-pub struct ExperienceMustBelongToOneOfBefore<'a, Intv> {
+pub struct ExperienceMustBelongToOneOfPrevious<'a, Intv> {
     builder: &'a ExperienceBuilder<'a, Intv>,
-    previous: Option<&'a ExperiencedEvent<'a, Intv>>,
+    previous: SelectPreviousExperience<'a, 'a, Intv>,
 }
 
-impl<'a, Intv> Constraint<'a, Intv> for ExperienceMustBelongToOneOfBefore<'a, Intv>
+impl<'a, Intv> Constraint<'a, Intv> for ExperienceMustBelongToOneOfPrevious<'a, Intv>
 where
     Intv: Interval,
 {
     fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<()> {
-        if experienced_event.event < self.builder.event {
-            self.previous = cmp::max(self.previous, Some(experienced_event))
-        }
-
+        self.previous.add(experienced_event);
         Ok(())
     }
 
     fn result(&self) -> Result<()> {
-        let Some(previous) = self.previous else {
+        let Some(previous) = self.previous.as_ref() else {
             return Ok(());
         };
 
@@ -57,11 +54,11 @@ where
     }
 }
 
-impl<'a, Intv> ExperienceMustBelongToOneOfBefore<'a, Intv> {
+impl<'a, Intv> ExperienceMustBelongToOneOfPrevious<'a, Intv> {
     pub fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
         Self {
             builder,
-            previous: None,
+            previous: SelectPreviousExperience::from_builder(builder),
         }
     }
 }

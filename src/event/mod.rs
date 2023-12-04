@@ -10,7 +10,8 @@ pub use error::*;
 use crate::{
     id::{Id, Identifiable},
     interval::Interval,
-    name::Name, macros,
+    macros,
+    name::Name,
 };
 use serde::{Deserialize, Serialize};
 
@@ -58,3 +59,17 @@ impl<Intv> Event<Intv> {
 }
 
 macros::impl_interval_based_ord_for!(Event<Intv> where Intv: Interval);
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::Event;
+    use crate::id::Id;
+
+    pub fn event<Intv>(interval: impl Into<Intv>) -> Event<Intv> {
+        Event {
+            id: Id::default(),
+            name: "test".to_string().try_into().unwrap(),
+            interval: interval.into(),
+        }
+    }
+}

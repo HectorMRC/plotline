@@ -24,9 +24,10 @@ pub trait Interval: Eq + Ord + Clone {
 
     /// Returns true if, and only if, self intersects other.
     fn intersects(&self, other: &Self) -> bool {
-        (other.lo() < self.lo() && self.hi() < other.hi())
-            || self.contains(other.lo())
+        self.contains(other.lo())
             || self.contains(other.hi())
+            || other.contains(self.lo())
+            || other.contains(self.hi())
     }
 }
 
@@ -288,8 +289,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::period::Period;
     use super::{IntervalST, Node};
+    use crate::period::Period;
     use std::fmt::Debug;
 
     impl Debug for IntervalST<Period<usize>> {
@@ -297,7 +298,6 @@ mod tests {
             f.debug_tuple("IntervalST").field(&self.0).finish()
         }
     }
-
 
     #[test]
     fn intersects_with_tree() {

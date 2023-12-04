@@ -1,8 +1,11 @@
-mod initial_must_be_before_or_equal;
-pub use initial_must_be_before_or_equal::*;
+mod experience_kind_must_precede_next;
+pub use experience_kind_must_precede_next::*;
 
-mod experience_must_belong_to_one_of_before;
-pub use experience_must_belong_to_one_of_before::*;
+mod experience_kind_must_follow_previous;
+pub use experience_kind_must_follow_previous::*;
+
+mod experience_must_belong_to_one_of_previous;
+pub use experience_must_belong_to_one_of_previous::*;
 
 mod experience_cannot_be_simultaneous;
 pub use experience_cannot_be_simultaneous::*;
@@ -65,7 +68,7 @@ where
     /// Creates a [ConstraintGroup] with all the default constraints.
     pub fn with_defaults(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
         Self {
-            constraints: vec![Box::new(InitialMustBeBeforeOrEqual::new(builder))],
+            constraints: vec![Box::new(ExperienceKindMustFollowPrevious::new(builder))],
         }
     }
 }
