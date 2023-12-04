@@ -4,12 +4,12 @@ use crate::{
     interval::Interval,
 };
 
-pub struct ExperienceCannotBeSimultaneous<'a, Intv> {
+pub struct ExperienceIsNotSimultaneous<'a, Intv> {
     builder: &'a ExperienceBuilder<'a, Intv>,
     conflict: Option<&'a ExperiencedEvent<'a, Intv>>,
 }
 
-impl<'a, Intv> Constraint<'a, Intv> for ExperienceCannotBeSimultaneous<'a, Intv>
+impl<'a, Intv> Constraint<'a, Intv> for ExperienceIsNotSimultaneous<'a, Intv>
 where
     Intv: Interval,
 {
@@ -30,7 +30,7 @@ where
     }
 }
 
-impl<'a, Intv> ExperienceCannotBeSimultaneous<'a, Intv> {
+impl<'a, Intv> ExperienceIsNotSimultaneous<'a, Intv> {
     pub fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
         Self {
             builder,
@@ -44,7 +44,7 @@ mod tests {
     use crate::{
         event::tests::event,
         experience::{
-            domain::{Constraint, ExperienceCannotBeSimultaneous},
+            domain::{Constraint, ExperienceIsNotSimultaneous},
             tests::transitive_experience,
             Error, ExperienceBuilder, ExperiencedEvent, Result,
         },
@@ -52,7 +52,7 @@ mod tests {
     };
 
     #[test]
-    fn experience_cannot_be_simultaneous() {
+    fn experience_is_not_simultaneous() {
         struct Test<'a> {
             name: &'a str,
             builder: ExperienceBuilder<'a, Period<usize>>,
@@ -124,7 +124,7 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let mut constraint = ExperienceCannotBeSimultaneous::new(&test.builder);
+            let mut constraint = ExperienceIsNotSimultaneous::new(&test.builder);
             let result = test
                 .with
                 .iter()

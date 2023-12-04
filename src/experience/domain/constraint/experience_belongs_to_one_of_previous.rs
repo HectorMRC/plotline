@@ -9,12 +9,12 @@ use crate::{
 };
 use std::collections::HashSet;
 
-pub struct ExperienceMustBelongToOneOfPrevious<'a, Intv> {
+pub struct ExperienceBelongsToOneOfPrevious<'a, Intv> {
     builder: &'a ExperienceBuilder<'a, Intv>,
     previous: SelectPreviousExperience<'a, 'a, Intv>,
 }
 
-impl<'a, Intv> Constraint<'a, Intv> for ExperienceMustBelongToOneOfPrevious<'a, Intv>
+impl<'a, Intv> Constraint<'a, Intv> for ExperienceBelongsToOneOfPrevious<'a, Intv>
 where
     Intv: Interval,
 {
@@ -54,7 +54,7 @@ where
     }
 }
 
-impl<'a, Intv> ExperienceMustBelongToOneOfPrevious<'a, Intv> {
+impl<'a, Intv> ExperienceBelongsToOneOfPrevious<'a, Intv> {
     pub fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
         Self {
             builder,
@@ -68,7 +68,7 @@ mod tests {
     use crate::{
         event::{Event, tests::event},
         experience::{
-            domain::{Constraint, ExperienceMustBelongToOneOfPrevious},
+            domain::{Constraint, ExperienceBelongsToOneOfPrevious},
             ExperienceBuilder, ExperiencedEvent, Profile, Result, tests::initial_experience, Error,
         },
         id::Id,
@@ -76,7 +76,7 @@ mod tests {
     };
 
     #[test]
-    fn experience_must_belong_to_one_of_previous() {
+    fn experience_belongs_to_one_of_previous() {
         struct Test<'a> {
             name: &'a str,
             builder: ExperienceBuilder<'a, Period<usize>>,
@@ -109,7 +109,7 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let mut constraint = ExperienceMustBelongToOneOfPrevious::new(&test.builder);
+            let mut constraint = ExperienceBelongsToOneOfPrevious::new(&test.builder);
             let result = test
                 .with
                 .iter()

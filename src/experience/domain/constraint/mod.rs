@@ -1,14 +1,14 @@
-mod experience_kind_must_precede_next;
-pub use experience_kind_must_precede_next::*;
+mod experience_kind_precedes_next;
+pub use experience_kind_precedes_next::*;
 
-mod experience_kind_must_follow_previous;
-pub use experience_kind_must_follow_previous::*;
+mod experience_kind_follows_previous;
+pub use experience_kind_follows_previous::*;
 
-mod experience_must_belong_to_one_of_previous;
-pub use experience_must_belong_to_one_of_previous::*;
+mod experience_belongs_to_one_of_previous;
+pub use experience_belongs_to_one_of_previous::*;
 
-mod experience_cannot_be_simultaneous;
-pub use experience_cannot_be_simultaneous::*;
+mod experience_is_not_simultaneous;
+pub use experience_is_not_simultaneous::*;
 
 use crate::{
     experience::{ExperienceBuilder, ExperiencedEvent, Result},
@@ -69,10 +69,10 @@ where
     pub fn with_defaults(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
         Self {
             constraints: vec![
-                Box::new(ExperienceKindMustFollowPrevious::new(builder)),
-                Box::new(ExperienceKindMustPrecedeNext::new(builder)),
-                Box::new(ExperienceCannotBeSimultaneous::new(builder)),
-                Box::new(ExperienceMustBelongToOneOfPrevious::new(builder)),
+                Box::new(ExperienceKindFollowsPrevious::new(builder)),
+                Box::new(ExperienceKindPrecedesNext::new(builder)),
+                Box::new(ExperienceIsNotSimultaneous::new(builder)),
+                Box::new(ExperienceBelongsToOneOfPrevious::new(builder)),
             ],
         }
     }

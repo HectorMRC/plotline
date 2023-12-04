@@ -7,12 +7,12 @@ use crate::{
     interval::Interval,
 };
 
-pub struct ExperienceKindMustPrecedeNext<'a, Intv> {
+pub struct ExperienceKindPrecedesNext<'a, Intv> {
     builder: &'a ExperienceBuilder<'a, Intv>,
     next: SelectNextExperience<'a, 'a, Intv>,
 }
 
-impl<'a, Intv> Constraint<'a, Intv> for ExperienceKindMustPrecedeNext<'a, Intv>
+impl<'a, Intv> Constraint<'a, Intv> for ExperienceKindPrecedesNext<'a, Intv>
 where
     Intv: Interval,
 {
@@ -51,7 +51,7 @@ where
     }
 }
 
-impl<'a, Intv> ExperienceKindMustPrecedeNext<'a, Intv> {
+impl<'a, Intv> ExperienceKindPrecedesNext<'a, Intv> {
     pub fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
         Self {
             builder,
@@ -65,7 +65,7 @@ mod tests {
     use crate::{
         event::{tests::event, Event},
         experience::{
-            domain::{constraint::Constraint, ExperienceKindMustPrecedeNext},
+            domain::{constraint::Constraint, ExperienceKindPrecedesNext},
             tests::{initial_experience, terminal_experience, transitive_experience},
             Error, ExperienceBuilder, ExperiencedEvent, Profile, Result,
         },
@@ -75,7 +75,7 @@ mod tests {
     use std::vec;
 
     #[test]
-    fn experience_kind_must_precede_next() {
+    fn experience_kind_precedes_next() {
         struct Test<'a> {
             name: &'a str,
             builder: ExperienceBuilder<'a, Period<usize>>,
@@ -217,7 +217,7 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let mut constraint = ExperienceKindMustPrecedeNext::new(&test.builder);
+            let mut constraint = ExperienceKindPrecedesNext::new(&test.builder);
             let result = test
                 .with
                 .iter()

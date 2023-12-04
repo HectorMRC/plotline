@@ -7,12 +7,12 @@ use crate::{
     interval::Interval,
 };
 
-pub struct ExperienceKindMustFollowPrevious<'a, Intv> {
+pub struct ExperienceKindFollowsPrevious<'a, Intv> {
     builder: &'a ExperienceBuilder<'a, Intv>,
     previous: SelectPreviousExperience<'a, 'a, Intv>,
 }
 
-impl<'a, Intv> Constraint<'a, Intv> for ExperienceKindMustFollowPrevious<'a, Intv>
+impl<'a, Intv> Constraint<'a, Intv> for ExperienceKindFollowsPrevious<'a, Intv>
 where
     Intv: Interval,
 {
@@ -51,7 +51,7 @@ where
     }
 }
 
-impl<'a, Intv> ExperienceKindMustFollowPrevious<'a, Intv> {
+impl<'a, Intv> ExperienceKindFollowsPrevious<'a, Intv> {
     pub fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
         Self {
             builder,
@@ -65,7 +65,7 @@ mod tests {
     use crate::{
         event::{tests::event, Event},
         experience::{
-            domain::{constraint::Constraint, ExperienceKindMustFollowPrevious},
+            domain::{constraint::Constraint, ExperienceKindFollowsPrevious},
             tests::{initial_experience, terminal_experience, transitive_experience},
             Error, ExperienceBuilder, ExperiencedEvent, Profile, Result,
         },
@@ -75,7 +75,7 @@ mod tests {
     use std::vec;
 
     #[test]
-    fn experience_kind_must_follow_previous() {
+    fn experience_kind_follows_previous() {
         struct Test<'a> {
             name: &'a str,
             builder: ExperienceBuilder<'a, Period<usize>>,
@@ -217,7 +217,7 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let mut constraint = ExperienceKindMustFollowPrevious::new(&test.builder);
+            let mut constraint = ExperienceKindFollowsPrevious::new(&test.builder);
             let result = test
                 .with
                 .iter()
