@@ -98,8 +98,7 @@ impl<Cnst1> ConstraintLink<Cnst1, Cnst1> {
 }
 
 impl ConstraintLink<(), ()> {
-    /// Creates a [ConstraintChain] with all the default [Constraint]s already
-    /// chained.
+    /// Creates a [ConstraintChain] with the default [Constraint]s.
     pub fn with_defaults<'a, Intv>(
         builder: &'a ExperienceBuilder<'a, Intv>,
     ) -> impl Constraint<'a, Intv> + ConstraintChain<'a, Intv>
