@@ -106,9 +106,9 @@ impl ConstraintLink<(), ()> {
     where
         Intv: Interval,
     {
-        ConstraintLink::new(ExperienceIsNotSimultaneous::new(&builder))
-            .chain(ExperienceBelongsToOneOfPrevious::new(&builder))
-            .chain(ExperienceKindFollowsPrevious::new(&builder))
-            .chain(ExperienceKindPrecedesNext::new(&builder))
+        ConstraintLink::new(ExperienceIsNotSimultaneous::new(builder))
+            .chain(ExperienceBelongsToOneOfPrevious::new(builder))
+            .chain(ExperienceKindFollowsPrevious::new(builder))
+            .chain(ExperienceKindPrecedesNext::new(builder))
     }
 }
