@@ -13,15 +13,15 @@ impl<'a, Intv> Constraint<'a, Intv> for ExperienceIsNotSimultaneous<'a, Intv>
 where
     Intv: Interval,
 {
-    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<()> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<Self> {
         if self.builder.event.intersects(experienced_event.event) {
             self.conflict = Some(experienced_event);
         }
 
-        self.result()
+        Ok(self)
     }
 
-    fn result(&self) -> Result<()> {
+    fn result(self) -> Result<()> {
         if self.conflict.is_some() {
             return Err(Error::SimultaneousEvents);
         }
@@ -124,21 +124,15 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let mut constraint = ExperienceIsNotSimultaneous::new(&test.builder);
+            let constraint = ExperienceIsNotSimultaneous::new(&test.builder);
             let result = test
                 .with
                 .iter()
-                .try_for_each(|experienced_event| constraint.with(experienced_event));
+                .try_fold(constraint, |constraint, experienced_event| {
+                    constraint.with(experienced_event)
+                })
+                .and_then(|constraint| constraint.result());
 
-            if result.is_err() {
-                assert_eq!(
-                    result, test.result,
-                    "{} got = {:?}, want = {:?}",
-                    test.name, result, test.result
-                );
-            }
-
-            let result = constraint.result();
             assert_eq!(
                 result, test.result,
                 "{} got = {:?}, want = {:?}",

@@ -16,64 +16,99 @@ use crate::{
 };
 
 /// A Constraint is a condition that must be satified.
-pub trait Constraint<'a, Intv> {
+pub trait Constraint<'a, Intv>: Sized {
     /// Determines the constraint must take into account the given
     /// [ExperiencedEvent].
     ///
     /// Short-Circuiting: this method may return an error if, and only if, the
     /// given [ExperiencedEvent] already violates the constraint.
-    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<()>;
+    fn with(self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<Self>;
 
     /// Returns the same error as `with`, if any. Otherwise returns the final
     /// veredict of the constraint.
-    fn result(&self) -> Result<()>;
+    fn result(self) -> Result<()>;
 }
 
-#[derive(Default)]
-pub struct ConstraintGroup<'a, Intv> {
-    constraints: Vec<Box<dyn Constraint<'a, Intv> + 'a>>,
+/// A ConstraintChain is a succession of [Constraint]s that must be satified as
+/// a whole.
+pub trait ConstraintChain<'a, Intv>: Constraint<'a, Intv> {
+    type Link<Cnst>: ConstraintChain<'a, Intv>
+    where
+        Cnst: Constraint<'a, Intv>;
+
+    /// Chains the given [Constraint] with self.
+    fn chain<Cnst>(self, constraint: Cnst) -> Self::Link<Cnst>
+    where
+        Cnst: Constraint<'a, Intv>;
 }
 
-impl<'a, Intv> ConstraintGroup<'a, Intv> {
-    /// Inserts the given constraint in the constraint group.
-    pub fn with_constraint(mut self, constraint: impl Constraint<'a, Intv> + 'a) -> Self {
-        self.constraints.push(Box::new(constraint));
-        self
-    }
-
-    /// Calls the [Constraint]'s result method consuming self.
-    pub fn result(self) -> Result<()> {
-        Constraint::<'a, Intv>::result(&self)
-    }
+/// ConstraintLink implements the [ConstraintChain], allowing to chain
+/// different implementations of [Constraint].
+pub struct ConstraintLink<Cnst1, Cnst2> {
+    constraint: Cnst1,
+    chain: Option<Cnst2>,
 }
 
-impl<'a, Intv> Constraint<'a, Intv> for ConstraintGroup<'a, Intv> {
-    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<()> {
-        self.constraints
-            .iter_mut()
-            .try_for_each(|constraint| constraint.with(experienced_event))
-    }
-
-    fn result(&self) -> Result<()> {
-        self.constraints
-            .iter()
-            .try_for_each(|constraint| constraint.result())
-    }
-}
-
-impl<'a, Intv> ConstraintGroup<'a, Intv>
+impl<'a, Intv, Cnst1, Cnst2> ConstraintChain<'a, Intv> for ConstraintLink<Cnst1, Cnst2>
 where
-    Intv: Interval,
+    Cnst1: Constraint<'a, Intv>,
+    Cnst2: Constraint<'a, Intv>,
 {
-    /// Creates a [ConstraintGroup] with all the default constraints.
-    pub fn with_defaults(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
-        Self {
-            constraints: vec![
-                Box::new(ExperienceKindFollowsPrevious::new(builder)),
-                Box::new(ExperienceKindPrecedesNext::new(builder)),
-                Box::new(ExperienceIsNotSimultaneous::new(builder)),
-                Box::new(ExperienceBelongsToOneOfPrevious::new(builder)),
-            ],
+    type Link<Cnst3> = ConstraintLink<Cnst3, Self>
+        where Cnst3: Constraint<'a, Intv>;
+
+    fn chain<Cnst3>(self, constraint: Cnst3) -> Self::Link<Cnst3>
+    where
+        Cnst3: Constraint<'a, Intv>,
+    {
+        ConstraintLink {
+            constraint,
+            chain: Some(self),
         }
+    }
+}
+
+impl<'a, Intv, Cnst1, Cnst2> Constraint<'a, Intv> for ConstraintLink<Cnst1, Cnst2>
+where
+    Cnst1: Constraint<'a, Intv>,
+    Cnst2: Constraint<'a, Intv>,
+{
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<Self> {
+        self.chain = self
+            .chain
+            .map(|cnst| cnst.with(experienced_event))
+            .transpose()?;
+        self.constraint = self.constraint.with(experienced_event)?;
+        Ok(self)
+    }
+
+    fn result(self) -> Result<()> {
+        self.chain.map(|cnst| cnst.result()).transpose()?;
+        self.constraint.result()
+    }
+}
+
+impl<Cnst1> ConstraintLink<Cnst1, Cnst1> {
+    pub fn new(constraint: Cnst1) -> Self {
+        Self {
+            constraint,
+            chain: None,
+        }
+    }
+}
+
+impl ConstraintLink<(), ()> {
+    /// Creates a [ConstraintChain] with all the default [Constraint]s already
+    /// chained.
+    pub fn with_defaults<'a, Intv>(
+        builder: &'a ExperienceBuilder<'a, Intv>,
+    ) -> impl Constraint<'a, Intv> + ConstraintChain<'a, Intv>
+    where
+        Intv: Interval,
+    {
+        ConstraintLink::new(ExperienceIsNotSimultaneous::new(&builder))
+            .chain(ExperienceBelongsToOneOfPrevious::new(&builder))
+            .chain(ExperienceKindFollowsPrevious::new(&builder))
+            .chain(ExperienceKindPrecedesNext::new(&builder))
     }
 }

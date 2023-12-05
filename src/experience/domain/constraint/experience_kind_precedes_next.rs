@@ -16,12 +16,12 @@ impl<'a, Intv> Constraint<'a, Intv> for ExperienceKindPrecedesNext<'a, Intv>
 where
     Intv: Interval,
 {
-    fn with(&mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<()> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<Self> {
         self.next.add(experienced_event);
-        Ok(())
+        Ok(self)
     }
 
-    fn result(&self) -> Result<()> {
+    fn result(self) -> Result<()> {
         let precedes_initial = self
             .next
             .map(|previous| previous.experience)
@@ -217,21 +217,15 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let mut constraint = ExperienceKindPrecedesNext::new(&test.builder);
+            let constraint = ExperienceKindPrecedesNext::new(&test.builder);
             let result = test
                 .with
                 .iter()
-                .try_for_each(|experienced_event| constraint.with(experienced_event));
+                .try_fold(constraint, |constraint, experienced_event| {
+                    constraint.with(experienced_event)
+                })
+                .and_then(|constraint| constraint.result());
 
-            if result.is_err() {
-                assert_eq!(
-                    result, test.result,
-                    "{} got = {:?}, want = {:?}",
-                    test.name, result, test.result
-                );
-            }
-
-            let result = constraint.result();
             assert_eq!(
                 result, test.result,
                 "{} got = {:?}, want {:?}",
