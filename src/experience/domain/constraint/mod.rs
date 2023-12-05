@@ -45,8 +45,8 @@ pub trait ConstraintChain<'a, Intv>: Constraint<'a, Intv> {
 /// ConstraintLink implements the [ConstraintChain], allowing to chain
 /// different implementations of [Constraint].
 pub struct ConstraintLink<Cnst1, Cnst2> {
+    previous: Option<Cnst2>,
     constraint: Cnst1,
-    chain: Option<Cnst2>,
 }
 
 impl<'a, Intv, Cnst1, Cnst2> ConstraintChain<'a, Intv> for ConstraintLink<Cnst1, Cnst2>
@@ -62,8 +62,8 @@ where
         Cnst3: Constraint<'a, Intv>,
     {
         ConstraintLink {
+            previous: Some(self),
             constraint,
-            chain: Some(self),
         }
     }
 }
@@ -74,16 +74,17 @@ where
     Cnst2: Constraint<'a, Intv>,
 {
     fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<Self> {
-        self.chain = self
-            .chain
+        self.previous = self
+            .previous
             .map(|cnst| cnst.with(experienced_event))
             .transpose()?;
+
         self.constraint = self.constraint.with(experienced_event)?;
         Ok(self)
     }
 
     fn result(self) -> Result<()> {
-        self.chain.map(|cnst| cnst.result()).transpose()?;
+        self.previous.map(|cnst| cnst.result()).transpose()?;
         self.constraint.result()
     }
 }
@@ -91,8 +92,8 @@ where
 impl<Cnst1> ConstraintLink<Cnst1, Cnst1> {
     pub fn new(constraint: Cnst1) -> Self {
         Self {
+            previous: None,
             constraint,
-            chain: None,
         }
     }
 }
