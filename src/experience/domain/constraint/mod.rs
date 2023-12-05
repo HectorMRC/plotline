@@ -45,8 +45,8 @@ pub trait ConstraintChain<'a, Intv>: Constraint<'a, Intv> {
 /// ConstraintLink implements the [ConstraintChain], allowing to chain
 /// different implementations of [Constraint].
 pub struct ConstraintLink<Cnst1, Cnst2> {
-    previous: Option<Cnst2>,
-    constraint: Cnst1,
+    previous: Option<Cnst1>,
+    constraint: Cnst2,
 }
 
 impl<'a, Intv, Cnst1, Cnst2> ConstraintChain<'a, Intv> for ConstraintLink<Cnst1, Cnst2>
@@ -54,7 +54,7 @@ where
     Cnst1: Constraint<'a, Intv>,
     Cnst2: Constraint<'a, Intv>,
 {
-    type Link<Cnst3> = ConstraintLink<Cnst3, Self>
+    type Link<Cnst3> = ConstraintLink<Self, Cnst3>
         where Cnst3: Constraint<'a, Intv>;
 
     fn chain<Cnst3>(self, constraint: Cnst3) -> Self::Link<Cnst3>
@@ -89,8 +89,8 @@ where
     }
 }
 
-impl<Cnst1> ConstraintLink<Cnst1, Cnst1> {
-    pub fn new(constraint: Cnst1) -> Self {
+impl<Cnst> ConstraintLink<(), Cnst> {
+    pub fn new(constraint: Cnst) -> Self {
         Self {
             previous: None,
             constraint,
@@ -110,5 +110,15 @@ impl ConstraintLink<(), ()> {
             .chain(ExperienceBelongsToOneOfPrevious::new(builder))
             .chain(ExperienceKindFollowsPrevious::new(builder))
             .chain(ExperienceKindPrecedesNext::new(builder))
+    }
+}
+
+impl<'a, Intv> Constraint<'a, Intv> for () {
+    fn with(self, _: &'a ExperiencedEvent<Intv>) -> Result<Self> {
+        Ok(self)
+    }
+
+    fn result(self) -> Result<()> {
+        Ok(())
     }
 }
