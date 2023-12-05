@@ -101,7 +101,7 @@ impl ConstraintLink<(), ()> {
     /// Creates a [ConstraintChain] with the default [Constraint]s.
     pub fn with_defaults<'a, Intv>(
         builder: &'a ExperienceBuilder<'a, Intv>,
-    ) -> impl Constraint<'a, Intv> + ConstraintChain<'a, Intv>
+    ) -> impl ConstraintChain<'a, Intv>
     where
         Intv: Interval,
     {
