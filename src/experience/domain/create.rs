@@ -1,6 +1,4 @@
-use super::{
-    constraint::Constraint, ConstraintGroup, SelectNextExperience, SelectPreviousExperience,
-};
+use super::{ConstraintLink, Constraint, SelectNextExperience, SelectPreviousExperience};
 use crate::{
     entity::Entity,
     experience::{Experience, ExperienceBuilder, ExperiencedEvent, Result},
@@ -16,12 +14,14 @@ pub fn create<'a, Intv: Interval>(
     experienced_events: &[ExperiencedEvent<'a, Intv>],
 ) -> Result<Experience<Intv>> {
     let builder = builder.with_fallbacks(experienced_events);
-    let mut constaints_group = ConstraintGroup::with_defaults(&builder);
-    experienced_events
+    let constraint = ConstraintLink::with_defaults(&builder);
+    let constraint = experienced_events
         .iter()
-        .try_for_each(|experienced_event| constaints_group.with(experienced_event))?;
+        .try_fold(constraint, |constraint, experienced_event| {
+            constraint.with(experienced_event)
+        })?;
 
-    constaints_group.result()?;
+    constraint.result()?;
     builder.build()
 }
 
