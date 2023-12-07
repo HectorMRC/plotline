@@ -97,7 +97,8 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
     }
 }
 
-/// An ExperienceKind determines the cardinality of an [Experience].
+/// An ExperienceKind determines the kind of an [Experience] based on its
+/// cardinality.
 pub enum ExperienceKind {
     Initial,
     Terminal,
@@ -116,8 +117,8 @@ impl<Intv> From<&Experience<Intv>> for ExperienceKind {
     }
 }
 
-impl<'a, Intv> From<&ExperienceBuilder<'a, Intv>> for ExperienceKind {
-    fn from(experience: &ExperienceBuilder<'a, Intv>) -> Self {
+impl<Intv> From<&ExperienceBuilder<'_, Intv>> for ExperienceKind {
+    fn from(experience: &ExperienceBuilder<'_, Intv>) -> Self {
         if experience.after.as_ref().map(Vec::is_empty).unwrap_or(true) {
             ExperienceKind::Terminal
         } else if experience.before.is_none() {
