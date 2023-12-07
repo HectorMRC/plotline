@@ -42,63 +42,65 @@ pub trait ConstraintChain<'a, Intv>: Constraint<'a, Intv> {
         Cnst: Constraint<'a, Intv>;
 }
 
-/// ConstraintLink implements the [ConstraintChain], allowing to chain
-/// different implementations of [Constraint].
-pub struct ConstraintLink<Cnst1, Cnst2> {
-    previous: Option<Cnst1>,
-    constraint: Cnst2,
+/// LiFoConstraintChain implements a _last-in first-out_ [ConstraintChain] that
+/// allows different implementations of [Constraint] to be chained into a
+/// single one.
+pub struct LiFoConstraintChain<Head, Cnst> {
+    head: Option<Head>,
+    constraint: Cnst,
 }
 
-impl<'a, Intv, Cnst1, Cnst2> ConstraintChain<'a, Intv> for ConstraintLink<Cnst1, Cnst2>
+impl<'a, Intv, Head, Cnst> ConstraintChain<'a, Intv> for LiFoConstraintChain<Head, Cnst>
 where
-    Cnst1: Constraint<'a, Intv>,
-    Cnst2: Constraint<'a, Intv>,
+    Head: Constraint<'a, Intv>,
+    Cnst: Constraint<'a, Intv>,
 {
-    type Link<Cnst3> = ConstraintLink<Self, Cnst3>
+    type Link<Cnst3> = LiFoConstraintChain<Self, Cnst3>
         where Cnst3: Constraint<'a, Intv>;
 
     fn chain<Cnst3>(self, constraint: Cnst3) -> Self::Link<Cnst3>
     where
         Cnst3: Constraint<'a, Intv>,
     {
-        ConstraintLink {
-            previous: Some(self),
+        LiFoConstraintChain {
+            head: Some(self),
             constraint,
         }
     }
 }
 
-impl<'a, Intv, Cnst1, Cnst2> Constraint<'a, Intv> for ConstraintLink<Cnst1, Cnst2>
+impl<'a, Intv, Head, Cnst> Constraint<'a, Intv> for LiFoConstraintChain<Head, Cnst>
 where
-    Cnst1: Constraint<'a, Intv>,
-    Cnst2: Constraint<'a, Intv>,
+    Head: Constraint<'a, Intv>,
+    Cnst: Constraint<'a, Intv>,
 {
     fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<Self> {
-        self.previous = self
-            .previous
+        self.constraint = self.constraint.with(experienced_event)?;
+        self.head = self
+            .head
             .map(|cnst| cnst.with(experienced_event))
             .transpose()?;
 
-        self.constraint = self.constraint.with(experienced_event)?;
         Ok(self)
     }
 
     fn result(self) -> Result<()> {
-        self.previous.map(|cnst| cnst.result()).transpose()?;
-        self.constraint.result()
+        self.constraint.result()?;
+        self.head.map(|cnst| cnst.result()).transpose()?;
+        Ok(())
     }
 }
 
-impl<Cnst> ConstraintLink<(), Cnst> {
+impl<Cnst> LiFoConstraintChain<(), Cnst> {
     pub fn new(constraint: Cnst) -> Self {
         Self {
-            previous: None,
+            head: None,
             constraint,
         }
     }
 }
 
-impl ConstraintLink<(), ()> {
+impl LiFoConstraintChain<(), ()> {
     /// Creates a [ConstraintChain] with the default [Constraint]s.
     pub fn with_defaults<'a, Intv>(
         builder: &'a ExperienceBuilder<'a, Intv>,
@@ -106,10 +108,10 @@ impl ConstraintLink<(), ()> {
     where
         Intv: Interval,
     {
-        ConstraintLink::new(ExperienceIsNotSimultaneous::new(builder))
-            .chain(ExperienceBelongsToOneOfPrevious::new(builder))
+        LiFoConstraintChain::new(ExperienceBelongsToOneOfPrevious::new(builder))
             .chain(ExperienceKindFollowsPrevious::new(builder))
             .chain(ExperienceKindPrecedesNext::new(builder))
+            .chain(ExperienceIsNotSimultaneous::new(builder))
     }
 }
 

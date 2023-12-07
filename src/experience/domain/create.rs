@@ -1,4 +1,4 @@
-use super::{ConstraintLink, Constraint, SelectNextExperience, SelectPreviousExperience};
+use super::{LiFoConstraintChain, Constraint, SelectNextExperience, SelectPreviousExperience};
 use crate::{
     entity::Entity,
     experience::{Experience, ExperienceBuilder, ExperiencedEvent, Result},
@@ -14,7 +14,7 @@ pub fn create<'a, Intv: Interval>(
     experienced_events: &[ExperiencedEvent<'a, Intv>],
 ) -> Result<Experience<Intv>> {
     let builder = builder.with_fallbacks(experienced_events);
-    let constraint = ConstraintLink::with_defaults(&builder);
+    let constraint = LiFoConstraintChain::with_defaults(&builder);
     let constraint = experienced_events
         .iter()
         .try_fold(constraint, |constraint, experienced_event| {
