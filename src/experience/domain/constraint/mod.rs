@@ -55,12 +55,12 @@ where
     Head: Constraint<'a, Intv>,
     Cnst: Constraint<'a, Intv>,
 {
-    type Link<Cnst3> = LiFoConstraintChain<Self, Cnst3>
-        where Cnst3: Constraint<'a, Intv>;
+    type Link<Tail> = LiFoConstraintChain<Self, Tail>
+        where Tail: Constraint<'a, Intv>;
 
-    fn chain<Cnst3>(self, constraint: Cnst3) -> Self::Link<Cnst3>
+    fn chain<Tail>(self, constraint: Tail) -> Self::Link<Tail>
     where
-        Cnst3: Constraint<'a, Intv>,
+        Tail: Constraint<'a, Intv>,
     {
         LiFoConstraintChain {
             head: Some(self),
