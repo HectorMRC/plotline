@@ -1,11 +1,12 @@
 use super::Constraint;
 use crate::{
-    experience::{Error, ExperienceBuilder, ExperiencedEvent, Result},
+    event::Event,
+    experience::{Error, ExperiencedEvent, Result},
     interval::Interval,
 };
 
 pub struct ExperienceIsNotSimultaneous<'a, Intv> {
-    builder: &'a ExperienceBuilder<'a, Intv>,
+    event: &'a Event<Intv>,
     conflict: Option<&'a ExperiencedEvent<'a, Intv>>,
 }
 
@@ -14,7 +15,7 @@ where
     Intv: Interval,
 {
     fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<Self> {
-        if self.builder.event.intersects(experienced_event.event) {
+        if self.event.intersects(experienced_event.event) {
             self.conflict = Some(experienced_event);
         }
 
@@ -31,9 +32,9 @@ where
 }
 
 impl<'a, Intv> ExperienceIsNotSimultaneous<'a, Intv> {
-    pub fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
+    pub fn new(event: &'a Event<Intv>) -> Self {
         Self {
-            builder,
+            event,
             conflict: None,
         }
     }
@@ -42,11 +43,11 @@ impl<'a, Intv> ExperienceIsNotSimultaneous<'a, Intv> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        event::tests::event,
+        event::{tests::event, Event},
         experience::{
             domain::{Constraint, ExperienceIsNotSimultaneous},
             tests::transitive_experience,
-            Error, ExperienceBuilder, ExperiencedEvent, Result,
+            Error, ExperiencedEvent, Result,
         },
         period::Period,
     };
@@ -55,7 +56,7 @@ mod tests {
     fn experience_is_not_simultaneous() {
         struct Test<'a> {
             name: &'a str,
-            builder: ExperienceBuilder<'a, Period<usize>>,
+            event: Event<Period<usize>>,
             with: Vec<ExperiencedEvent<'a, Period<usize>>>,
             result: Result<()>,
         }
@@ -63,13 +64,13 @@ mod tests {
         vec![
             Test {
                 name: "experience without surroundings",
-                builder: ExperienceBuilder::new(&event([1, 3])),
+                event: event([1, 3]),
                 with: vec![],
                 result: Ok(()),
             },
             Test {
                 name: "experience with previous",
-                builder: ExperienceBuilder::new(&event([1, 3])),
+                event: event([1, 3]),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &event([0, 0]),
@@ -78,7 +79,7 @@ mod tests {
             },
             Test {
                 name: "experience with previous overlapping",
-                builder: ExperienceBuilder::new(&event([1, 3])),
+                event: event([1, 3]),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &event([0, 1]),
@@ -87,7 +88,7 @@ mod tests {
             },
             Test {
                 name: "experience with partial overlapping",
-                builder: ExperienceBuilder::new(&event([1, 3])),
+                event: event([1, 3]),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &event([2, 2]),
@@ -96,7 +97,7 @@ mod tests {
             },
             Test {
                 name: "experience with total overlapping",
-                builder: ExperienceBuilder::new(&event([1, 3])),
+                event: event([1, 3]),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &event([1, 3]),
@@ -105,7 +106,7 @@ mod tests {
             },
             Test {
                 name: "experience with next overlapping",
-                builder: ExperienceBuilder::new(&event([1, 3])),
+                event: event([1, 3]),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &event([3, 4]),
@@ -114,7 +115,7 @@ mod tests {
             },
             Test {
                 name: "experience with next",
-                builder: ExperienceBuilder::new(&event([1, 3])),
+                event: event([1, 3]),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &event([4, 4]),
@@ -124,7 +125,7 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let constraint = ExperienceIsNotSimultaneous::new(&test.builder);
+            let constraint = ExperienceIsNotSimultaneous::new(&test.event);
             let result = test
                 .with
                 .iter()

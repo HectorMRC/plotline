@@ -11,7 +11,7 @@ mod experience_is_not_simultaneous;
 pub use experience_is_not_simultaneous::*;
 
 use crate::{
-    experience::{ExperienceBuilder, ExperiencedEvent, Result},
+    experience::{ExperiencedEvent, Result},
     interval::Interval,
 };
 
@@ -103,15 +103,15 @@ impl<Cnst> LiFoConstraintChain<(), Cnst> {
 impl LiFoConstraintChain<(), ()> {
     /// Creates a [ConstraintChain] with the default [Constraint]s.
     pub fn with_defaults<'a, Intv>(
-        builder: &'a ExperienceBuilder<'a, Intv>,
+        experienced_event: &'a ExperiencedEvent<'a, Intv>,
     ) -> impl ConstraintChain<'a, Intv>
     where
         Intv: Interval,
     {
-        LiFoConstraintChain::new(ExperienceBelongsToOneOfPrevious::new(builder))
-            .chain(ExperienceKindFollowsPrevious::new(builder))
-            .chain(ExperienceKindPrecedesNext::new(builder))
-            .chain(ExperienceIsNotSimultaneous::new(builder))
+        LiFoConstraintChain::new(ExperienceBelongsToOneOfPrevious::new(experienced_event))
+            .chain(ExperienceKindFollowsPrevious::new(experienced_event))
+            .chain(ExperienceKindPrecedesNext::new(experienced_event))
+            .chain(ExperienceIsNotSimultaneous::new(experienced_event.event))
     }
 }
 

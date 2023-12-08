@@ -1,16 +1,14 @@
 use super::Constraint;
 use crate::{
     entity::Entity,
-    experience::{
-        domain::SelectPreviousExperience, Error, ExperienceBuilder, ExperiencedEvent, Result,
-    },
+    experience::{domain::SelectPreviousExperience, Error, ExperiencedEvent, Result},
     id::Id,
     interval::Interval,
 };
 use std::collections::HashSet;
 
 pub struct ExperienceBelongsToOneOfPrevious<'a, Intv> {
-    builder: &'a ExperienceBuilder<'a, Intv>,
+    experienced_event: &'a ExperiencedEvent<'a, Intv>,
     previous: SelectPreviousExperience<'a, 'a, Intv>,
 }
 
@@ -41,7 +39,8 @@ where
         }
 
         if self
-            .builder
+            .experienced_event
+            .experience
             .before
             .as_ref()
             .map(|before| previous_afters.contains(&before.entity))
@@ -55,10 +54,10 @@ where
 }
 
 impl<'a, Intv> ExperienceBelongsToOneOfPrevious<'a, Intv> {
-    pub fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
+    pub fn new(experienced_event: &'a ExperiencedEvent<'a, Intv>) -> Self {
         Self {
-            builder,
-            previous: SelectPreviousExperience::from_builder(builder),
+            experienced_event,
+            previous: SelectPreviousExperience::new(experienced_event.event),
         }
     }
 }
@@ -233,7 +232,13 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let constraint = ExperienceBelongsToOneOfPrevious::new(&test.builder);
+            let event = test.builder.event;
+            let experienced_event = ExperiencedEvent {
+                experience: &test.builder.build().unwrap(),
+                event,
+            };
+
+            let constraint = ExperienceBelongsToOneOfPrevious::new(&experienced_event);
             let result = test
                 .with
                 .iter()

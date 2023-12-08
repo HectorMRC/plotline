@@ -100,17 +100,17 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
             }
         }
 
-        if ExperienceKind::from(&self).is_initial()
-            && 1 != self.after.as_ref().map(Vec::len).unwrap_or_default()
-        {
-            return Err(Error::InitialResultsInMoreThanOne);
-        }
-
-        Ok(Experience {
+        let experience = Experience {
             event: self.event.id(),
             before: self.before,
             after: self.after.unwrap_or_default(),
-        })
+        };
+
+        if ExperienceKind::from(&experience).is_initial() && 1 != experience.after.len() {
+            return Err(Error::InitialResultsInMoreThanOne);
+        }
+
+        Ok(experience)
     }
 }
 
@@ -128,18 +128,6 @@ impl<Intv> From<&Experience<Intv>> for ExperienceKind {
             ExperienceKind::Initial
         } else if experience.after.is_empty() {
             ExperienceKind::Terminal
-        } else {
-            ExperienceKind::Transitive
-        }
-    }
-}
-
-impl<Intv> From<&ExperienceBuilder<'_, Intv>> for ExperienceKind {
-    fn from(experience: &ExperienceBuilder<'_, Intv>) -> Self {
-        if experience.after.as_ref().map(Vec::is_empty).unwrap_or(true) {
-            ExperienceKind::Terminal
-        } else if experience.before.is_none() {
-            ExperienceKind::Initial
         } else {
             ExperienceKind::Transitive
         }

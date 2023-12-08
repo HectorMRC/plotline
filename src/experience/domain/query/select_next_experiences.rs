@@ -1,8 +1,4 @@
-use crate::{
-    event::Event,
-    experience::{ExperienceBuilder, ExperiencedEvent},
-    interval::Interval,
-};
+use crate::{event::Event, experience::ExperiencedEvent, interval::Interval};
 use std::{cmp, ops::Deref};
 
 pub struct SelectNextExperience<'a, 'b, Intv> {
@@ -35,11 +31,8 @@ where
 }
 
 impl<'a, 'b, Intv> SelectNextExperience<'a, 'b, Intv> {
-    pub fn from_builder(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
-        SelectNextExperience {
-            event: builder.event,
-            next: None,
-        }
+    pub fn new(event: &'a Event<Intv>) -> Self {
+        SelectNextExperience { event, next: None }
     }
 
     pub fn value(self) -> Option<&'b ExperiencedEvent<'b, Intv>> {

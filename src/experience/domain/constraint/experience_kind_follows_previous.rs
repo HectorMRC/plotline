@@ -1,14 +1,13 @@
 use super::Constraint;
 use crate::{
     experience::{
-        domain::SelectPreviousExperience, Error, ExperienceBuilder, ExperienceKind,
-        ExperiencedEvent, Result,
+        domain::SelectPreviousExperience, Error, ExperienceKind, ExperiencedEvent, Result,
     },
     interval::Interval,
 };
 
 pub struct ExperienceKindFollowsPrevious<'a, Intv> {
-    builder: &'a ExperienceBuilder<'a, Intv>,
+    experienced_event: &'a ExperiencedEvent<'a, Intv>,
     previous: SelectPreviousExperience<'a, 'a, Intv>,
 }
 
@@ -29,7 +28,7 @@ where
             .map(|experience| experience.is_terminal())
             .unwrap_or(true);
 
-        match self.builder.into() {
+        match self.experienced_event.experience.into() {
             ExperienceKind::Initial => {
                 if !follows_terminal {
                     return Err(Error::InitialFollowsNonTerminal);
@@ -52,10 +51,10 @@ where
 }
 
 impl<'a, Intv> ExperienceKindFollowsPrevious<'a, Intv> {
-    pub fn new(builder: &'a ExperienceBuilder<'a, Intv>) -> Self {
+    pub fn new(experienced_event: &'a ExperiencedEvent<'a, Intv>) -> Self {
         Self {
-            builder,
-            previous: SelectPreviousExperience::from_builder(builder),
+            experienced_event,
+            previous: SelectPreviousExperience::new(experienced_event.event),
         }
     }
 }
@@ -217,7 +216,13 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let constraint = ExperienceKindFollowsPrevious::new(&test.builder);
+            let event = test.builder.event;
+            let experienced_event = ExperiencedEvent {
+                experience: &test.builder.build().unwrap(),
+                event,
+            };
+
+            let constraint = ExperienceKindFollowsPrevious::new(&experienced_event);
             let result = test
                 .with
                 .iter()
