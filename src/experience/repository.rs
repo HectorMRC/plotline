@@ -1,3 +1,7 @@
+use super::{
+    application::{ExperienceFilter, ExperienceRepository},
+    Experience,
+};
 use crate::{
     entity::Entity,
     event::Event,
@@ -8,8 +12,6 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::RwLock};
-
-use super::Experience;
 
 type Repository<Intv> = RwLock<HashMap<(Id<Entity>, Id<Event<Intv>>), Resource<Experience<Intv>>>>;
 
@@ -31,4 +33,20 @@ where
 
     #[serde(skip)]
     event_by_entity: HashMap<Vec<Id<Entity>>, Id<Event<Intv>>>,
+}
+
+impl<Intv> ExperienceRepository for InMemoryExperienceRepository<Intv>
+where
+    Intv: Interval + Serialize + for<'a> Deserialize<'a>,
+{
+    type Interval = Intv;
+    type Tx = Resource<Experience<Intv>>;
+
+    fn create(&self, _experience: &Experience<Intv>) -> super::Result<()> {
+        todo!()
+    }
+
+    fn filter(&self, _filter: ExperienceFilter<Intv>) -> super::Result<Vec<Self::Tx>> {
+        todo!()
+    }
 }
