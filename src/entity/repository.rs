@@ -11,7 +11,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::RwLock};
 
-type Repository<T> = RwLock<HashMap<Id<T>, Resource<T>>>;
+type Repository = RwLock<HashMap<Id<Entity>, Resource<Entity>>>;
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -21,7 +21,7 @@ pub struct InMemoryEntityRepository {
         deserialize_with = "hashmap_from_slice",
         default
     )]
-    entities: Repository<Entity>,
+    entities: Repository,
 }
 
 impl EntityRepository for InMemoryEntityRepository {

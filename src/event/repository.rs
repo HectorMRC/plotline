@@ -6,35 +6,32 @@ use crate::{
     transaction::Resource,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::HashMap,
-    sync::RwLock,
-};
+use std::{collections::HashMap, sync::RwLock};
 
-type Repository<T> = RwLock<HashMap<Id<T>, Resource<T>>>;
+type Repository<Intv> = RwLock<HashMap<Id<Event<Intv>>, Resource<Event<Intv>>>>;
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
-pub struct InMemoryEventRepository<I>
+pub struct InMemoryEventRepository<Intv>
 where
-    I: Interval + Serialize + for<'a> Deserialize<'a>,
+    Intv: Interval + Serialize + for<'a> Deserialize<'a>,
 {
     #[serde(
         serialize_with = "slice_from_hashmap",
         deserialize_with = "hashmap_from_slice",
         default
     )]
-    events: Repository<Event<I>>,
+    events: Repository<Intv>,
 }
 
-impl<I> EventRepository for InMemoryEventRepository<I>
+impl<Intv> EventRepository for InMemoryEventRepository<Intv>
 where
-    I: Interval + Serialize + for<'a> Deserialize<'a>,
+    Intv: Interval + Serialize + for<'a> Deserialize<'a>,
 {
-    type Interval = I;
-    type Tx = Resource<Event<I>>;
+    type Interval = Intv;
+    type Tx = Resource<Event<Intv>>;
 
-    fn create(&self, event: &Event<I>) -> Result<()> {
+    fn create(&self, event: &Event<Intv>) -> Result<()> {
         let mut events = self
             .events
             .write()
@@ -48,7 +45,7 @@ where
         Ok(())
     }
 
-    fn find(&self, id: Id<Event<I>>) -> Result<Self::Tx> {
+    fn find(&self, id: Id<Event<Intv>>) -> Result<Self::Tx> {
         let events = self
             .events
             .read()

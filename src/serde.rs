@@ -1,18 +1,15 @@
-use crate::{
-    id::{Id, Identifiable},
-    transaction::Resource,
-};
+use crate::{id::Identifiable, transaction::Resource};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{collections::HashMap, sync::RwLock};
+use std::{collections::HashMap, hash::Hash, sync::RwLock};
 
 /// Serializes a hashmap into a slice of items.
-pub fn slice_from_hashmap<S, T>(
-    hashmap: &RwLock<HashMap<Id<T>, Resource<T>>>,
+pub fn slice_from_hashmap<S, K, V>(
+    hashmap: &RwLock<HashMap<K, Resource<V>>>,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
-    T: Serialize,
+    V: Serialize,
 {
     use serde::ser::Error;
 
@@ -24,17 +21,18 @@ where
     serializer.collect_seq(hashmap.values())
 }
 
-type Repository<T> = RwLock<HashMap<Id<T>, Resource<T>>>;
+type Repository<K, V> = RwLock<HashMap<K, Resource<V>>>;
 
 /// Deserializes an slice of [Identified] items as a hashmap indexed by the
 /// [Id] of each value.
-pub fn hashmap_from_slice<'de, D, T>(deserializer: D) -> Result<Repository<T>, D::Error>
+pub fn hashmap_from_slice<'de, D, K, V>(deserializer: D) -> Result<Repository<K, V>, D::Error>
 where
     D: Deserializer<'de>,
-    T: Deserialize<'de> + Identifiable<T>,
+    V: Deserialize<'de> + Identifiable<Id = K>,
+    K: Eq + Hash,
 {
     Ok(RwLock::new(HashMap::from_iter(
-        Vec::<T>::deserialize(deserializer)?
+        Vec::<V>::deserialize(deserializer)?
             .into_iter()
             .map(|value| (value.id(), value.into())),
     )))

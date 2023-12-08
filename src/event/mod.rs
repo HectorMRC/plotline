@@ -24,7 +24,9 @@ pub struct Event<Intv> {
     interval: Intv,
 }
 
-impl<Intv> Identifiable<Event<Intv>> for Event<Intv> {
+impl<Intv> Identifiable for Event<Intv> {
+    type Id = Id<Event<Intv>>;
+
     fn id(&self) -> Id<Self> {
         self.id
     }

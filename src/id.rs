@@ -11,8 +11,10 @@ pub enum Error {
 }
 
 /// Identifiable qualifies a resource of being uniquely identifiable.
-pub trait Identifiable<T> {
-    fn id(&self) -> Id<T>;
+pub trait Identifiable {
+    type Id: Eq;
+
+    fn id(&self) -> Self::Id;
 }
 
 /// An Id uniquely identifies a resource.

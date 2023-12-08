@@ -29,6 +29,8 @@ pub enum Error {
     TransitivePrecedesInitial,
     #[error("a terminal experience cannot precede a non-initial one")]
     TerminalPrecedesNonInitial,
+    #[error("an initial experience cannot result in more than one entity")]
+    InitialResultsInMoreThanOne,
     // foreign
     #[error("{0}")]
     Entity(#[from] crate::entity::Error),

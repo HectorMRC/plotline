@@ -26,8 +26,10 @@ impl PartialEq for Entity {
     }
 }
 
-impl Identifiable<Entity> for Entity {
-    fn id(&self) -> Id<Self> {
+impl Identifiable for Entity {
+    type Id = Id<Entity>;
+
+    fn id(&self) -> Self::Id {
         self.id
     }
 }

@@ -1,6 +1,9 @@
 pub mod application;
 pub mod domain;
 
+#[cfg(feature = "in_memory")]
+pub mod repository;
+
 mod error;
 pub use error::*;
 
@@ -36,6 +39,14 @@ pub struct Experience<Intv> {
     event: Id<Event<Intv>>,
     before: Option<Profile>,
     after: Vec<Profile>,
+}
+
+impl<Intv> Identifiable for Experience<Intv> {
+    type Id = (Id<Entity>, Id<Event<Intv>>);
+
+    fn id(&self) -> Self::Id {
+        todo!()
+    }
 }
 
 impl<Intv> Experience<Intv> {
@@ -87,6 +98,12 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
             if !after.iter().all(move |profile| uniq.insert(profile.entity)) {
                 return Err(Error::RepeatedEntity);
             }
+        }
+
+        if ExperienceKind::from(&self).is_initial()
+            && 1 != self.after.as_ref().map(Vec::len).unwrap_or_default()
+        {
+            return Err(Error::InitialResultsInMoreThanOne);
         }
 
         Ok(Experience {
