@@ -5,23 +5,22 @@ use super::{
 };
 use crate::{
     id::Id,
-    serde::{hashmap_from_slice, slice_from_hashmap},
-    transaction::{Resource, Tx},
+    resource::{Resource, ResourceMap},
+    serde::{from_rwlock, into_rwlock},
+    transaction::Tx,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::RwLock};
-
-type Repository = RwLock<HashMap<Id<Entity>, Resource<Entity>>>;
+use std::sync::RwLock;
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct InMemoryEntityRepository {
     #[serde(
-        serialize_with = "slice_from_hashmap",
-        deserialize_with = "hashmap_from_slice",
+        serialize_with = "from_rwlock",
+        deserialize_with = "into_rwlock",
         default
     )]
-    entities: Repository,
+    entities: RwLock<ResourceMap<Entity>>,
 }
 
 impl EntityRepository for InMemoryEntityRepository {

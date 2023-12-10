@@ -7,13 +7,27 @@ use crate::{
     event::Event,
     id::Id,
     interval::Interval,
-    serde::{hashmap_from_slice, slice_from_hashmap},
-    transaction::Resource,
+    resource::{Resource, ResourceMap},
+    serde::{from_rwlock, into_rwlock},
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::RwLock};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::RwLock,
+};
 
-type Repository<Intv> = RwLock<HashMap<(Id<Entity>, Id<Event<Intv>>), Resource<Experience<Intv>>>>;
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+struct Repository<Intv> {
+    #[serde(default)]
+    experiences: ResourceMap<Experience<Intv>>,
+
+    #[serde(skip)]
+    entity_by_event: HashMap<Id<Event<Intv>>, HashSet<Id<Entity>>>,
+
+    #[serde(skip)]
+    event_by_entity: HashMap<Id<Entity>, HashSet<Id<Event<Intv>>>>,
+}
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -22,17 +36,12 @@ where
     Intv: Interval + Serialize + for<'a> Deserialize<'a>,
 {
     #[serde(
-        serialize_with = "slice_from_hashmap",
-        deserialize_with = "hashmap_from_slice",
-        default
+        serialize_with = "from_rwlock",
+        deserialize_with = "into_rwlock",
+        default,
+        flatten
     )]
-    events: Repository<Event<Intv>>,
-
-    #[serde(skip)]
-    entity_by_event: HashMap<Id<Event<Intv>>, Vec<Id<Entity>>>,
-
-    #[serde(skip)]
-    event_by_entity: HashMap<Vec<Id<Entity>>, Id<Event<Intv>>>,
+    data: RwLock<Repository<Intv>>,
 }
 
 impl<Intv> ExperienceRepository for InMemoryExperienceRepository<Intv>

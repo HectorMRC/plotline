@@ -1,14 +1,13 @@
+use std::sync::RwLock;
+
 use super::{application::EventRepository, Error, Event, Result};
 use crate::{
     id::Id,
     interval::Interval,
-    serde::{hashmap_from_slice, slice_from_hashmap},
-    transaction::Resource,
+    resource::{Resource, ResourceMap},
+    serde::{from_rwlock, into_rwlock},
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, sync::RwLock};
-
-type Repository<Intv> = RwLock<HashMap<Id<Event<Intv>>, Resource<Event<Intv>>>>;
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -17,11 +16,11 @@ where
     Intv: Interval + Serialize + for<'a> Deserialize<'a>,
 {
     #[serde(
-        serialize_with = "slice_from_hashmap",
-        deserialize_with = "hashmap_from_slice",
+        serialize_with = "from_rwlock",
+        deserialize_with = "into_rwlock",
         default
     )]
-    events: Repository<Intv>,
+    events: RwLock<ResourceMap<Event<Intv>>>,
 }
 
 impl<Intv> EventRepository for InMemoryEventRepository<Intv>
