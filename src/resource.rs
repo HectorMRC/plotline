@@ -73,7 +73,7 @@ impl<T> TxGuard<T> for ResourceGuard<T> {
     }
 }
 
-/// A ResourceMap is a collection of identifiable resources of the same type.
+/// A ResourceMap is a [HashMap] of [Identifiable] [Resource]s.
 pub struct ResourceMap<T>
 where
     T: Identifiable,

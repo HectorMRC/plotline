@@ -1,9 +1,5 @@
 use crate::{
-    entity::Entity,
-    event::Event,
-    experience::{Experience, Profile},
-    id::Id,
-    macros::equals_or_return,
+    entity::Entity, event::Event, experience::Experience, id::Id, macros::equals_or_return,
 };
 
 /// Implements the filter query, through which zero o more experiences may be
@@ -11,9 +7,9 @@ use crate::{
 pub struct ExperienceFilter<Intv> {
     /// Determines the [Entity] involved in the experience, no matter it is
     /// before or after.
-    entity: Option<Id<Entity>>,
+    pub(crate) entity: Option<Id<Entity>>,
     /// Determines the [Event] causing the [Experience].
-    event: Option<Id<Event<Intv>>>,
+    pub(crate) event: Option<Id<Event<Intv>>>,
 }
 
 impl<Intv> Default for ExperienceFilter<Intv> {
@@ -46,13 +42,13 @@ impl<Intv> ExperienceFilter<Intv> {
             return true; // no filter by entity has been set
         };
 
-        let mut profiles = experience.after.iter().collect::<Vec<&Profile>>();
-        if let Some(before) = &experience.before {
-            profiles.push(before);
-        }
-
-        profiles
-            .into_iter()
-            .any(|profile| profile.entity == entity_id)
+        experience
+            .before
+            .as_ref()
+            .is_some_and(|profile| profile.entity == entity_id)
+            || experience
+                .after
+                .iter()
+                .any(|profile| profile.entity == entity_id)
     }
 }

@@ -2,6 +2,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, PartialEq, thiserror::Error)]
 pub enum Error {
+    // repo
+    #[error("experience already exists")]
+    AlreadyExists,
+    #[error("experience not found")]
+    NotFound,
     // application
     #[error("an entity cannot experience an event more than once")]
     EventAlreadyExperienced,

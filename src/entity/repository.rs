@@ -44,7 +44,6 @@ impl EntityRepository for InMemoryEntityRepository {
             .values()
             .filter(|&entity| filter.filter(&entity.clone().begin()))
             .cloned()
-            .map(Resource::from)
             .collect())
     }
 

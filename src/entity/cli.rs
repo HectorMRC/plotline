@@ -91,7 +91,7 @@ where
 
             EntitySubCommand::Remove(args) => {
                 if let Some(entity_id) = entity_id {
-                    display_result(self.remove_entity(entity_id).execute().map(|_| entity_id))?;
+                    display_result(self.remove_entity(entity_id).execute().map(|_| entity_id));
                 } else {
                     display_each_result(args.ids.into_iter(), |id| {
                         let entity_id = id.try_into()?;

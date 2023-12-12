@@ -1,11 +1,11 @@
 use super::{
     application::{ExperienceFilter, ExperienceRepository},
-    Experience,
+    Error, Experience,
 };
 use crate::{
     entity::Entity,
     event::Event,
-    id::Id,
+    id::{Id, Identifiable},
     interval::Interval,
     resource::{Resource, ResourceMap},
     serde::{from_rwlock, into_rwlock},
@@ -51,11 +51,84 @@ where
     type Interval = Intv;
     type Tx = Resource<Experience<Intv>>;
 
-    fn create(&self, _experience: &Experience<Intv>) -> super::Result<()> {
-        todo!()
+    fn create(&self, experience: &Experience<Intv>) -> super::Result<()> {
+        let mut data = self
+            .data
+            .write()
+            .map_err(|err| err.to_string())
+            .map_err(Error::Lock)?;
+
+        let experience_id @ (entity_id, event_id) = experience.id();
+        if data.experiences.contains_key(&experience_id) {
+            return Err(Error::AlreadyExists);
+        }
+
+        data.experiences
+            .insert(experience_id, experience.clone().into());
+
+        if let Some(events) = data.event_by_entity.get_mut(&entity_id) {
+            events.insert(event_id);
+        } else {
+            data.event_by_entity
+                .insert(entity_id, HashSet::from_iter([event_id]));
+        }
+
+        if let Some(entities) = data.entity_by_event.get_mut(&event_id) {
+            entities.insert(entity_id);
+        } else {
+            data.entity_by_event
+                .insert(event_id, HashSet::from_iter([entity_id]));
+        }
+
+        Ok(())
     }
 
-    fn filter(&self, _filter: ExperienceFilter<Intv>) -> super::Result<Vec<Self::Tx>> {
-        todo!()
+    fn filter(&self, filter: ExperienceFilter<Intv>) -> super::Result<Vec<Self::Tx>> {
+        let data = self
+            .data
+            .read()
+            .map_err(|err| err.to_string())
+            .map_err(Error::Lock)?;
+
+        if let (Some(entity_id), Some(event_id)) = (filter.entity, filter.event) {
+            return Ok(data
+                .experiences
+                .get(&(entity_id, event_id))
+                .cloned()
+                .map(|experience| vec![experience])
+                .unwrap_or_default());
+        };
+
+        if let Some(entity_id) = filter.entity {
+            return Ok(data
+                .event_by_entity
+                .get(&entity_id)
+                .map(|events| {
+                    events
+                        .iter()
+                        .filter_map(|event_id| {
+                            data.experiences.get(&(entity_id, *event_id)).cloned()
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default());
+        }
+
+        if let Some(event_id) = filter.event {
+            return Ok(data
+                .entity_by_event
+                .get(&event_id)
+                .map(|entities| {
+                    entities
+                        .iter()
+                        .filter_map(|entity_id| {
+                            data.experiences.get(&(*entity_id, event_id)).cloned()
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default());
+        }
+
+        Ok(Vec::new())
     }
 }

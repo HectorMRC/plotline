@@ -50,10 +50,6 @@ where
             .read()
             .map_err(|err| Error::Lock(err.to_string()))?;
 
-        events
-            .get(&id)
-            .cloned()
-            .ok_or(Error::NotFound)
-            .map(Resource::from)
+        events.get(&id).cloned().ok_or(Error::NotFound)
     }
 }
