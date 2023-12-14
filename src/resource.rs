@@ -13,7 +13,7 @@ use std::{
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("there cannot be two or more resources for the same id")]
+    #[error("there cannot be two or more resources with the same id")]
     DuplicatedKey,
 }
 
@@ -139,12 +139,24 @@ where
     where
         D: Deserializer<'a>,
     {
-        let mut resources = HashMap::new();
         Vec::<T>::deserialize(deserializer)?
             .into_iter()
-            .all(|entry| resources.insert(entry.id(), entry.into()).is_none())
-            .then_some(Self { resources })
-            .ok_or(Error::DuplicatedKey)
+            .try_fold(HashMap::new(), |mut resources, entry| {
+                resources
+                    .insert(entry.id(), entry.into())
+                    .is_none()
+                    .then_some(resources)
+                    .ok_or(Error::DuplicatedKey)
+            })
+            .map(Self::new)
             .map_err(serde::de::Error::custom)
+    }
+}
+impl<T> ResourceMap<T>
+where
+    T: Identifiable,
+{
+    pub fn new(resources: HashMap<T::Id, Resource<T>>) -> Self {
+        Self { resources }
     }
 }
