@@ -11,6 +11,12 @@ use std::{
     sync::Arc,
 };
 
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("there cannot be two or more resources for the same id")]
+    DuplicatedKey,
+}
+
 /// Resource implements the [Tx] trait for any piece of data.
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -133,12 +139,12 @@ where
     where
         D: Deserializer<'a>,
     {
-        Ok(ResourceMap {
-            resources: HashMap::from_iter(
-                Vec::<T>::deserialize(deserializer)?
-                    .into_iter()
-                    .map(|value| (value.id(), value.into())),
-            ),
-        })
+        let mut resources = HashMap::new();
+        Vec::<T>::deserialize(deserializer)?
+            .into_iter()
+            .all(|entry| resources.insert(entry.id(), entry.into()).is_none())
+            .then_some(Self { resources })
+            .ok_or(Error::DuplicatedKey)
+            .map_err(serde::de::Error::custom)
     }
 }

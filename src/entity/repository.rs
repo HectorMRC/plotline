@@ -29,7 +29,7 @@ impl EntityRepository for InMemoryEntityRepository {
     fn find(&self, id: Id<Entity>) -> Result<Self::Tx> {
         self.entities
             .read()
-            .map_err(|err| Error::Lock(err.to_string()))?
+            .map_err(Error::from)?
             .get(&id)
             .cloned()
             .map(Resource::from)
@@ -40,7 +40,7 @@ impl EntityRepository for InMemoryEntityRepository {
         Ok(self
             .entities
             .read()
-            .map_err(|err| Error::Lock(err.to_string()))?
+            .map_err(Error::from)?
             .values()
             .filter(|&entity| filter.filter(&entity.clone().begin()))
             .cloned()
@@ -51,7 +51,7 @@ impl EntityRepository for InMemoryEntityRepository {
         let mut entities = self
             .entities
             .write()
-            .map_err(|err| Error::Lock(err.to_string()))?;
+            .map_err(Error::from)?;
 
         if entities.contains_key(&entity.id) {
             return Err(Error::AlreadyExists);
@@ -65,7 +65,7 @@ impl EntityRepository for InMemoryEntityRepository {
         let mut entities = self
             .entities
             .write()
-            .map_err(|err| Error::Lock(err.to_string()))?;
+            .map_err(Error::from)?;
 
         if entities.remove(&id).is_none() {
             return Err(Error::NotFound);

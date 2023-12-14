@@ -46,7 +46,6 @@ impl<'de, T> Deserialize<'de> for Id<T> {
                 uuid,
                 _marker: PhantomData,
             })
-            .map_err(|err| err.to_string())
             .map_err(Error::custom)
     }
 }

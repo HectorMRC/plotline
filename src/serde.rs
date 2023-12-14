@@ -11,7 +11,6 @@ where
 
     rwlock
         .read()
-        .map_err(|err| err.to_string())
         .map_err(Error::custom)?
         .serialize(serializer)
 }
