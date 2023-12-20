@@ -38,7 +38,9 @@ enum EntitySubCommand {
 #[derive(Args)]
 #[command(arg_required_else_help = true)]
 pub struct EntityCommand {
+    /// The id of the entity.
     entity: Option<String>,
+    /// The action to perform.
     #[command(subcommand)]
     command: Option<EntitySubCommand>,
 }

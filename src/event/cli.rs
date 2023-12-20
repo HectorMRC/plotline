@@ -31,7 +31,7 @@ enum EventSubCommand {
 #[derive(Args)]
 #[command(arg_required_else_help = true)]
 pub struct EventCommand {
-    /// The id of the target event.
+    /// The id of the event.
     event: Option<String>,
     /// The action to perform.
     #[command(subcommand)]

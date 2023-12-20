@@ -1,6 +1,7 @@
 pub mod application;
+#[cfg(feature = "cli")]
+pub mod cli;
 pub mod domain;
-
 #[cfg(feature = "in_memory")]
 pub mod repository;
 
