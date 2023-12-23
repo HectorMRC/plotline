@@ -43,7 +43,7 @@ impl<'a, Intv> ExperienceIsNotSimultaneous<'a, Intv> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        event::{tests::event, Event},
+        event::Event,
         experience::{
             domain::{Constraint, ExperienceIsNotSimultaneous},
             tests::transitive_experience,
@@ -64,61 +64,61 @@ mod tests {
         vec![
             Test {
                 name: "experience without surroundings",
-                event: event([1, 3]),
+                event: Event::fixture([1, 3]),
                 with: vec![],
                 result: Ok(()),
             },
             Test {
                 name: "experience with previous",
-                event: event([1, 3]),
+                event: Event::fixture([1, 3]),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
-                    event: &event([0, 0]),
+                    event: &Event::fixture([0, 0]),
                 }],
                 result: Ok(()),
             },
             Test {
                 name: "experience with previous overlapping",
-                event: event([1, 3]),
+                event: Event::fixture([1, 3]),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
-                    event: &event([0, 1]),
+                    event: &Event::fixture([0, 1]),
                 }],
                 result: Err(Error::SimultaneousEvents),
             },
             Test {
                 name: "experience with partial overlapping",
-                event: event([1, 3]),
+                event: Event::fixture([1, 3]),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
-                    event: &event([2, 2]),
+                    event: &Event::fixture([2, 2]),
                 }],
                 result: Err(Error::SimultaneousEvents),
             },
             Test {
                 name: "experience with total overlapping",
-                event: event([1, 3]),
+                event: Event::fixture([1, 3]),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
-                    event: &event([1, 3]),
+                    event: &Event::fixture([1, 3]),
                 }],
                 result: Err(Error::SimultaneousEvents),
             },
             Test {
                 name: "experience with next overlapping",
-                event: event([1, 3]),
+                event: Event::fixture([1, 3]),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
-                    event: &event([3, 4]),
+                    event: &Event::fixture([3, 4]),
                 }],
                 result: Err(Error::SimultaneousEvents),
             },
             Test {
                 name: "experience with next",
-                event: event([1, 3]),
+                event: Event::fixture([1, 3]),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
-                    event: &event([4, 4]),
+                    event: &Event::fixture([4, 4]),
                 }],
                 result: Ok(()),
             },

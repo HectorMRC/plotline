@@ -1,11 +1,9 @@
 use super::{Constraint, LiFoConstraintChain, SelectNextExperience, SelectPreviousExperience};
 use crate::{
-    entity::Entity,
     experience::{Experience, ExperienceBuilder, ExperiencedEvent, Result},
-    id::Id,
+    id::Identifiable,
     interval::Interval,
 };
-use std::collections::HashSet;
 
 /// Creates a new experience caused by the given event as long as it fits in
 /// the given ordered succession of experienced events.
@@ -35,12 +33,8 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv>
 where
     Intv: Interval,
 {
-    /// Tries to compute some value for any field set to [Option::None].
+    /// Tries to compute some value for those fields set to [Option::None].
     fn with_fallbacks(mut self, experienced_events: &[ExperiencedEvent<'a, Intv>]) -> Self {
-        if self.before.is_some() && self.after.is_some() {
-            return self;
-        }
-
         let mut previous = SelectPreviousExperience::new(self.event);
         let mut next = SelectNextExperience::new(self.event);
         for experienced_event in experienced_events.iter() {
@@ -48,33 +42,18 @@ where
             next = next.with(experienced_event);
         }
 
-        let previous = previous.value();
-        let next = next.value();
-
-        if self.after.is_none() {
-            self.after = next
-                .and_then(|experienced_event| experienced_event.experience.before.clone())
-                .map(|before| vec![before]);
-        }
-
-        let afters: HashSet<Id<Entity>> = self
-            .after
-            .as_ref()
-            .map(|experienced_events| {
-                HashSet::from_iter(experienced_events.iter().map(|profile| profile.entity))
+        self.after = self.after.or(previous
+            .value()
+            .or(next.value())
+            .and_then(|experienced_event| {
+                experienced_event
+                    .experience
+                    .after
+                    .iter()
+                    .find(|profile| profile.entity == self.entity.id())
+                    .cloned()
             })
-            .unwrap_or_default();
-
-        let mut befores = previous
-            .map(|experienced_event| experienced_event.experience.after.clone())
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|profile| afters.contains(&profile.entity));
-
-        let before = befores.next();
-        if befores.next().is_none() {
-            self.before = before;
-        }
+            .map(|profile| vec![profile]));
 
         self
     }

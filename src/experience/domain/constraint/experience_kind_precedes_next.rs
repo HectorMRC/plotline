@@ -19,32 +19,17 @@ where
     }
 
     fn result(self) -> Result<()> {
-        let precedes_initial = self
+        let precedes_terminal = self
             .next
             .map(|previous| previous.experience)
             .map(ExperienceKind::from)
-            .map(|experience| experience.is_initial())
+            .map(|experience| experience.is_terminal())
             .unwrap_or_default();
 
         match self.experienced_event.experience.into() {
-            ExperienceKind::Initial => {
-                if precedes_initial {
-                    return Err(Error::InitialPrecedesInitial);
-                }
-            }
-            ExperienceKind::Transitive => {
-                if precedes_initial {
-                    return Err(Error::TransitivePrecedesInitial);
-                }
-            }
-            ExperienceKind::Terminal => {
-                if !precedes_initial && self.next.is_some() {
-                    return Err(Error::TerminalPrecedesNonInitial);
-                }
-            }
-        };
-
-        Ok(())
+            ExperienceKind::Terminal if precedes_terminal => Err(Error::TerminalPrecedesTerminal),
+            _ => Ok(()),
+        }
     }
 }
 
@@ -60,10 +45,11 @@ impl<'a, Intv> ExperienceKindPrecedesNext<'a, Intv> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        event::{tests::event, Event},
+        entity::Entity,
+        event::Event,
         experience::{
             domain::{constraint::Constraint, ExperienceKindPrecedesNext},
-            tests::{initial_experience, terminal_experience, transitive_experience},
+            tests::{terminal_experience, transitive_experience},
             Error, ExperienceBuilder, ExperiencedEvent, Profile, Result,
         },
         id::Id,
@@ -81,135 +67,58 @@ mod tests {
         }
 
         vec![
-            // initial
-            Test {
-                name: "initial without next experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
-                with: vec![],
-                result: Ok(()),
-            },
-            Test {
-                name: "initial with initial next experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
-                with: vec![ExperiencedEvent {
-                    experience: &initial_experience(),
-                    event: &Event::new(
-                        Id::default(),
-                        "test".to_string().try_into().unwrap(),
-                        [2, 2].into(),
-                    ),
-                }],
-                result: Err(Error::InitialPrecedesInitial),
-            },
-            Test {
-                name: "initial with transitive next experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
-                with: vec![ExperiencedEvent {
-                    experience: &transitive_experience(),
-                    event: &event([2, 2]),
-                }],
-                result: Ok(()),
-            },
-            Test {
-                name: "initial with terminal next experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
-                with: vec![ExperiencedEvent {
-                    experience: &terminal_experience(),
-                    event: &event([2, 2]),
-                }],
-                result: Ok(()),
-            },
             // transitive
             Test {
                 name: "transitive without next experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default())))
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
                     .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![],
                 result: Ok(()),
             },
             Test {
-                name: "transitive with initial next experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default())))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
-                with: vec![ExperiencedEvent {
-                    experience: &initial_experience(),
-                    event: &Event::new(
-                        Id::default(),
-                        "test".to_string().try_into().unwrap(),
-                        [2, 2].into(),
-                    ),
-                }],
-                result: Err(Error::TransitivePrecedesInitial),
-            },
-            Test {
                 name: "transitive with transitive next experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default())))
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
                     .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
-                    event: &event([2, 2]),
+                    event: &Event::fixture([2, 2]),
                 }],
                 result: Ok(()),
             },
             Test {
                 name: "transitive with terminal next experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default())))
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
                     .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
-                    event: &event([2, 2]),
+                    event: &Event::fixture([2, 2]),
                 }],
                 result: Ok(()),
             },
             // terminal
             Test {
                 name: "terminal without next experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default()))),
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
                 with: vec![],
                 result: Ok(()),
             },
             Test {
-                name: "terminal with initial next experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default()))),
+                name: "terminal with transitive next experience",
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
                 with: vec![ExperiencedEvent {
-                    experience: &initial_experience(),
-                    event: &Event::new(
-                        Id::default(),
-                        "test".to_string().try_into().unwrap(),
-                        [2, 2].into(),
-                    ),
+                    experience: &transitive_experience(),
+                    event: &Event::fixture([2, 2]),
                 }],
                 result: Ok(()),
             },
             Test {
-                name: "terminal with transitive next experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default()))),
-                with: vec![ExperiencedEvent {
-                    experience: &transitive_experience(),
-                    event: &event([2, 2]),
-                }],
-                result: Err(Error::TerminalPrecedesNonInitial),
-            },
-            Test {
                 name: "terminal with terminal next experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default()))),
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
-                    event: &event([2, 2]),
+                    event: &Event::fixture([2, 2]),
                 }],
-                result: Err(Error::TerminalPrecedesNonInitial),
+                result: Err(Error::TerminalPrecedesTerminal),
             },
         ]
         .into_iter()

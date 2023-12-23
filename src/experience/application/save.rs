@@ -79,7 +79,8 @@ where
             .collect::<Vec<_>>();
 
         experienced_events.sort_by(|a, b| a.event.cmp(b.event));
-        let experience = domain::create(ExperienceBuilder::new(&event), &experienced_events)?;
+        let experience =
+            domain::create(ExperienceBuilder::new(&entity, &event), &experienced_events)?;
         self.experience_repo.create(&experience)?;
         Ok(())
     }

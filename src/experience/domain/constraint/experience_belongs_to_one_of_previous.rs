@@ -38,14 +38,7 @@ where
             return Ok(());
         }
 
-        if self
-            .experienced_event
-            .experience
-            .before
-            .as_ref()
-            .map(|before| previous_afters.contains(&before.entity))
-            .unwrap_or_default()
-        {
+        if previous_afters.contains(&self.experienced_event.experience.entity) {
             return Ok(());
         }
 
@@ -65,10 +58,11 @@ impl<'a, Intv> ExperienceBelongsToOneOfPrevious<'a, Intv> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        event::{tests::event, Event},
+        entity::Entity,
+        event::Event,
         experience::{
             domain::{Constraint, ExperienceBelongsToOneOfPrevious},
-            tests::{initial_experience, terminal_experience, transitive_experience},
+            tests::{terminal_experience, transitive_experience},
             Error, ExperienceBuilder, ExperiencedEvent, Profile, Result,
         },
         id::Id,
@@ -87,55 +81,24 @@ mod tests {
         let const_id = Id::default();
 
         vec![
-            // initial
-            Test {
-                name: "initial without previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
-                with: vec![],
-                result: Ok(()),
-            },
-            Test {
-                name: "initial with non-terminal previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
-                with: vec![ExperiencedEvent {
-                    experience: &initial_experience(),
-                    event: &Event::new(
-                        Id::default(),
-                        "test".to_string().try_into().unwrap(),
-                        [0, 0].into(),
-                    ),
-                }],
-                result: Err(Error::NotInPreviousExperience),
-            },
-            Test {
-                name: "initial with terminal previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
-                with: vec![ExperiencedEvent {
-                    experience: &terminal_experience(),
-                    event: &event([0, 0]),
-                }],
-                result: Ok(()),
-            },
             // transitive
             Test {
                 name: "transitive without previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default())))
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
                     .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![],
                 result: Ok(()),
             },
             Test {
                 name: "transitive belongs to non-terminal previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(const_id)))
-                    .with_after(Some(vec![Profile::new(const_id)])),
+                builder: ExperienceBuilder::new(
+                    &Entity::fixture().with_id(const_id),
+                    &Event::fixture([1, 1]),
+                )
+                .with_after(Some(vec![Profile::new(const_id)])),
                 with: vec![ExperiencedEvent {
                     experience: &{
-                        let mut initial = initial_experience();
+                        let mut initial = transitive_experience();
                         initial
                             .after
                             .iter_mut()
@@ -152,11 +115,10 @@ mod tests {
             },
             Test {
                 name: "transitive does not belong to non-terminal previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default())))
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
                     .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
-                    experience: &initial_experience(),
+                    experience: &transitive_experience(),
                     event: &Event::new(
                         Id::default(),
                         "test".to_string().try_into().unwrap(),
@@ -167,27 +129,27 @@ mod tests {
             },
             Test {
                 name: "transitive with terminal previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default())))
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
                     .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
-                    event: &event([0, 0]),
+                    event: &Event::fixture([0, 0]),
                 }],
                 result: Ok(()),
             },
             // // terminal
             Test {
                 name: "terminal without previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default()))),
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
                 with: vec![],
                 result: Ok(()),
             },
             Test {
                 name: "terminal belongs to non-terminal previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(const_id))),
+                builder: ExperienceBuilder::new(
+                    &Entity::fixture().with_id(const_id),
+                    &Event::fixture([1, 1]),
+                ),
                 with: vec![ExperiencedEvent {
                     experience: &{
                         let mut initial = transitive_experience();
@@ -207,8 +169,7 @@ mod tests {
             },
             Test {
                 name: "terminal does not belong to non-terminal previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(const_id))),
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &Event::new(
@@ -221,11 +182,10 @@ mod tests {
             },
             Test {
                 name: "terminal with terminal previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default()))),
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
-                    event: &event([0, 0]),
+                    event: &Event::fixture([0, 0]),
                 }],
                 result: Ok(()),
             },

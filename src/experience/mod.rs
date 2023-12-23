@@ -37,8 +37,8 @@ impl Profile {
 /// An Experience represents the change caused by an [Event] on an [Entity].
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Experience<Intv> {
+    entity: Id<Entity>,
     event: Id<Event<Intv>>,
-    before: Option<Profile>,
     after: Vec<Profile>,
 }
 
@@ -51,11 +51,6 @@ impl<Intv> Identifiable for Experience<Intv> {
 }
 
 impl<Intv> Experience<Intv> {
-    pub fn with_before(mut self, before: Option<Profile>) -> Self {
-        self.before = before;
-        self
-    }
-
     pub fn with_after(mut self, after: Vec<Profile>) -> Self {
         self.after = after;
         self
@@ -65,23 +60,20 @@ impl<Intv> Experience<Intv> {
 /// ExperienceBuilder makes sure an [Experience] is created if, and only if,
 /// all of its requirements are meet.
 pub struct ExperienceBuilder<'a, Intv> {
+    entity: &'a Entity,
     event: &'a Event<Intv>,
-    before: Option<Profile>,
     after: Option<Vec<Profile>>,
+    kind: Option<ExperienceKind>,
 }
 
 impl<'a, Intv> ExperienceBuilder<'a, Intv> {
-    pub fn new(event: &'a Event<Intv>) -> Self {
+    pub fn new(entity: &'a Entity, event: &'a Event<Intv>) -> Self {
         Self {
+            entity,
             event,
-            before: Default::default(),
             after: Default::default(),
+            kind: Default::default(),
         }
-    }
-
-    pub fn with_before(mut self, before: Option<Profile>) -> Self {
-        self.before = before;
-        self
     }
 
     pub fn with_after(mut self, after: Option<Vec<Profile>>) -> Self {
@@ -89,11 +81,12 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
         self
     }
 
-    pub fn build(mut self) -> Result<Experience<Intv>> {
-        if self.before.is_none() && self.after.as_ref().map(Vec::is_empty).unwrap_or(true) {
-            return Err(Error::EmptyBeforeAndAfter);
-        }
+    pub fn with_kind(mut self, kind: Option<ExperienceKind>) -> Self {
+        self.kind = kind;
+        self
+    }
 
+    pub fn build(mut self) -> Result<Experience<Intv>> {
         if let Some(after) = self.after.as_mut() {
             let mut uniq = HashSet::new();
             if !after.iter().all(move |profile| uniq.insert(profile.entity)) {
@@ -101,33 +94,26 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
             }
         }
 
-        let experience = Experience {
+        Ok(Experience {
+            entity: self.entity.id(),
             event: self.event.id(),
-            before: self.before,
             after: self.after.unwrap_or_default(),
-        };
-
-        if ExperienceKind::from(&experience).is_initial() && 1 != experience.after.len() {
-            return Err(Error::InitialResultsInMoreThanOne);
-        }
-
-        Ok(experience)
+        })
     }
 }
 
 /// An ExperienceKind determines the kind of an [Experience] based on its
 /// cardinality.
 pub enum ExperienceKind {
-    Initial,
+    /// The [Entity] has reached the end of its timeline.
     Terminal,
+    /// The [Entity] is evolving.
     Transitive,
 }
 
 impl<Intv> From<&Experience<Intv>> for ExperienceKind {
     fn from(experience: &Experience<Intv>) -> Self {
-        if experience.before.is_none() {
-            ExperienceKind::Initial
-        } else if experience.after.is_empty() {
+        if experience.after.is_empty() {
             ExperienceKind::Terminal
         } else {
             ExperienceKind::Transitive
@@ -136,10 +122,6 @@ impl<Intv> From<&Experience<Intv>> for ExperienceKind {
 }
 
 impl ExperienceKind {
-    pub fn is_initial(&self) -> bool {
-        matches!(self, ExperienceKind::Initial)
-    }
-
     pub fn is_transitive(&self) -> bool {
         matches!(self, ExperienceKind::Transitive)
     }
@@ -180,26 +162,18 @@ mod tests {
     use super::{Experience, Profile};
     use crate::id::Id;
 
-    pub fn initial_experience<Intv>() -> Experience<Intv> {
-        Experience {
-            event: Id::default(),
-            before: None,
-            after: vec![Profile::new(Id::default())],
-        }
-    }
-
     pub fn transitive_experience<Intv>() -> Experience<Intv> {
         Experience {
+            entity: Id::default(),
             event: Id::default(),
-            before: Some(Profile::new(Id::default())),
             after: vec![Profile::new(Id::default())],
         }
     }
 
     pub fn terminal_experience<Intv>() -> Experience<Intv> {
         Experience {
+            entity: Id::default(),
             event: Id::default(),
-            before: Some(Profile::new(Id::default())),
             after: Vec::default(),
         }
     }

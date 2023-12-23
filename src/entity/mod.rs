@@ -45,3 +45,23 @@ impl Entity {
         &self.name
     }
 }
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::Entity;
+    use crate::id::Id;
+
+    impl Entity {
+        pub fn fixture() -> Self {
+            Entity {
+                id: Default::default(),
+                name: "fixture".to_string().try_into().unwrap(),
+            }
+        }
+
+        pub fn with_id(mut self, id: Id<Entity>) -> Self {
+            self.id = id;
+            self
+        }
+    }
+}

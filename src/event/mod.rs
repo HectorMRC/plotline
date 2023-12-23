@@ -67,11 +67,13 @@ pub(crate) mod tests {
     use super::Event;
     use crate::id::Id;
 
-    pub fn event<Intv>(interval: impl Into<Intv>) -> Event<Intv> {
-        Event {
-            id: Id::default(),
-            name: "test".to_string().try_into().unwrap(),
-            interval: interval.into(),
+    impl<Intv> Event<Intv> {
+        pub fn fixture(interval: impl Into<Intv>) -> Self {
+            Event {
+                id: Id::default(),
+                name: "test".to_string().try_into().unwrap(),
+                interval: interval.into(),
+            }
         }
     }
 }

@@ -29,24 +29,9 @@ where
             .unwrap_or(true);
 
         match self.experienced_event.experience.into() {
-            ExperienceKind::Initial => {
-                if !follows_terminal {
-                    return Err(Error::InitialFollowsNonTerminal);
-                }
-            }
-            ExperienceKind::Transitive => {
-                if follows_terminal {
-                    return Err(Error::TransitiveFollowsTerminal);
-                }
-            }
-            ExperienceKind::Terminal => {
-                if follows_terminal {
-                    return Err(Error::TerminalFollowsTerminal);
-                }
-            }
-        };
-
-        Ok(())
+            ExperienceKind::Terminal if follows_terminal => Err(Error::TerminalFollowsTerminal),
+            _ => Ok(()),
+        }
     }
 }
 
@@ -62,10 +47,11 @@ impl<'a, Intv> ExperienceKindFollowsPrevious<'a, Intv> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        event::{tests::event, Event},
+        entity::Entity,
+        event::Event,
         experience::{
             domain::{constraint::Constraint, ExperienceKindFollowsPrevious},
-            tests::{initial_experience, terminal_experience, transitive_experience},
+            tests::{terminal_experience, transitive_experience},
             Error, ExperienceBuilder, ExperiencedEvent, Profile, Result,
         },
         id::Id,
@@ -83,133 +69,56 @@ mod tests {
         }
 
         vec![
-            // initial
-            Test {
-                name: "initial without previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
-                with: vec![],
-                result: Ok(()),
-            },
-            Test {
-                name: "initial with initial previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
-                with: vec![ExperiencedEvent {
-                    experience: &initial_experience(),
-                    event: &Event::new(
-                        Id::default(),
-                        "test".to_string().try_into().unwrap(),
-                        [0, 0].into(),
-                    ),
-                }],
-                result: Err(Error::InitialFollowsNonTerminal),
-            },
-            Test {
-                name: "initial with transitive previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
-                with: vec![ExperiencedEvent {
-                    experience: &transitive_experience(),
-                    event: &event([0, 0]),
-                }],
-                result: Err(Error::InitialFollowsNonTerminal),
-            },
-            Test {
-                name: "initial with terminal previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
-                with: vec![ExperiencedEvent {
-                    experience: &terminal_experience(),
-                    event: &event([0, 0]),
-                }],
-                result: Ok(()),
-            },
             // transitive
             Test {
                 name: "transitive without previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default())))
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
                     .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![],
-                result: Err(Error::TransitiveFollowsTerminal),
-            },
-            Test {
-                name: "transitive with initial previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default())))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
-                with: vec![ExperiencedEvent {
-                    experience: &initial_experience(),
-                    event: &Event::new(
-                        Id::default(),
-                        "test".to_string().try_into().unwrap(),
-                        [0, 0].into(),
-                    ),
-                }],
                 result: Ok(()),
             },
             Test {
                 name: "transitive with transitive previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default())))
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
                     .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
-                    event: &event([0, 0]),
+                    event: &Event::fixture([0, 0]),
                 }],
                 result: Ok(()),
             },
             Test {
                 name: "transitive with terminal previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default())))
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
                     .with_after(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
-                    event: &event([0, 0]),
+                    event: &Event::fixture([0, 0]),
                 }],
-                result: Err(Error::TransitiveFollowsTerminal),
+                result: Ok(()),
             },
             // terminal
             Test {
                 name: "terminal without previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default()))),
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
                 with: vec![],
                 result: Err(Error::TerminalFollowsTerminal),
             },
             Test {
-                name: "terminal with initial previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default()))),
-                with: vec![ExperiencedEvent {
-                    experience: &initial_experience(),
-                    event: &Event::new(
-                        Id::default(),
-                        "test".to_string().try_into().unwrap(),
-                        [0, 0].into(),
-                    ),
-                }],
-                result: Ok(()),
-            },
-            Test {
                 name: "terminal with transitive previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default()))),
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
-                    event: &event([0, 0]),
+                    event: &Event::fixture([0, 0]),
                 }],
                 result: Ok(()),
             },
             Test {
                 name: "terminal with terminal previous experience",
-                builder: ExperienceBuilder::new(&event([1, 1]))
-                    .with_before(Some(Profile::new(Id::default()))),
+                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
-                    event: &event([0, 0]),
+                    event: &Event::fixture([0, 0]),
                 }],
                 result: Err(Error::TerminalFollowsTerminal),
             },
