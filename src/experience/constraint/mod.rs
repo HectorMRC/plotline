@@ -126,6 +126,8 @@ impl LiFoConstraintChain<(), ()> {
     }
 }
 
+/// Implement [Constraint] for () so [LiFoConstraintChain] can use it as the
+/// default type of Head and Cnst.
 impl<'a, Intv> Constraint<'a, Intv> for () {
     fn with(self, _: &'a ExperiencedEvent<Intv>) -> Result<Self> {
         Ok(self)
