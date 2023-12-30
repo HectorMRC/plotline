@@ -1,7 +1,7 @@
-use super::Constraint;
+use super::{Constraint, Result, Error};
 use crate::{
     event::Event,
-    experience::{Error, ExperiencedEvent, Result},
+    experience::ExperiencedEvent,
     interval::Interval,
 };
 
@@ -45,9 +45,9 @@ mod tests {
     use crate::{
         event::Event,
         experience::{
-            domain::{Constraint, ExperienceIsNotSimultaneous},
+            constraint::{Constraint, ExperienceIsNotSimultaneous, Result, Error},
             tests::transitive_experience,
-            Error, ExperiencedEvent, Result,
+            ExperiencedEvent,
         },
         period::Period,
     };

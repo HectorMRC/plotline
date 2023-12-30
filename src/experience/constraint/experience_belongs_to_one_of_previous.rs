@@ -1,7 +1,7 @@
-use super::Constraint;
+use super::{Constraint, Result, Error};
 use crate::{
     entity::Entity,
-    experience::{domain::SelectPreviousExperience, Error, ExperiencedEvent, Result},
+    experience::{query::SelectPreviousExperience, ExperiencedEvent},
     id::Id,
     interval::Interval,
 };
@@ -61,9 +61,9 @@ mod tests {
         entity::Entity,
         event::Event,
         experience::{
-            domain::{Constraint, ExperienceBelongsToOneOfPrevious},
+            constraint::{Constraint, ExperienceBelongsToOneOfPrevious, Result, Error},
             tests::{terminal_experience, transitive_experience},
-            Error, ExperienceBuilder, ExperiencedEvent, Profile, Result,
+            ExperienceBuilder, ExperiencedEvent, Profile,
         },
         id::Id,
         period::Period,
@@ -137,7 +137,7 @@ mod tests {
                 }],
                 result: Ok(()),
             },
-            // // terminal
+            // terminal
             Test {
                 name: "terminal without previous experience",
                 builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),

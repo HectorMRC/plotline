@@ -34,7 +34,20 @@ impl<Intv> ExperienceFilter<Intv> {
 
     pub fn filter(&self, experience: &Experience<Intv>) -> bool {
         equals_or_return!(self.event, &experience.event);
-        equals_or_return!(self.entity, &experience.entity);
-        true
+        self.filter_by_entity(experience)
+    }
+
+    /// An [Experience] not only belongs to the [Entity] associated with it,
+    /// but also to each one owning a [Profile] in that experience.  
+    fn filter_by_entity(&self, experience: &Experience<Intv>) -> bool {
+        let Some(entity_id) = self.entity else {
+            return true; // no filter by entity has been set
+        };
+
+        entity_id == experience.entity
+            || experience
+                .after
+                .iter()
+                .any(|profile| profile.entity == entity_id)
     }
 }

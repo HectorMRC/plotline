@@ -10,10 +10,21 @@ pub use experience_belongs_to_one_of_previous::*;
 mod experience_is_not_simultaneous;
 pub use experience_is_not_simultaneous::*;
 
-use crate::{
-    experience::{ExperiencedEvent, Result},
-    interval::Interval,
-};
+use crate::{experience::ExperiencedEvent, interval::Interval};
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug, PartialEq, thiserror::Error, Clone, Copy)]
+pub enum Error {
+    #[error("an experience cannot belong to an entity not listed in the previous experience")]
+    NotInPreviousExperience,
+    #[error("an entity cannot experience simultaneous events")]
+    SimultaneousEvents,
+    #[error("a terminal experience cannot follows a terminal one")]
+    TerminalFollowsTerminal,
+    #[error("a terminal experience cannot precede a terminal one")]
+    TerminalPrecedesTerminal,
+}
 
 /// A Constraint is a condition that must be satified.
 pub trait Constraint<'a, Intv>: Sized {
@@ -122,5 +133,48 @@ impl<'a, Intv> Constraint<'a, Intv> for () {
 
     fn result(self) -> Result<()> {
         Ok(())
+    }
+}
+
+/// InhibitedConstraint decorates a [Constraint] to inhibit some of its errors.
+pub struct InhibitedConstraint<Cnst, Inh> {
+    constraint: Cnst,
+    inhibitors: Vec<Inh>,
+}
+
+impl<'a, Intv, Cnst, Inh> Constraint<'a, Intv> for InhibitedConstraint<Cnst, Inh>
+where
+    Cnst: Constraint<'a, Intv> + Clone,
+    Inh: PartialEq<Error>,
+{
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<Self> {
+        let backup = self.constraint.clone();
+        self.constraint = match self.constraint.with(experienced_event) {
+            Err(err) if self.inhibitors.iter().any(|inhibitor| inhibitor == &err) => Ok(backup),
+            other => other,
+        }?;
+
+        Ok(self)
+    }
+
+    fn result(self) -> Result<()> {
+        match self.constraint.result() {
+            Err(err) if self.inhibitors.iter().any(|inhibitor| inhibitor == &err) => Ok(()),
+            other => other,
+        }
+    }
+}
+
+impl<Cnst, Inh> InhibitedConstraint<Cnst, Inh> {
+    pub fn new(constraint: Cnst) -> Self {
+        Self {
+            constraint,
+            inhibitors: Vec::default(),
+        }
+    }
+
+    pub fn with_inhibitor(mut self, inhibitor: Inh) -> Self {
+        self.inhibitors.push(inhibitor);
+        self
     }
 }

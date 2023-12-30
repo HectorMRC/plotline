@@ -2,7 +2,10 @@ use super::{ExperienceFilter, ExperienceRepository};
 use crate::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
-    experience::{domain, Error, ExperienceBuilder, ExperiencedEvent, Result},
+    experience::{
+        constraint::{Constraint, LiFoConstraintChain},
+        Error, ExperienceBuilder, ExperiencedEvent, Result,
+    },
     id::{Id, Identifiable},
     transaction::Tx,
 };
@@ -72,15 +75,29 @@ where
             .map(Tx::begin)
             .collect::<Vec<_>>();
 
-        let mut experienced_events = experiences
+        let experienced_events = experiences
             .iter()
             .zip(events.iter())
             .map(|(experience, event)| ExperiencedEvent { experience, event })
             .collect::<Vec<_>>();
 
-        experienced_events.sort_by(|a, b| a.event.cmp(b.event));
-        let experience =
-            domain::create(ExperienceBuilder::new(&entity, &event), &experienced_events)?;
+        let experience = ExperienceBuilder::new(&entity, &event)
+            .with_fallbacks(&experienced_events)
+            .build()?;
+
+        let experienced_event = ExperiencedEvent {
+            experience: &experience,
+            event: &event,
+        };
+
+        experienced_events
+            .iter()
+            .try_fold(
+                LiFoConstraintChain::with_defaults(&experienced_event),
+                |constraint, experienced_event| constraint.with(experienced_event),
+            )?
+            .result()?;
+
         self.experience_repo.create(&experience)?;
         Ok(())
     }

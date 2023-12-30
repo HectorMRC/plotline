@@ -1,7 +1,8 @@
 pub mod application;
 #[cfg(feature = "cli")]
 pub mod cli;
-pub mod domain;
+pub mod query;
+pub mod constraint;
 #[cfg(feature = "in_memory")]
 pub mod repository;
 
@@ -66,6 +67,17 @@ pub struct ExperienceBuilder<'a, Intv> {
     kind: Option<ExperienceKind>,
 }
 
+impl<'a, Intv: Clone> Clone for ExperienceBuilder<'a, Intv> {
+    fn clone(&self) -> Self {
+        Self {
+            entity: self.entity,
+            event: self.event,
+            after: self.after.clone(),
+            kind: self.kind,
+        }
+    }
+}
+
 impl<'a, Intv> ExperienceBuilder<'a, Intv> {
     pub fn new(entity: &'a Entity, event: &'a Event<Intv>) -> Self {
         Self {
@@ -102,8 +114,39 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
     }
 }
 
+impl<'a, Intv> ExperienceBuilder<'a, Intv>
+where
+    Intv: Interval,
+{
+    /// Tries to compute some value for those fields set to [Option::None].
+    pub fn with_fallbacks(mut self, experienced_events: &[ExperiencedEvent<'a, Intv>]) -> Self {
+        let mut previous = query::SelectPreviousExperience::new(self.event);
+        let mut next = query::SelectNextExperience::new(self.event);
+        for experienced_event in experienced_events.iter() {
+            previous = previous.with(experienced_event);
+            next = next.with(experienced_event);
+        }
+
+        self.after = self.after.or(previous
+            .value()
+            .or(next.value())
+            .and_then(|experienced_event| {
+                experienced_event
+                    .experience
+                    .after
+                    .iter()
+                    .find(|profile| profile.entity == self.entity.id())
+                    .cloned()
+            })
+            .map(|profile| vec![profile]));
+
+        self
+    }
+}
+
 /// An ExperienceKind determines the kind of an [Experience] based on its
 /// cardinality.
+#[derive(Clone, Copy)]
 pub enum ExperienceKind {
     /// The [Entity] has reached the end of its timeline.
     Terminal,

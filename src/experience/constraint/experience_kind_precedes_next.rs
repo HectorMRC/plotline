@@ -1,6 +1,6 @@
-use super::Constraint;
+use super::{Constraint, Result, Error};
 use crate::{
-    experience::{domain::SelectNextExperience, Error, ExperienceKind, ExperiencedEvent, Result},
+    experience::{query::SelectNextExperience, ExperienceKind, ExperiencedEvent},
     interval::Interval,
 };
 
@@ -48,9 +48,9 @@ mod tests {
         entity::Entity,
         event::Event,
         experience::{
-            domain::{constraint::Constraint, ExperienceKindPrecedesNext},
+            constraint::{Constraint, ExperienceKindPrecedesNext, Result, Error},
             tests::{terminal_experience, transitive_experience},
-            Error, ExperienceBuilder, ExperiencedEvent, Profile, Result,
+            ExperienceBuilder, ExperiencedEvent, Profile,
         },
         id::Id,
         period::Period,
