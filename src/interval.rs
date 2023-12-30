@@ -195,11 +195,7 @@ where
     where
         D: Deserializer<'de>,
     {
-        use serde::de::Error;
-
-        Vec::<Intv>::deserialize(deserializer)?
-            .try_into()
-            .map_err(Error::custom)
+        Ok(IntervalST::from(Vec::<Intv>::deserialize(deserializer)?))
     }
 }
 
