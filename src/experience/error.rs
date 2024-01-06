@@ -1,3 +1,5 @@
+use super::constraint;
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, PartialEq, thiserror::Error)]
@@ -22,4 +24,10 @@ pub enum Error {
     Constraint(#[from] super::constraint::Error),
     #[error("{0}")]
     Lock(String),
+}
+
+impl<T> From<constraint::PoisonError<T>> for Error {
+    fn from(value: constraint::PoisonError<T>) -> Self {
+        value.cause.into()
+    }
 }

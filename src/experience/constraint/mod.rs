@@ -11,10 +11,11 @@ mod experience_is_not_simultaneous;
 pub use experience_is_not_simultaneous::*;
 
 use crate::{experience::ExperiencedEvent, interval::Interval};
+use std::fmt::{Debug, Display};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, PartialEq, thiserror::Error, Clone, Copy)]
+#[derive(Debug, PartialEq, thiserror::Error, Clone)]
 pub enum Error {
     #[error("an experience cannot belong to an entity not listed in the previous experience")]
     NotInPreviousExperience,
@@ -24,6 +25,63 @@ pub enum Error {
     TerminalFollowsTerminal,
     #[error("a terminal experience cannot precede a terminal one")]
     TerminalPrecedesTerminal,
+    #[error("{0:?}")]
+    Stack(Vec<Error>),
+    #[error("{0}")]
+    Custom(&'static str),
+}
+
+impl<T> From<PoisonError<T>> for Error {
+    fn from(value: PoisonError<T>) -> Error {
+        value.cause
+    }
+}
+
+impl Error {
+    pub fn push(self, tail: Self) -> Self {
+        Error::Stack(match (self, tail) {
+            (Error::Stack(mut head_errors), Error::Stack(tail_errors)) => {
+                head_errors.extend(tail_errors);
+                head_errors
+            }
+            (Error::Stack(mut head_errors), tail_error) => {
+                head_errors.push(tail_error);
+                head_errors
+            }
+            (head_error, Error::Stack(tail_errors)) => {
+                let mut tmp = vec![head_error];
+                tmp.extend(tail_errors);
+                tmp
+            }
+            (head_error, tail_error) => vec![head_error, tail_error],
+        })
+    }
+}
+
+pub type ConstraintResult<Cnst> = std::result::Result<Cnst, PoisonError<Cnst>>;
+
+#[derive(Debug)]
+pub struct PoisonError<T> {
+    pub cause: Error,
+    pub guard: T,
+}
+
+impl<T: Debug> std::error::Error for PoisonError<T> {}
+
+impl<T> Display for PoisonError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}", self.cause)
+    }
+}
+
+impl<T> PoisonError<T> {
+    pub fn new(guard: T, cause: Error) -> Self {
+        PoisonError { guard, cause }
+    }
+
+    pub fn into_inner(self) -> T {
+        self.guard
+    }
 }
 
 /// A Constraint is a condition that must be satified.
@@ -33,7 +91,7 @@ pub trait Constraint<'a, Intv>: Sized {
     ///
     /// Short-Circuiting: this method may return an error if, and only if, the
     /// given [ExperiencedEvent] already violates the constraint.
-    fn with(self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<Self>;
+    fn with(self, experienced_event: &'a ExperiencedEvent<Intv>) -> ConstraintResult<Self>;
 
     /// Returns the same error as `with`, if any. Otherwise returns the final
     /// veredict of the constraint.
@@ -59,6 +117,7 @@ pub trait ConstraintChain<'a, Intv>: Constraint<'a, Intv> {
 pub struct LiFoConstraintChain<Head, Cnst> {
     head: Option<Head>,
     constraint: Cnst,
+    early: bool,
 }
 
 impl<'a, Intv, Head, Cnst> ConstraintChain<'a, Intv> for LiFoConstraintChain<Head, Cnst>
@@ -74,6 +133,7 @@ where
         Tail: Constraint<'a, Intv>,
     {
         LiFoConstraintChain {
+            early: self.early,
             head: Some(self),
             constraint,
         }
@@ -85,14 +145,49 @@ where
     Head: Constraint<'a, Intv>,
     Cnst: Constraint<'a, Intv>,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<Self> {
-        self.constraint = self.constraint.with(experienced_event)?;
-        self.head = self
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> ConstraintResult<Self> {
+        let evaluate_head = |mut chain: Self, tail_error| match chain
             .head
             .map(|cnst| cnst.with(experienced_event))
-            .transpose()?;
+            .transpose()
+        {
+            Ok(head) => {
+                chain.head = head;
+                if let Some(error) = tail_error {
+                    return Err(PoisonError::new(chain, error));
+                }
 
-        Ok(self)
+                Ok(chain)
+            }
+            Err(poison_err) => {
+                chain.head = Some(poison_err.guard);
+                let mut error = poison_err.cause;
+
+                if let Some(tail_error) = tail_error {
+                    error = error.push(tail_error);
+                }
+
+                Err(PoisonError::new(chain, error))
+            }
+        };
+
+        match self.constraint.with(experienced_event) {
+            Ok(constraint) => {
+                self.constraint = constraint;
+                evaluate_head(self, None)
+            }
+
+            Err(poison_err) => {
+                self.constraint = poison_err.guard;
+                let error = poison_err.cause;
+
+                if self.early {
+                    return Err(PoisonError::new(self, error));
+                }
+
+                evaluate_head(self, Some(error))
+            }
+        }
     }
 
     fn result(self) -> Result<()> {
@@ -107,7 +202,13 @@ impl<Cnst> LiFoConstraintChain<(), Cnst> {
         Self {
             head: None,
             constraint,
+            early: true,
         }
+    }
+
+    pub fn with_early(mut self, enable: bool) -> Self {
+        self.early = enable;
+        self
     }
 }
 
@@ -129,7 +230,7 @@ impl LiFoConstraintChain<(), ()> {
 /// Implement [Constraint] for () so [LiFoConstraintChain] can use it as the
 /// default type of Head and Cnst.
 impl<'a, Intv> Constraint<'a, Intv> for () {
-    fn with(self, _: &'a ExperiencedEvent<Intv>) -> Result<Self> {
+    fn with(self, _: &'a ExperiencedEvent<Intv>) -> ConstraintResult<Self> {
         Ok(self)
     }
 
@@ -138,25 +239,36 @@ impl<'a, Intv> Constraint<'a, Intv> for () {
     }
 }
 
-/// InhibitedConstraint decorates a [Constraint] to inhibit some of its errors.
-pub struct InhibitedConstraint<Cnst, Inh> {
+/// InhibitableConstraint decorates a [Constraint] to inhibit some of its errors.
+pub struct InhibitableConstraint<Cnst, Inh> {
     constraint: Cnst,
     inhibitors: Vec<Inh>,
 }
 
-impl<'a, Intv, Cnst, Inh> Constraint<'a, Intv> for InhibitedConstraint<Cnst, Inh>
+impl<'a, Intv, Cnst, Inh> Constraint<'a, Intv> for InhibitableConstraint<Cnst, Inh>
 where
-    Cnst: Constraint<'a, Intv> + Clone,
+    Cnst: Constraint<'a, Intv>,
     Inh: PartialEq<Error>,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<Self> {
-        let backup = self.constraint.clone();
-        self.constraint = match self.constraint.with(experienced_event) {
-            Err(err) if self.inhibitors.iter().any(|inhibitor| inhibitor == &err) => Ok(backup),
-            other => other,
-        }?;
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> ConstraintResult<Self> {
+        match self.constraint.with(experienced_event) {
+            Ok(constraint) => {
+                self.constraint = constraint;
+                Ok(self)
+            }
+            Err(poison_err) => {
+                self.constraint = poison_err.guard;
+                if self
+                    .inhibitors
+                    .iter()
+                    .any(|inhibitor| inhibitor == &poison_err.cause)
+                {
+                    return Ok(self);
+                }
 
-        Ok(self)
+                Err(PoisonError::new(self, poison_err.cause))
+            }
+        }
     }
 
     fn result(self) -> Result<()> {
@@ -167,7 +279,7 @@ where
     }
 }
 
-impl<Cnst, Inh> InhibitedConstraint<Cnst, Inh> {
+impl<Cnst, Inh> InhibitableConstraint<Cnst, Inh> {
     pub fn new(constraint: Cnst) -> Self {
         Self {
             constraint,

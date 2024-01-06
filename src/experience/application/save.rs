@@ -1,18 +1,15 @@
-use super::{ExperienceFilter, ExperienceRepository};
+use super::{ConstraintFactory, ExperienceFilter, ExperienceRepository};
 use crate::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
-    experience::{
-        constraint::{Constraint, LiFoConstraintChain},
-        Error, ExperienceBuilder, ExperiencedEvent, Result,
-    },
+    experience::{constraint::Constraint, Error, ExperienceBuilder, ExperiencedEvent, Result},
     id::{Id, Identifiable},
     transaction::Tx,
 };
-use std::sync::Arc;
+use std::{marker::PhantomData, sync::Arc};
 
 /// Implements the save experience transaction.
-pub struct SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
+pub struct SaveExperience<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
 where
     EventRepo: EventRepository,
 {
@@ -21,13 +18,16 @@ where
     event_repo: Arc<EventRepo>,
     entity: Id<Entity>,
     event: Id<Event<EventRepo::Interval>>,
+    cnst_factory: PhantomData<CnstFactory>,
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo> SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
+impl<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
+    SaveExperience<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
 where
     ExperienceRepo: ExperienceRepository<Interval = EventRepo::Interval>,
     EntityRepo: EntityRepository,
     EventRepo: EventRepository,
+    CnstFactory: ConstraintFactory<EventRepo::Interval>,
 {
     /// Executes the save experience transaction.
     pub fn execute(self) -> Result<()> {
@@ -93,7 +93,7 @@ where
         experienced_events
             .iter()
             .try_fold(
-                LiFoConstraintChain::with_defaults(&experienced_event),
+                CnstFactory::new(&experienced_event),
                 |constraint, experienced_event| constraint.with(experienced_event),
             )?
             .result()?;

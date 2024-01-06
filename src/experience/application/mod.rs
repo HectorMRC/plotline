@@ -6,7 +6,7 @@ pub use save::*;
 mod filter;
 pub use filter::*;
 
-use super::error::Result;
+use super::{constraint::Constraint, error::Result, ExperiencedEvent};
 use crate::{experience::Experience, interval::Interval, transaction::Tx};
 use std::sync::Arc;
 
@@ -16,6 +16,10 @@ pub trait ExperienceRepository {
 
     fn create(&self, experience: &Experience<Self::Interval>) -> Result<()>;
     fn filter(&self, filter: ExperienceFilter<Self::Interval>) -> Result<Vec<Self::Tx>>;
+}
+
+pub trait ConstraintFactory<Intv> {
+    fn new<'a>(event: &'a ExperiencedEvent<'a, Intv>) -> impl Constraint<'a, Intv>;
 }
 
 pub struct ExperienceApplication<EventRepo> {

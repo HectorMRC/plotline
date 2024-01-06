@@ -1,8 +1,6 @@
-use super::{Constraint, Result, Error};
+use super::{Constraint, ConstraintResult, Error, Result};
 use crate::{
-    experience::{
-        query::SelectPreviousExperience, ExperienceKind, ExperiencedEvent,
-    },
+    experience::{query::SelectPreviousExperience, ExperienceKind, ExperiencedEvent},
     interval::Interval,
 };
 
@@ -15,7 +13,7 @@ impl<'a, Intv> Constraint<'a, Intv> for ExperienceKindFollowsPrevious<'a, Intv>
 where
     Intv: Interval,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Result<Self> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> ConstraintResult<Self> {
         self.previous.add(experienced_event);
         Ok(self)
     }
@@ -50,7 +48,7 @@ mod tests {
         entity::Entity,
         event::Event,
         experience::{
-            constraint::{Constraint, Result, Error, ExperienceKindFollowsPrevious},
+            constraint::{Constraint, Error, ExperienceKindFollowsPrevious, Result},
             tests::{terminal_experience, transitive_experience},
             ExperienceBuilder, ExperiencedEvent, Profile,
         },
@@ -138,6 +136,7 @@ mod tests {
                 .try_fold(constraint, |constraint, experienced_event| {
                     constraint.with(experienced_event)
                 })
+                .map_err(Into::into)
                 .and_then(|constraint| constraint.result());
 
             assert_eq!(
