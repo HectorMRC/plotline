@@ -12,7 +12,7 @@ pub enum Error {
 
 /// Identifiable qualifies a resource of being uniquely identifiable.
 pub trait Identifiable {
-    type Id: Eq;
+    type Id: Eq + Hash;
 
     fn id(&self) -> Self::Id;
 }

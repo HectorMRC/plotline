@@ -8,7 +8,7 @@ pub use filter::*;
 
 use super::{constraint::Constraint, error::Result, ExperiencedEvent};
 use crate::{experience::Experience, interval::Interval, transaction::Tx};
-use std::sync::Arc;
+use std::{sync::Arc, marker::PhantomData};
 
 pub trait ExperienceRepository {
     type Interval: Interval;
@@ -22,6 +22,9 @@ pub trait ConstraintFactory<Intv> {
     fn new<'a>(event: &'a ExperiencedEvent<'a, Intv>) -> impl Constraint<'a, Intv>;
 }
 
-pub struct ExperienceApplication<EventRepo> {
+pub struct ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo, CnstFactory> {
+    pub experience_repo: Arc<ExperienceRepo>,
+    pub entity_repo: Arc<EntityRepo>,
     pub event_repo: Arc<EventRepo>,
+    pub cnst_factory: PhantomData<CnstFactory>
 }

@@ -1,4 +1,4 @@
-use super::constraint;
+use crate::error::PoisonError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -26,8 +26,9 @@ pub enum Error {
     Lock(String),
 }
 
-impl<T> From<constraint::PoisonError<T>> for Error {
-    fn from(value: constraint::PoisonError<T>) -> Self {
-        value.cause.into()
+impl<T, E> From<PoisonError<T, E>> for Error
+where E: Into<Error> {
+    fn from(value: PoisonError<T, E>) -> Self {
+        value.error.into()
     }
 }

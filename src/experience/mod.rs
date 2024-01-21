@@ -1,8 +1,8 @@
 pub mod application;
 #[cfg(feature = "cli")]
 pub mod cli;
-pub mod query;
 pub mod constraint;
+pub mod query;
 #[cfg(feature = "in_memory")]
 pub mod repository;
 
@@ -47,7 +47,7 @@ impl<Intv> Identifiable for Experience<Intv> {
     type Id = (Id<Entity>, Id<Event<Intv>>);
 
     fn id(&self) -> Self::Id {
-        todo!()
+        (self.entity, self.event)
     }
 }
 
@@ -64,7 +64,6 @@ pub struct ExperienceBuilder<'a, Intv> {
     entity: &'a Entity,
     event: &'a Event<Intv>,
     after: Option<Vec<Profile>>,
-    kind: Option<ExperienceKind>,
 }
 
 impl<'a, Intv: Clone> Clone for ExperienceBuilder<'a, Intv> {
@@ -73,7 +72,6 @@ impl<'a, Intv: Clone> Clone for ExperienceBuilder<'a, Intv> {
             entity: self.entity,
             event: self.event,
             after: self.after.clone(),
-            kind: self.kind,
         }
     }
 }
@@ -84,17 +82,11 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
             entity,
             event,
             after: Default::default(),
-            kind: Default::default(),
         }
     }
 
     pub fn with_after(mut self, after: Option<Vec<Profile>>) -> Self {
         self.after = after;
-        self
-    }
-
-    pub fn with_kind(mut self, kind: Option<ExperienceKind>) -> Self {
-        self.kind = kind;
         self
     }
 
@@ -127,18 +119,20 @@ where
             next = next.with(experienced_event);
         }
 
-        self.after = self.after.or(previous
-            .value()
-            .or(next.value())
-            .and_then(|experienced_event| {
-                experienced_event
-                    .experience
-                    .after
-                    .iter()
-                    .find(|profile| profile.entity == self.entity.id())
-                    .cloned()
-            })
-            .map(|profile| vec![profile]));
+        self.after = self.after.or_else(|| {
+            previous
+                .value()
+                .or_else(|| next.value())
+                .and_then(|experienced_event| {
+                    experienced_event
+                        .experience
+                        .after
+                        .iter()
+                        .find(|profile| profile.entity == self.entity.id())
+                        .cloned()
+                })
+                .map(|profile| vec![profile])
+        });
 
         self
     }

@@ -1,8 +1,10 @@
-use super::{ConstraintFactory, ExperienceFilter, ExperienceRepository};
+use super::{ConstraintFactory, ExperienceApplication, ExperienceFilter, ExperienceRepository};
 use crate::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
-    experience::{constraint::Constraint, Error, ExperienceBuilder, ExperiencedEvent, Result},
+    experience::{
+        constraint::Constraint, Error, ExperienceBuilder, ExperiencedEvent, Profile, Result,
+    },
     id::{Id, Identifiable},
     transaction::Tx,
 };
@@ -16,9 +18,21 @@ where
     experience_repo: Arc<ExperienceRepo>,
     entity_repo: Arc<EntityRepo>,
     event_repo: Arc<EventRepo>,
+    cnst_factory: PhantomData<CnstFactory>,
     entity: Id<Entity>,
     event: Id<Event<EventRepo::Interval>>,
-    cnst_factory: PhantomData<CnstFactory>,
+    after: Option<Vec<Profile>>,
+}
+
+impl<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
+    SaveExperience<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
+where
+    EventRepo: EventRepository,
+{
+    pub fn with_after(mut self, after: Option<Vec<Profile>>) -> Self {
+        self.after = after;
+        self
+    }
 }
 
 impl<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
@@ -82,6 +96,7 @@ where
             .collect::<Vec<_>>();
 
         let experience = ExperienceBuilder::new(&entity, &event)
+            .with_after(self.after)
             .with_fallbacks(&experienced_events)
             .build()?;
 
@@ -104,5 +119,30 @@ where
 
     fn update(self, _experience_tx: ExperienceRepo::Tx) -> Result<()> {
         Ok(())
+    }
+}
+
+impl<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
+    ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
+where
+    ExperienceRepo: ExperienceRepository<Interval = EventRepo::Interval>,
+    EntityRepo: EntityRepository,
+    EventRepo: EventRepository,
+    CnstFactory: ConstraintFactory<EventRepo::Interval>,
+{
+    pub fn save_experience(
+        &self,
+        entity_id: Id<Entity>,
+        event_id: Id<Event<EventRepo::Interval>>,
+    ) -> SaveExperience<ExperienceRepo, EntityRepo, EventRepo, CnstFactory> {
+        SaveExperience {
+            experience_repo: self.experience_repo.clone(),
+            entity_repo: self.entity_repo.clone(),
+            event_repo: self.event_repo.clone(),
+            cnst_factory: PhantomData,
+            entity: entity_id,
+            event: event_id,
+            after: Default::default(),
+        }
     }
 }

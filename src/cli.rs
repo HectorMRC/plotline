@@ -15,6 +15,8 @@ impl From<CliError> for CliResult {
 
 #[derive(thiserror::Error, Debug)]
 pub enum CliError {
+    #[error("{0}: argument is missing")]
+    MissingArgument(&'static str),
     #[error("{0}")]
     Entity(#[from] crate::entity::Error),
     #[error("{0}")]

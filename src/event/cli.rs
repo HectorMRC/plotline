@@ -1,5 +1,5 @@
 use super::{
-    application::{EventRepository, EventApplication},
+    application::{EventApplication, EventRepository},
     Event,
 };
 use crate::{

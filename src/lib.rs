@@ -5,6 +5,7 @@ pub mod event;
 pub mod experience;
 #[cfg(feature = "in_memory")]
 pub mod snapshot;
+pub mod error;
 
 mod id;
 mod interval;

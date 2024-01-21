@@ -1,4 +1,4 @@
-use super::{Constraint, Result, Error, ConstraintResult};
+use super::{Constraint, Result, Error, HaulResult};
 use crate::{
     event::Event,
     experience::ExperiencedEvent,
@@ -14,7 +14,7 @@ impl<'a, Intv> Constraint<'a, Intv> for ExperienceIsNotSimultaneous<'a, Intv>
 where
     Intv: Interval,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> ConstraintResult<Self> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> HaulResult<Self> {
         if self.event.intersects(experienced_event.event) {
             self.conflict = Some(experienced_event);
         }

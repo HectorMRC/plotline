@@ -10,10 +10,11 @@ pub use experience_belongs_to_one_of_previous::*;
 mod experience_is_not_simultaneous;
 pub use experience_is_not_simultaneous::*;
 
-use crate::{experience::ExperiencedEvent, interval::Interval};
-use std::fmt::{Debug, Display};
+use crate::{experience::ExperiencedEvent, interval::Interval, error::PoisonError};
+use std::fmt::Debug;
 
 pub type Result<T> = std::result::Result<T, Error>;
+pub type HaulResult<T> = std::result::Result<T, PoisonError<T, Error>>;
 
 #[derive(Debug, PartialEq, thiserror::Error, Clone)]
 pub enum Error {
@@ -31,9 +32,9 @@ pub enum Error {
     Custom(&'static str),
 }
 
-impl<T> From<PoisonError<T>> for Error {
-    fn from(value: PoisonError<T>) -> Error {
-        value.cause
+impl<T> From<PoisonError<T, Error>> for Error {
+    fn from(value: PoisonError<T, Error>) -> Error {
+        value.error
     }
 }
 
@@ -58,32 +59,6 @@ impl Error {
     }
 }
 
-pub type ConstraintResult<Cnst> = std::result::Result<Cnst, PoisonError<Cnst>>;
-
-#[derive(Debug)]
-pub struct PoisonError<T> {
-    pub cause: Error,
-    pub guard: T,
-}
-
-impl<T: Debug> std::error::Error for PoisonError<T> {}
-
-impl<T> Display for PoisonError<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}", self.cause)
-    }
-}
-
-impl<T> PoisonError<T> {
-    pub fn new(guard: T, cause: Error) -> Self {
-        PoisonError { guard, cause }
-    }
-
-    pub fn into_inner(self) -> T {
-        self.guard
-    }
-}
-
 /// A Constraint is a condition that must be satified.
 pub trait Constraint<'a, Intv>: Sized {
     /// Determines the constraint must take into account the given
@@ -91,7 +66,7 @@ pub trait Constraint<'a, Intv>: Sized {
     ///
     /// Short-Circuiting: this method may return an error if, and only if, the
     /// given [ExperiencedEvent] already violates the constraint.
-    fn with(self, experienced_event: &'a ExperiencedEvent<Intv>) -> ConstraintResult<Self>;
+    fn with(self, experienced_event: &'a ExperiencedEvent<Intv>) -> HaulResult<Self>;
 
     /// Returns the same error as `with`, if any. Otherwise returns the final
     /// veredict of the constraint.
@@ -145,7 +120,7 @@ where
     Head: Constraint<'a, Intv>,
     Cnst: Constraint<'a, Intv>,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> ConstraintResult<Self> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> HaulResult<Self> {
         let evaluate_head = |mut chain: Self, tail_error| match chain
             .head
             .map(|cnst| cnst.with(experienced_event))
@@ -160,8 +135,8 @@ where
                 Ok(chain)
             }
             Err(poison_err) => {
-                chain.head = Some(poison_err.guard);
-                let mut error = poison_err.cause;
+                chain.head = Some(poison_err.inner);
+                let mut error = poison_err.error;
 
                 if let Some(tail_error) = tail_error {
                     error = error.push(tail_error);
@@ -178,8 +153,8 @@ where
             }
 
             Err(poison_err) => {
-                self.constraint = poison_err.guard;
-                let error = poison_err.cause;
+                self.constraint = poison_err.inner;
+                let error = poison_err.error;
 
                 if self.early {
                     return Err(PoisonError::new(self, error));
@@ -191,8 +166,24 @@ where
     }
 
     fn result(self) -> Result<()> {
-        self.constraint.result()?;
-        self.head.map(|cnst| cnst.result()).transpose()?;
+        let tail_result = self.constraint.result();
+        if self.early && tail_result.is_err() {
+            return tail_result;
+        }
+
+        let head_result = self.head.map(|cnst| cnst.result()).unwrap_or(Ok(()));
+        if tail_result.is_err() && head_result.is_ok() {
+            return tail_result;
+        }
+
+        if tail_result.is_ok() && head_result.is_err() {
+            return head_result;
+        }
+
+        if let (Err(tail_err), Err(head_err)) = (tail_result, head_result) {
+            return Err(head_err.push(tail_err));
+        }
+        
         Ok(())
     }
 }
@@ -230,7 +221,7 @@ impl LiFoConstraintChain<(), ()> {
 /// Implement [Constraint] for () so [LiFoConstraintChain] can use it as the
 /// default type of Head and Cnst.
 impl<'a, Intv> Constraint<'a, Intv> for () {
-    fn with(self, _: &'a ExperiencedEvent<Intv>) -> ConstraintResult<Self> {
+    fn with(self, _: &'a ExperiencedEvent<Intv>) -> HaulResult<Self> {
         Ok(self)
     }
 
@@ -250,23 +241,23 @@ where
     Cnst: Constraint<'a, Intv>,
     Inh: PartialEq<Error>,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> ConstraintResult<Self> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> HaulResult<Self> {
         match self.constraint.with(experienced_event) {
             Ok(constraint) => {
                 self.constraint = constraint;
                 Ok(self)
             }
             Err(poison_err) => {
-                self.constraint = poison_err.guard;
+                self.constraint = poison_err.inner;
                 if self
                     .inhibitors
                     .iter()
-                    .any(|inhibitor| inhibitor == &poison_err.cause)
+                    .any(|inhibitor| inhibitor == &poison_err.error)
                 {
                     return Ok(self);
                 }
 
-                Err(PoisonError::new(self, poison_err.cause))
+                Err(PoisonError::new(self, poison_err.error))
             }
         }
     }
