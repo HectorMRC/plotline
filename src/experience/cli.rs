@@ -64,7 +64,7 @@ where
             return self.execute_subcommand(command, entity_id, event_id);
         }
 
-        todo!()
+        Ok(())
     }
 
     fn execute_subcommand(
@@ -92,11 +92,11 @@ where
                         })
                         .transpose()?,
                 );
-                
+
                 println!("{} {}", entity_id, event_id);
             }
         }
-        
+
         Ok(())
     }
 }

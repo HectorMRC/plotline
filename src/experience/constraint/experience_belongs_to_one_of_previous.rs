@@ -1,4 +1,4 @@
-use super::{Constraint, HaulResult, Error, Result};
+use super::{Constraint, SelfContainedResult, Error, Result};
 use crate::{
     entity::Entity,
     experience::{query::SelectPreviousExperience, ExperiencedEvent},
@@ -16,7 +16,7 @@ impl<'a, Intv> Constraint<'a, Intv> for ExperienceBelongsToOneOfPrevious<'a, Int
 where
     Intv: Interval,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> HaulResult<Self> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> SelfContainedResult<Self> {
         self.previous.add(experienced_event);
         Ok(self)
     }

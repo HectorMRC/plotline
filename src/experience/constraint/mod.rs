@@ -10,11 +10,11 @@ pub use experience_belongs_to_one_of_previous::*;
 mod experience_is_not_simultaneous;
 pub use experience_is_not_simultaneous::*;
 
-use crate::{experience::ExperiencedEvent, interval::Interval, error::PoisonError};
+use crate::{error::PoisonError, experience::ExperiencedEvent, interval::Interval};
 use std::fmt::Debug;
 
 pub type Result<T> = std::result::Result<T, Error>;
-pub type HaulResult<T> = std::result::Result<T, PoisonError<T, Error>>;
+pub type SelfContainedResult<T> = std::result::Result<T, PoisonError<T, Error>>;
 
 #[derive(Debug, PartialEq, thiserror::Error, Clone)]
 pub enum Error {
@@ -66,7 +66,7 @@ pub trait Constraint<'a, Intv>: Sized {
     ///
     /// Short-Circuiting: this method may return an error if, and only if, the
     /// given [ExperiencedEvent] already violates the constraint.
-    fn with(self, experienced_event: &'a ExperiencedEvent<Intv>) -> HaulResult<Self>;
+    fn with(self, experienced_event: &'a ExperiencedEvent<Intv>) -> SelfContainedResult<Self>;
 
     /// Returns the same error as `with`, if any. Otherwise returns the final
     /// veredict of the constraint.
@@ -120,7 +120,7 @@ where
     Head: Constraint<'a, Intv>,
     Cnst: Constraint<'a, Intv>,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> HaulResult<Self> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> SelfContainedResult<Self> {
         let evaluate_head = |mut chain: Self, tail_error| match chain
             .head
             .map(|cnst| cnst.with(experienced_event))
@@ -183,7 +183,7 @@ where
         if let (Err(tail_err), Err(head_err)) = (tail_result, head_result) {
             return Err(head_err.push(tail_err));
         }
-        
+
         Ok(())
     }
 }
@@ -221,7 +221,7 @@ impl LiFoConstraintChain<(), ()> {
 /// Implement [Constraint] for () so [LiFoConstraintChain] can use it as the
 /// default type of Head and Cnst.
 impl<'a, Intv> Constraint<'a, Intv> for () {
-    fn with(self, _: &'a ExperiencedEvent<Intv>) -> HaulResult<Self> {
+    fn with(self, _: &'a ExperiencedEvent<Intv>) -> SelfContainedResult<Self> {
         Ok(self)
     }
 
@@ -230,18 +230,22 @@ impl<'a, Intv> Constraint<'a, Intv> for () {
     }
 }
 
+/// An ErrorInhibitor forces an [InhibitableConstraint] to ignore any possible
+/// [Error] given by the inner [Constraint].
+pub trait ErrorInhibitor: PartialEq<Error> {}
+
 /// InhibitableConstraint decorates a [Constraint] to inhibit some of its errors.
 pub struct InhibitableConstraint<Cnst, Inh> {
     constraint: Cnst,
-    inhibitors: Vec<Inh>,
+    inhibitor: Inh,
 }
 
 impl<'a, Intv, Cnst, Inh> Constraint<'a, Intv> for InhibitableConstraint<Cnst, Inh>
 where
     Cnst: Constraint<'a, Intv>,
-    Inh: PartialEq<Error>,
+    Inh: ErrorInhibitor,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> HaulResult<Self> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> SelfContainedResult<Self> {
         match self.constraint.with(experienced_event) {
             Ok(constraint) => {
                 self.constraint = constraint;
@@ -249,11 +253,7 @@ where
             }
             Err(poison_err) => {
                 self.constraint = poison_err.inner;
-                if self
-                    .inhibitors
-                    .iter()
-                    .any(|inhibitor| inhibitor == &poison_err.error)
-                {
+                if self.inhibitor == poison_err.error {
                     return Ok(self);
                 }
 
@@ -264,22 +264,17 @@ where
 
     fn result(self) -> Result<()> {
         match self.constraint.result() {
-            Err(err) if self.inhibitors.iter().any(|inhibitor| inhibitor == &err) => Ok(()),
+            Err(err) if self.inhibitor == err => Ok(()),
             other => other,
         }
     }
 }
 
 impl<Cnst, Inh> InhibitableConstraint<Cnst, Inh> {
-    pub fn new(constraint: Cnst) -> Self {
+    pub fn new(constraint: Cnst, inhibitor: Inh) -> Self {
         Self {
             constraint,
-            inhibitors: Vec::default(),
+            inhibitor,
         }
-    }
-
-    pub fn with_inhibitor(mut self, inhibitor: Inh) -> Self {
-        self.inhibitors.push(inhibitor);
-        self
     }
 }

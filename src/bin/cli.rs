@@ -1,15 +1,23 @@
 use clap::{error::ErrorKind, Parser, Subcommand};
 use once_cell::sync::Lazy;
 use plotline::{
-    entity::{cli::EntityCommand, application::EntityApplication},
-    event::{cli::EventCommand, application::EventApplication},
+    entity::{application::EntityApplication, cli::EntityCommand},
+    event::{application::EventApplication, cli::EventCommand},
+    experience::{
+        application::{ConstraintFactory, ExperienceApplication},
+        cli::ExperienceCommand,
+        constraint::{Constraint, LiFoConstraintChain},
+        ExperiencedEvent,
+    },
+    interval::Interval,
     snapshot::Snapshot,
 };
 use std::{
     ffi::OsString,
     fmt::Display,
-    fs::{self, File},
+    fs,
     io::{BufReader, BufWriter, Write},
+    marker::PhantomData,
     path::Path,
 };
 
@@ -46,6 +54,17 @@ enum CliCommand {
     Entity(EntityCommand),
     /// Manage events.
     Event(EventCommand),
+    /// Manage experiences.
+    Experience(ExperienceCommand),
+}
+
+impl<Intv> ConstraintFactory<Intv> for CliCommand
+where
+    Intv: Interval,
+{
+    fn new<'a>(experienced_event: &'a ExperiencedEvent<'a, Intv>) -> impl Constraint<'a, Intv> {
+        LiFoConstraintChain::with_defaults(experienced_event)
+    }
 }
 
 /// Returns the value of the result if, and only if, the result is OK. Otherwise prints the error and exits.
@@ -67,7 +86,7 @@ fn main() {
     let filepath = Path::new(&args.file);
     let snapshot = if filepath.exists() {
         Snapshot::parse(|| {
-            let f = unwrap_or_exit(filepath.to_string_lossy(), File::open(filepath));
+            let f = unwrap_or_exit(filepath.to_string_lossy(), fs::File::open(filepath));
             let reader = BufReader::new(f);
             unwrap_or_exit("yaml reader", serde_yaml::from_reader(reader))
         })
@@ -84,12 +103,20 @@ fn main() {
         event_repo: snapshot.events.clone(),
     };
 
+    let experience_srv = ExperienceApplication {
+        experience_repo: snapshot.experiences.clone(),
+        entity_repo: snapshot.entities.clone(),
+        event_repo: snapshot.events.clone(),
+        cnst_factory: PhantomData::<CliCommand>,
+    };
+
     // Execute command
     unwrap_or_exit(
         format!("{}", args.command),
         match args.command {
             CliCommand::Entity(command) => entity_srv.execute(command),
             CliCommand::Event(command) => event_srv.execute(command),
+            CliCommand::Experience(command) => experience_srv.execute(command),
         },
     );
 
@@ -100,7 +127,7 @@ fn main() {
         }
     }
 
-    let f = unwrap_or_exit(filepath.to_string_lossy(), File::create(filepath));
+    let f = unwrap_or_exit(filepath.to_string_lossy(), fs::File::create(filepath));
 
     let mut writer = BufWriter::new(f);
     unwrap_or_exit("yaml writer", serde_yaml::to_writer(&mut writer, &snapshot));

@@ -6,9 +6,9 @@ pub mod experience;
 #[cfg(feature = "in_memory")]
 pub mod snapshot;
 pub mod error;
+pub mod interval;
 
 mod id;
-mod interval;
 mod macros;
 mod name;
 mod period;
