@@ -1,4 +1,4 @@
-use crate::{CliError, CliResult};
+use crate::{Error, Result};
 use clap::{Args, Subcommand};
 use plotline::{
     event::{
@@ -46,10 +46,10 @@ impl<EventRepo> EventCli<EventRepo>
 where
     EventRepo: 'static + EventRepository + Sync + Send,
     EventRepo::Interval: TryFrom<Vec<String>> + Sync + Send,
-    <EventRepo::Interval as TryFrom<Vec<String>>>::Error: Into<CliError>,
+    <EventRepo::Interval as TryFrom<Vec<String>>>::Error: Into<Error>,
 {
     /// Given a [EventCommand], executes the corresponding logic.
-    pub fn execute(&self, event_cmd: EventCommand) -> CliResult {
+    pub fn execute(&self, event_cmd: EventCommand) -> Result {
         let event_id = event_cmd.event.map(TryInto::try_into).transpose()?;
         if let Some(command) = event_cmd.command {
             return self.execute_subcommand(command, event_id);
@@ -62,7 +62,7 @@ where
         &self,
         subcommand: EventSubCommand,
         event_id: Option<Id<Event<EventRepo::Interval>>>,
-    ) -> CliResult {
+    ) -> Result {
         match subcommand {
             EventSubCommand::Save(args) => {
                 let event_id = event_id.unwrap_or_default();

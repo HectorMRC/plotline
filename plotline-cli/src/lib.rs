@@ -1,81 +1,38 @@
+#[macro_use]
+extern crate prettytable;
+
 pub mod entity;
 pub mod event;
 pub mod experience;
 
-use std::{
-    fmt::Display,
-    io::Write,
-    io::{stderr, stdout},
-    sync::mpsc,
+mod error;
+pub use error::*;
+
+use clap::Subcommand;
+use plotline::{
+    experience::{
+        application::ConstraintFactory,
+        constraint::{Constraint, LiFoConstraintChain},
+        ExperiencedEvent,
+    },
+    interval::Interval,
 };
 
-pub type CliResult = std::result::Result<(), CliError>;
-
-impl From<CliError> for CliResult {
-    fn from(value: CliError) -> Self {
-        Self::Err(value)
-    }
+#[derive(Subcommand, strum_macros::Display)]
+pub enum CliCommand {
+    /// Manage entities.
+    Entity(entity::EntityCommand),
+    /// Manage events.
+    Event(event::EventCommand),
+    /// Manage experiences.
+    Experience(experience::ExperienceCommand),
 }
 
-#[derive(thiserror::Error, Debug)]
-pub enum CliError {
-    #[error("{0}: argument is missing")]
-    MissingArgument(&'static str),
-    #[error("{0}")]
-    Entity(#[from] plotline::entity::Error),
-    #[error("{0}")]
-    Name(#[from] plotline::name::Error),
-    #[error("{0}")]
-    Id(#[from] plotline::id::Error),
-    #[error("{0}")]
-    Event(#[from] plotline::event::Error),
-    #[error("{0}")]
-    Io(#[from] std::io::Error),
-    #[error("{0}")]
-    ParseIntError(#[from] std::num::ParseIntError),
-}
-
-/// Displays the given result through the stdout if is [Result::Ok], or through the stderr
-/// otherwise.
-pub fn display_result<T, E>(result: Result<T, E>)
+impl<Intv> ConstraintFactory<Intv> for CliCommand
 where
-    T: Display + Sync + Send,
-    E: Display + Sync + Send,
+    Intv: Interval,
 {
-    match result {
-        Ok(ok) => println!("{ok}"),
-        Err(error) => eprintln!("{error}"),
-    };
-}
-
-/// Calls the given closure for each item in the given iterator and displays the result through the
-/// stdout if is [Result::Ok], or through the stderr otherwise.
-pub fn display_each_result<I, F, T, E>(iter: I, f: F) -> Result<(), std::io::Error>
-where
-    I: Iterator,
-    I::Item: Sync + Send,
-    F: Fn(I::Item) -> Result<T, E> + Copy + Sync + Send,
-    T: Display + Sync + Send,
-    E: Display + Sync + Send,
-{
-    let receiver = std::thread::scope(|scope| {
-        let (sender, receiver) = mpsc::channel();
-        iter.for_each(|item| {
-            let sender = sender.clone();
-            scope.spawn(move || sender.send(f(item)));
-        });
-
-        receiver
-    });
-
-    let mut stdout = stdout().lock();
-    let mut stderr = stderr().lock();
-    while let Ok(result) = receiver.recv() {
-        match result {
-            Ok(ok) => writeln!(stdout, "{ok}")?,
-            Err(error) => writeln!(stderr, "{error}")?,
-        }
+    fn new<'a>(experienced_event: &'a ExperiencedEvent<'a, Intv>) -> impl Constraint<'a, Intv> {
+        LiFoConstraintChain::with_defaults(experienced_event)
     }
-
-    Ok(())
 }

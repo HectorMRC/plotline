@@ -1,4 +1,4 @@
-use crate::{display_each_result, display_result, CliResult};
+use crate::{display_each_result, display_result, Result};
 use clap::{Args, Subcommand};
 use plotline::{
     entity::{
@@ -7,8 +7,8 @@ use plotline::{
     },
     id::Id,
 };
-use std::io::{stdout, Write};
-use std::{fmt::Display, marker::PhantomData};
+use prettytable::Table;
+use std::fmt::Display;
 
 #[derive(Args)]
 struct EntitySaveArgs {
@@ -54,7 +54,7 @@ where
     EntityRepo: 'static + EntityRepository + Sync + Send,
 {
     /// Given an [EntityCommand], executes the corresponding logic.
-    pub fn execute(&self, entity_cmd: EntityCommand) -> CliResult {
+    pub fn execute(&self, entity_cmd: EntityCommand) -> Result {
         let entity_id = entity_cmd.entity.map(TryInto::try_into).transpose()?;
         if let Some(command) = entity_cmd.command {
             return self.execute_subcommand(command, entity_id);
@@ -65,7 +65,7 @@ where
         };
 
         let entity = self.entity_app.find_entity(entity_id).execute()?;
-        print!("{}", EntityFmt::column(&entity));
+        print!("{}", SingleEntityFmt::new(&entity));
 
         Ok(())
     }
@@ -74,7 +74,7 @@ where
         &self,
         subcommand: EntitySubCommand,
         entity_id: Option<Id<Entity>>,
-    ) -> CliResult {
+    ) -> Result {
         match subcommand {
             EntitySubCommand::Save(args) => {
                 let entity_id = entity_id.unwrap_or_default();
@@ -87,13 +87,7 @@ where
 
             EntitySubCommand::List => {
                 let entities = self.entity_app.filter_entities().execute()?;
-
-                let mut stdout = stdout().lock();
-                writeln!(stdout, "{}", EntityFmt::headers())?;
-
-                entities
-                    .into_iter()
-                    .try_for_each(|entity| write!(stdout, "{}", EntityFmt::row(&entity)))?;
+                print!("{}", ManyEntitiesFmt::new(&entities));
             }
 
             EntitySubCommand::Remove(args) => {
@@ -120,62 +114,44 @@ where
     }
 }
 
-macro_rules! row_format {
-    () => {
-        "{: <15} {: <40}"
-    };
-}
-
-/// Displays the [Entity] in a single line.
-struct Row;
-/// Displays the [Entity] in different lines.
-struct Column;
-
-/// Implements diffent strategies of [Display] for [Entity].
-struct EntityFmt<'a, S> {
-    style: PhantomData<S>,
+struct SingleEntityFmt<'a> {
     entity: &'a Entity,
 }
 
-impl<'a> Display for EntityFmt<'a, Row> {
+impl<'a> Display for SingleEntityFmt<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(
-            f,
-            row_format!(),
-            self.entity.name.to_string(),
-            self.entity.id.to_string(),
-        )
+        let mut table = Table::new();
+        table.add_row(row!["", "ENTITY SHEET"]);
+        table.add_row(row!["ID", self.entity.id]);
+        table.add_row(row!["NAME", self.entity.name]);
+        table.fmt(f)
     }
 }
 
-impl<'a> Display for EntityFmt<'a, Column> {
+impl<'a> SingleEntityFmt<'a> {
+    pub fn new(entity: &'a Entity) -> Self {
+        Self { entity }
+    }
+}
+
+struct ManyEntitiesFmt<'a> {
+    entities: &'a [Entity],
+}
+
+impl<'a> Display for ManyEntitiesFmt<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{: <10} {}", "NAME", self.entity.name)?;
-        writeln!(f, "{: <10} {}", "UUID", self.entity.id)
+        let mut table = Table::new();
+        table.add_row(row!["NAME", "ID"]);
+        self.entities.iter().for_each(|entity| {
+            table.add_row(row![&entity.name, &entity.id]);
+        });
+
+        table.fmt(f)
     }
 }
 
-impl<'a> EntityFmt<'a, Row> {
-    /// Returns the string of headers corresponding to the row-like display.
-    pub fn headers() -> String {
-        format!(row_format!(), "NAME", "UUID")
-    }
-
-    /// Returns an instance of [EntityFmt] that displays the given entity in a single line.
-    pub fn row(entity: &'a Entity) -> Self {
-        EntityFmt {
-            style: PhantomData,
-            entity,
-        }
-    }
-}
-
-impl<'a> EntityFmt<'a, Column> {
-    /// Returns an instance of [EntityFmt] that displays the given entity in different lines.
-    pub fn column(entity: &'a Entity) -> Self {
-        EntityFmt {
-            style: PhantomData,
-            entity,
-        }
+impl<'a> ManyEntitiesFmt<'a> {
+    pub fn new(entities: &'a [Entity]) -> Self {
+        Self { entities }
     }
 }

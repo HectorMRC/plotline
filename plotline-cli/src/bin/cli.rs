@@ -1,21 +1,10 @@
-use clap::{error::ErrorKind, Parser, Subcommand};
+use clap::{error::ErrorKind, Parser};
 use once_cell::sync::Lazy;
 use plotline::{
-    entity::application::EntityApplication,
-    event::application::EventApplication,
-    experience::{
-        application::{ConstraintFactory, ExperienceApplication},
-        constraint::{Constraint, LiFoConstraintChain},
-        ExperiencedEvent,
-    },
-    interval::Interval,
-    snapshot::Snapshot,
+    entity::application::EntityApplication, event::application::EventApplication,
+    experience::application::ExperienceApplication, snapshot::Snapshot,
 };
-use plotline_cli::{
-    entity::{EntityCli, EntityCommand},
-    event::{EventCli, EventCommand},
-    experience::{ExperienceCli, ExperienceCommand},
-};
+use plotline_cli::{entity::EntityCli, event::EventCli, experience::ExperienceCli, CliCommand};
 use std::{
     ffi::OsString,
     fmt::Display,
@@ -52,26 +41,8 @@ struct Cli {
     file: OsString,
 }
 
-#[derive(Subcommand, strum_macros::Display)]
-enum CliCommand {
-    /// Manage entities.
-    Entity(EntityCommand),
-    /// Manage events.
-    Event(EventCommand),
-    /// Manage experiences.
-    Experience(ExperienceCommand),
-}
-
-impl<Intv> ConstraintFactory<Intv> for CliCommand
-where
-    Intv: Interval,
-{
-    fn new<'a>(experienced_event: &'a ExperiencedEvent<'a, Intv>) -> impl Constraint<'a, Intv> {
-        LiFoConstraintChain::with_defaults(experienced_event)
-    }
-}
-
-/// Returns the value of the result if, and only if, the result is OK. Otherwise prints the error and exits.
+/// Returns the value of the result if, and only if, the result is OK.
+/// Otherwise prints the error and exits.
 fn unwrap_or_exit<D, T, E>(msg: D, result: Result<T, E>) -> T
 where
     D: Display,
