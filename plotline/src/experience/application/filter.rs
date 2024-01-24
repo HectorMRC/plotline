@@ -1,6 +1,13 @@
+use super::{ExperienceApplication, ExperienceRepository};
 use crate::{
-    entity::Entity, event::Event, experience::Experience, id::Id, macros::equals_or_return,
+    entity::Entity,
+    event::{application::EventRepository, Event},
+    experience::{Experience, Result},
+    id::Id,
+    macros::equals_or_return,
+    transaction::Tx,
 };
+use std::sync::Arc;
 
 /// Implements the filter query, through which zero o more experiences may be
 /// retrived.
@@ -49,5 +56,54 @@ impl<Intv> ExperienceFilter<Intv> {
                 .after
                 .iter()
                 .any(|profile| profile.entity == entity_id)
+    }
+}
+
+/// Implements the filter query, through which zero o more experiences may be
+/// retrived.
+pub struct FilterExperiences<ExperienceRepo>
+where
+    ExperienceRepo: ExperienceRepository,
+{
+    experience_repo: Arc<ExperienceRepo>,
+    filter: ExperienceFilter<ExperienceRepo::Interval>,
+}
+
+impl<ExperienceRepo> FilterExperiences<ExperienceRepo>
+where
+    ExperienceRepo: ExperienceRepository,
+{
+    pub fn execute(self) -> Result<Vec<Experience<ExperienceRepo::Interval>>> {
+        Ok(self
+            .experience_repo
+            .filter(&self.filter)?
+            .into_iter()
+            .map(Tx::begin)
+            .map(|experience| experience.clone())
+            .collect())
+    }
+}
+
+impl<ExperienceRepo> FilterExperiences<ExperienceRepo>
+where
+    ExperienceRepo: ExperienceRepository,
+{
+    pub fn with_filter(mut self, filter: ExperienceFilter<ExperienceRepo::Interval>) -> Self {
+        self.filter = filter;
+        self
+    }
+}
+
+impl<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
+    ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
+where
+    ExperienceRepo: ExperienceRepository<Interval = EventRepo::Interval>,
+    EventRepo: EventRepository,
+{
+    pub fn filter_experiences(&self) -> FilterExperiences<ExperienceRepo> {
+        FilterExperiences {
+            experience_repo: self.experience_repo.clone(),
+            filter: Default::default(),
+        }
     }
 }

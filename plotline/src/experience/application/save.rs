@@ -46,7 +46,7 @@ where
     /// Executes the save experience transaction.
     pub fn execute(self) -> Result<()> {
         let experiences_tx = self.experience_repo.filter(
-            ExperienceFilter::default()
+            &ExperienceFilter::default()
                 .with_event(Some(self.event))
                 .with_entity(Some(self.entity)),
         )?;
@@ -68,7 +68,7 @@ where
 
         let experiences = self
             .experience_repo
-            .filter(ExperienceFilter::default().with_entity(Some(entity.id())))?
+            .filter(&ExperienceFilter::default().with_entity(Some(entity.id())))?
             .into_iter()
             .map(Tx::begin)
             .collect::<Vec<_>>();

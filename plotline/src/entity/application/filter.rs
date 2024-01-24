@@ -1,6 +1,6 @@
 use super::{EntityApplication, EntityRepository};
 use crate::{
-    entity::{error::Result, Entity},
+    entity::{Entity, Result},
     id::Id,
     macros::equals_or_return,
     name::Name,

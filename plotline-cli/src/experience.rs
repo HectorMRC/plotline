@@ -3,22 +3,28 @@ use clap::{Args, Subcommand};
 use plotline::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
-    experience::application::{ConstraintFactory, ExperienceApplication, ExperienceRepository},
-    id::{Id, Result as IdResult},
+    experience::{
+        application::{ConstraintFactory, ExperienceApplication, ExperienceRepository},
+        Experience,
+    },
+    id::{Id, Identifiable, Result as IdResult},
 };
+use prettytable::Table;
+use std::fmt::Display;
 
 #[derive(Args)]
-struct ProfileFieldArgs {
+struct ProfileSetArgs {
     /// The name of the field.
     key: String,
     /// The field's value.
-    value: String,
+    value: Option<String>,
 }
 
 #[derive(Subcommand)]
 enum ProfileCommand {
-    /// Add a key-value in a profile.
-    Add(ProfileFieldArgs),
+    /// Set a new value in a profile.
+    Set(ProfileSetArgs),
+    /// List all profiles.
     #[clap(alias = "ls")]
     List,
     /// Remove a profile.
@@ -104,7 +110,7 @@ where
     fn execute_subcommand(
         &self,
         subcommand: ExperienceSubCommand,
-        experience: Option<(Id<Entity>, Id<Event<EventRepo::Interval>>)>,
+        experience: Option<<Experience<EventRepo::Interval> as Identifiable>::Id>,
     ) -> Result {
         match subcommand {
             ExperienceSubCommand::Save(args) => {
@@ -118,7 +124,8 @@ where
                 println!("{} {}", entity_id, event_id);
             }
             ExperienceSubCommand::List => {
-                unimplemented!();
+                let experiences = self.experience_app.filter_experiences().execute()?;
+                print!("{}", ManyExperiencesFmt::new(&experiences));
             }
             ExperienceSubCommand::Profile(args) => self.execute_profile_command(
                 experience.ok_or(Error::MissingArgument("experience id"))?,
@@ -132,10 +139,32 @@ where
 
     fn execute_profile_command(
         &self,
-        experience: (Id<Entity>, Id<Event<EventRepo::Interval>>),
-        entity: Option<Id<Entity>>,
-        command: Option<ProfileCommand>,
+        _experience: (Id<Entity>, Id<Event<EventRepo::Interval>>),
+        _entity: Option<Id<Entity>>,
+        _command: Option<ProfileCommand>,
     ) {
         todo!()
+    }
+}
+
+struct ManyExperiencesFmt<'a, Intv> {
+    experiences: &'a [Experience<Intv>],
+}
+
+impl<'a, Intv> Display for ManyExperiencesFmt<'a, Intv> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut table = Table::new();
+        table.add_row(row!["ENTITY ID", "EVENT ID"]);
+        self.experiences.iter().for_each(|experience| {
+            table.add_row(row![&experience.entity, &experience.event]);
+        });
+
+        table.fmt(f)
+    }
+}
+
+impl<'a, Intv> ManyExperiencesFmt<'a, Intv> {
+    pub fn new(experiences: &'a [Experience<Intv>]) -> Self {
+        Self { experiences }
     }
 }

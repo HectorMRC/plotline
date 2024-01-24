@@ -12,7 +12,9 @@ use serde::{Deserialize, Serialize};
 /// An Entity is anything which to interact with.
 #[derive(Debug, Clone, Eq, Serialize, Deserialize)]
 pub struct Entity {
+    /// The id of the entity.
     pub id: Id<Self>,
+    /// The name of the entity.
     pub name: Name<Self>,
 }
 

@@ -26,6 +26,8 @@ pub enum Error {
     #[error("{0}")]
     Event(#[from] plotline::event::Error),
     #[error("{0}")]
+    Experience(#[from] plotline::experience::Error),
+    #[error("{0}")]
     Io(#[from] std::io::Error),
     #[error("{0}")]
     ParseIntError(#[from] std::num::ParseIntError),

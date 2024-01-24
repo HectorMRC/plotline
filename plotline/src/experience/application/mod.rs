@@ -15,7 +15,7 @@ pub trait ExperienceRepository {
     type Tx: Tx<Experience<Self::Interval>>;
 
     fn create(&self, experience: &Experience<Self::Interval>) -> Result<()>;
-    fn filter(&self, filter: ExperienceFilter<Self::Interval>) -> Result<Vec<Self::Tx>>;
+    fn filter(&self, filter: &ExperienceFilter<Self::Interval>) -> Result<Vec<Self::Tx>>;
 }
 
 pub trait ConstraintFactory<Intv> {

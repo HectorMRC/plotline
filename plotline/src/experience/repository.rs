@@ -83,7 +83,7 @@ where
         Ok(())
     }
 
-    fn filter(&self, filter: ExperienceFilter<Intv>) -> super::Result<Vec<Self::Tx>> {
+    fn filter(&self, filter: &ExperienceFilter<Intv>) -> super::Result<Vec<Self::Tx>> {
         let data = self
             .data
             .read()

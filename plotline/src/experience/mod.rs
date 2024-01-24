@@ -36,8 +36,11 @@ impl Profile {
 /// An Experience represents the change caused by an [Event] on an [Entity].
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Experience<Intv> {
-    entity: Id<Entity>,
-    event: Id<Event<Intv>>,
+    /// The id of the entity involved in the experience.
+    pub entity: Id<Entity>,
+    /// The id of the event causing the experience.
+    pub event: Id<Event<Intv>>,
+    /// The profiles resulting from the experience.
     after: Vec<Profile>,
 }
 
