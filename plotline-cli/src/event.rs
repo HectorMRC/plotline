@@ -16,9 +16,6 @@ struct EventSaveArgs {
     /// The period during which the event takes place.
     #[arg(long, short, num_args(1..=2))]
     interval: Option<Vec<String>>,
-    /// The ids of all the entities implicated in the event.
-    #[arg(long, short, use_value_delimiter = true, value_delimiter = ',')]
-    entities: Option<Vec<String>>,
 }
 
 #[derive(Subcommand)]

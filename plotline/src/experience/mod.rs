@@ -41,7 +41,7 @@ pub struct Experience<Intv> {
     /// The id of the event causing the experience.
     pub event: Id<Event<Intv>>,
     /// The profiles resulting from the experience.
-    after: Vec<Profile>,
+    profiles: Vec<Profile>,
 }
 
 impl<Intv> Identifiable for Experience<Intv> {
@@ -53,8 +53,8 @@ impl<Intv> Identifiable for Experience<Intv> {
 }
 
 impl<Intv> Experience<Intv> {
-    pub fn with_after(mut self, after: Vec<Profile>) -> Self {
-        self.after = after;
+    pub fn with_profiles(mut self, profiles: Vec<Profile>) -> Self {
+        self.profiles = profiles;
         self
     }
 }
@@ -64,7 +64,7 @@ impl<Intv> Experience<Intv> {
 pub struct ExperienceBuilder<'a, Intv> {
     entity: &'a Entity,
     event: &'a Event<Intv>,
-    after: Option<Vec<Profile>>,
+    profiles: Option<Vec<Profile>>,
 }
 
 impl<'a, Intv: Clone> Clone for ExperienceBuilder<'a, Intv> {
@@ -72,7 +72,7 @@ impl<'a, Intv: Clone> Clone for ExperienceBuilder<'a, Intv> {
         Self {
             entity: self.entity,
             event: self.event,
-            after: self.after.clone(),
+            profiles: self.profiles.clone(),
         }
     }
 }
@@ -82,19 +82,22 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
         Self {
             entity,
             event,
-            after: Default::default(),
+            profiles: Default::default(),
         }
     }
 
-    pub fn with_after(mut self, after: Option<Vec<Profile>>) -> Self {
-        self.after = after;
+    pub fn with_profiles(mut self, profiles: Option<Vec<Profile>>) -> Self {
+        self.profiles = profiles;
         self
     }
 
     pub fn build(mut self) -> Result<Experience<Intv>> {
-        if let Some(after) = self.after.as_mut() {
+        if let Some(profiles) = self.profiles.as_mut() {
             let mut uniq = HashSet::new();
-            if !after.iter().all(move |profile| uniq.insert(profile.entity)) {
+            if !profiles
+                .iter()
+                .all(move |profile| uniq.insert(profile.entity))
+            {
                 return Err(Error::RepeatedEntity);
             }
         }
@@ -102,7 +105,7 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
         Ok(Experience {
             entity: self.entity.id(),
             event: self.event.id(),
-            after: self.after.unwrap_or_default(),
+            profiles: self.profiles.unwrap_or_default(),
         })
     }
 }
@@ -120,14 +123,14 @@ where
             next = next.with(experienced_event);
         }
 
-        self.after = self.after.or_else(|| {
+        self.profiles = self.profiles.or_else(|| {
             previous
                 .value()
                 .or_else(|| next.value())
                 .and_then(|experienced_event| {
                     experienced_event
                         .experience
-                        .after
+                        .profiles
                         .iter()
                         .find(|profile| profile.entity == self.entity.id())
                         .cloned()
@@ -151,7 +154,7 @@ pub enum ExperienceKind {
 
 impl<Intv> From<&Experience<Intv>> for ExperienceKind {
     fn from(experience: &Experience<Intv>) -> Self {
-        if experience.after.is_empty() {
+        if experience.profiles.is_empty() {
             ExperienceKind::Terminal
         } else {
             ExperienceKind::Transitive
@@ -204,7 +207,7 @@ mod tests {
         Experience {
             entity: Id::default(),
             event: Id::default(),
-            after: vec![Profile::new(Id::default())],
+            profiles: vec![Profile::new(Id::default())],
         }
     }
 
@@ -212,7 +215,7 @@ mod tests {
         Experience {
             entity: Id::default(),
             event: Id::default(),
-            after: Vec::default(),
+            profiles: Vec::default(),
         }
     }
 }

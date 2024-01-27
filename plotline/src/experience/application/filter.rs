@@ -53,7 +53,7 @@ impl<Intv> ExperienceFilter<Intv> {
 
         entity_id == experience.entity
             || experience
-                .after
+                .profiles
                 .iter()
                 .any(|profile| profile.entity == entity_id)
     }

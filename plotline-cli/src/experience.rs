@@ -119,7 +119,7 @@ where
 
                 self.experience_app
                     .save_experience(entity_id, event_id)
-                    .with_after(args.terminal.then_some(Vec::default()));
+                    .with_profiles(args.terminal.then_some(Vec::default()));
 
                 println!("{} {}", entity_id, event_id);
             }

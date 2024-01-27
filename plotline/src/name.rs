@@ -11,7 +11,7 @@ pub enum Error {
 
 /// Returns true if, and only if, the given char c is an invalid character inside a name.
 fn is_invalid_char(c: char) -> bool {
-    const INVALID_CHARS: [char; 3] = ['\n', '\r', ' '];
+    const INVALID_CHARS: [char; 2] = ['\n', '\r'];
     INVALID_CHARS.contains(&c)
 }
 
@@ -116,9 +116,9 @@ mod tests {
                 must_fail: true,
             },
             Test {
-                name: "A multi word single line string is not a valid name",
+                name: "A multi word single line string is a valid name",
                 entity_name: "abc 123#[]-_*&^",
-                must_fail: true,
+                must_fail: false,
             },
             Test {
                 name: "A single word string is a valid name",

@@ -13,7 +13,7 @@ pub enum Error {
     #[error("an entity cannot experience an event more than once")]
     EventAlreadyExperienced,
     // domain
-    #[error("an entity cannot be after of the same experience more than once")]
+    #[error("an entity cannot result from the same experience more than once")]
     RepeatedEntity,
     // foreign
     #[error("{0}")]

@@ -21,7 +21,7 @@ where
     cnst_factory: PhantomData<CnstFactory>,
     entity: Id<Entity>,
     event: Id<Event<EventRepo::Interval>>,
-    after: Option<Vec<Profile>>,
+    profiles: Option<Vec<Profile>>,
 }
 
 impl<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
@@ -29,8 +29,8 @@ impl<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
 where
     EventRepo: EventRepository,
 {
-    pub fn with_after(mut self, after: Option<Vec<Profile>>) -> Self {
-        self.after = after;
+    pub fn with_profiles(mut self, profiles: Option<Vec<Profile>>) -> Self {
+        self.profiles = profiles;
         self
     }
 }
@@ -96,7 +96,7 @@ where
             .collect::<Vec<_>>();
 
         let experience = ExperienceBuilder::new(&entity, &event)
-            .with_after(self.after)
+            .with_profiles(self.profiles)
             .with_fallbacks(&experienced_events)
             .build()?;
 
@@ -142,7 +142,7 @@ where
             cnst_factory: PhantomData,
             entity: entity_id,
             event: event_id,
-            after: Default::default(),
+            profiles: Default::default(),
         }
     }
 }

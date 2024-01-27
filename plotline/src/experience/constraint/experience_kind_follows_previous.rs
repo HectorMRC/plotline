@@ -71,14 +71,14 @@ mod tests {
             Test {
                 name: "transitive without previous experience",
                 builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
+                    .with_profiles(Some(vec![Profile::new(Id::default())])),
                 with: vec![],
                 result: Ok(()),
             },
             Test {
                 name: "transitive with transitive previous experience",
                 builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
+                    .with_profiles(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &Event::fixture([0, 0]),
@@ -88,7 +88,7 @@ mod tests {
             Test {
                 name: "transitive with terminal previous experience",
                 builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
+                    .with_profiles(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
                     event: &Event::fixture([0, 0]),

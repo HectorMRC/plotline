@@ -1,9 +1,10 @@
 use super::{EventApplication, EventRepository};
 use crate::{
+    assign_inner_value,
     event::Event,
     event::{Error, Result},
     id::Id,
-    name::Name,
+    name::{Error as NameError, Name},
     transaction::{Tx, TxGuard},
 };
 use std::sync::Arc;
@@ -44,11 +45,11 @@ where
 
     fn create(self) -> Result<()> {
         let Some(name) = self.name else {
-            return Err(Error::EmptyName);
+            return Err(NameError::NotAName.into());
         };
 
         let Some(interval) = self.interval else {
-            return Err(Error::EmptyInterval);
+            return Err(Error::NotAnInterval);
         };
 
         let event = Event::new(self.id, name, interval);
@@ -58,13 +59,8 @@ where
     fn update(self, event_tx: EventRepo::Tx) -> Result<()> {
         let mut event = event_tx.begin();
 
-        if let Some(name) = self.name {
-            event.name = name;
-        }
-
-        if let Some(interval) = self.interval {
-            event.interval = interval;
-        }
+        assign_inner_value(self.name, &mut event.name);
+        assign_inner_value(self.interval, &mut event.interval);
 
         event.commit();
         Ok(())

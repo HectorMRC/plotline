@@ -26,19 +26,19 @@ where
             return Ok(());
         };
 
-        let previous_afters = HashSet::<Id<Entity>>::from_iter(
+        let previous_profiles = HashSet::<Id<Entity>>::from_iter(
             previous
                 .experience
-                .after
+                .profiles
                 .iter()
                 .map(|profile| profile.entity),
         );
 
-        if previous_afters.is_empty() {
+        if previous_profiles.is_empty() {
             return Ok(());
         }
 
-        if previous_afters.contains(&self.experienced_event.experience.entity) {
+        if previous_profiles.contains(&self.experienced_event.experience.entity) {
             return Ok(());
         }
 
@@ -85,7 +85,7 @@ mod tests {
             Test {
                 name: "transitive without previous experience",
                 builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
+                    .with_profiles(Some(vec![Profile::new(Id::default())])),
                 with: vec![],
                 result: Ok(()),
             },
@@ -95,12 +95,12 @@ mod tests {
                     &Entity::fixture().with_id(const_id),
                     &Event::fixture([1, 1]),
                 )
-                .with_after(Some(vec![Profile::new(const_id)])),
+                .with_profiles(Some(vec![Profile::new(const_id)])),
                 with: vec![ExperiencedEvent {
                     experience: &{
                         let mut initial = transitive_experience();
                         initial
-                            .after
+                            .profiles
                             .iter_mut()
                             .for_each(|profile| profile.entity = const_id);
                         initial
@@ -116,7 +116,7 @@ mod tests {
             Test {
                 name: "transitive does not belong to non-terminal previous experience",
                 builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
+                    .with_profiles(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &Event::new(
@@ -130,7 +130,7 @@ mod tests {
             Test {
                 name: "transitive with terminal previous experience",
                 builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
-                    .with_after(Some(vec![Profile::new(Id::default())])),
+                    .with_profiles(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
                     event: &Event::fixture([0, 0]),
@@ -154,7 +154,7 @@ mod tests {
                     experience: &{
                         let mut initial = transitive_experience();
                         initial
-                            .after
+                            .profiles
                             .iter_mut()
                             .for_each(|profile| profile.entity = const_id);
                         initial

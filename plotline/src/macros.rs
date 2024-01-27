@@ -1,4 +1,4 @@
-/// Given an option and a value, compares them both if, and only if, the option
+/// Given an [Option] and a value, compares them both if, and only if, the option
 /// is [Option::Some]. This macro calls to `return false;` if, and only if, the
 /// compared values are different. Otherwise does nothing.
 macro_rules! equals_or_return {
