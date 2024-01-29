@@ -14,7 +14,7 @@
     plotline = { path = "../plotline", features = ["in_memory"] }
     prettytable-rs = "0.10.0"
     serde_yaml = "0.9.30"
-    strum_macros = "0.25.3"
+    strum_macros = "0.26.1"
     thiserror = "1.0.56"
 
 [[bin]]
