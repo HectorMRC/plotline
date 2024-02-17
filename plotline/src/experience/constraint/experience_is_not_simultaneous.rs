@@ -1,4 +1,4 @@
-use super::{Constraint, Error, OwnedResult, Result};
+use super::{Constraint, Error, Recoverable, Result};
 use crate::{event::Event, experience::ExperiencedEvent, interval::Interval};
 
 pub struct ExperienceIsNotSimultaneous<'a, Intv> {
@@ -10,7 +10,7 @@ impl<'a, Intv> Constraint<'a, Intv> for ExperienceIsNotSimultaneous<'a, Intv>
 where
     Intv: Interval,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> OwnedResult<Self> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Recoverable<Self> {
         if self.event.intersects(experienced_event.event) {
             self.conflict = Some(experienced_event);
         }

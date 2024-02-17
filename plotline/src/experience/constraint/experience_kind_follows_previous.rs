@@ -1,7 +1,6 @@
-use super::{Constraint, Error, OwnedResult, Result};
+use super::{Constraint, Error, Recoverable, Result};
 use crate::{
-    experience::{query::SelectPreviousExperience, ExperienceKind, ExperiencedEvent},
-    interval::Interval,
+    experience::{query::SelectPreviousExperience, ExperienceKind, ExperiencedEvent}, interval::Interval
 };
 
 pub struct ExperienceKindFollowsPrevious<'a, Intv> {
@@ -13,7 +12,7 @@ impl<'a, Intv> Constraint<'a, Intv> for ExperienceKindFollowsPrevious<'a, Intv>
 where
     Intv: Interval,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> OwnedResult<Self> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Recoverable<Self> {
         self.previous.add(experienced_event);
         Ok(self)
     }

@@ -24,6 +24,14 @@ pub struct Profile {
     values: HashMap<String, String>,
 }
 
+impl Identifiable for Profile {
+    type Id = <Entity as Identifiable>::Id;
+
+    fn id(&self) -> Self::Id {
+        self.entity
+    }
+}
+
 impl Profile {
     pub fn new(entity: Id<Entity>) -> Self {
         Self {
@@ -31,15 +39,21 @@ impl Profile {
             values: HashMap::new(),
         }
     }
+
+    pub fn values(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.values
+            .iter()
+            .map(|(key, value)| (key.as_str(), value.as_str()))
+    }
 }
 
 /// An Experience represents the change caused by an [Event] on an [Entity].
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Experience<Intv> {
     /// The id of the entity involved in the experience.
-    pub entity: Id<Entity>,
+    entity: Id<Entity>,
     /// The id of the event causing the experience.
-    pub event: Id<Event<Intv>>,
+    event: Id<Event<Intv>>,
     /// The profiles resulting from the experience.
     profiles: Vec<Profile>,
 }
@@ -56,6 +70,10 @@ impl<Intv> Experience<Intv> {
     pub fn with_profiles(mut self, profiles: Vec<Profile>) -> Self {
         self.profiles = profiles;
         self
+    }
+
+    pub fn profiles(&self) -> &[Profile] {
+        &self.profiles
     }
 }
 

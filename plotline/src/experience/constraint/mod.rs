@@ -10,11 +10,13 @@ pub use experience_belongs_to_one_of_previous::*;
 mod experience_is_not_simultaneous;
 pub use experience_is_not_simultaneous::*;
 
-use crate::{error::PoisonError, experience::ExperiencedEvent, interval::Interval};
+use crate::{
+    error::PoisonError, experience::ExperiencedEvent, interval::Interval,
+};
 use std::fmt::Debug;
 
 pub type Result<T> = std::result::Result<T, Error>;
-pub type OwnedResult<T> = std::result::Result<T, PoisonError<T, Error>>;
+pub type Recoverable<T> = std::result::Result<T, PoisonError<T, Error>>;
 
 #[derive(Debug, PartialEq, thiserror::Error, Clone)]
 pub enum Error {
@@ -66,7 +68,7 @@ pub trait Constraint<'a, Intv>: Sized {
     ///
     /// Short-Circuiting: this method may return an error if, and only if, the
     /// given [ExperiencedEvent] already violates the constraint.
-    fn with(self, experienced_event: &'a ExperiencedEvent<Intv>) -> OwnedResult<Self>;
+    fn with(self, experienced_event: &'a ExperiencedEvent<Intv>) -> Recoverable<Self>;
 
     /// Returns the same error as `with`, if any. Otherwise returns the final
     /// veredict of the constraint.
@@ -120,7 +122,7 @@ where
     Head: Constraint<'a, Intv>,
     Cnst: Constraint<'a, Intv>,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> OwnedResult<Self> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Recoverable<Self> {
         let evaluate_head = |mut chain: Self, tail_error| match chain
             .head
             .map(|cnst| cnst.with(experienced_event))
@@ -188,7 +190,7 @@ where
     }
 }
 
-impl<Cnst> LiFoConstraintChain<(), Cnst> {
+impl<Cnst> LiFoConstraintChain<InfalibleContraint, Cnst> {
     pub fn new(constraint: Cnst) -> Self {
         Self {
             head: None,
@@ -203,7 +205,7 @@ impl<Cnst> LiFoConstraintChain<(), Cnst> {
     }
 }
 
-impl LiFoConstraintChain<(), ()> {
+impl LiFoConstraintChain<InfalibleContraint, InfalibleContraint> {
     /// Creates a [ConstraintChain] with the default [Constraint]s.
     pub fn with_defaults<'a, Intv>(
         experienced_event: &'a ExperiencedEvent<'a, Intv>,
@@ -218,10 +220,11 @@ impl LiFoConstraintChain<(), ()> {
     }
 }
 
-/// Implement [Constraint] for () so [LiFoConstraintChain] can use it as the
-/// default type of Head and Cnst.
-impl<'a, Intv> Constraint<'a, Intv> for () {
-    fn with(self, _: &'a ExperiencedEvent<Intv>) -> OwnedResult<Self> {
+/// A [Constraint] that never fails.
+pub struct InfalibleContraint;
+
+impl<'a, Intv> Constraint<'a, Intv> for InfalibleContraint {
+    fn with(self, _: &'a ExperiencedEvent<Intv>) -> Recoverable<Self> {
         Ok(self)
     }
 
@@ -245,7 +248,7 @@ where
     Cnst: Constraint<'a, Intv>,
     Inh: ErrorInhibitor,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> OwnedResult<Self> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Recoverable<Self> {
         match self.constraint.with(experienced_event) {
             Ok(constraint) => {
                 self.constraint = constraint;

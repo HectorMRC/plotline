@@ -5,25 +5,26 @@ use plotline::{
     event::{application::EventRepository, Event},
     experience::{
         application::{ConstraintFactory, ExperienceApplication, ExperienceRepository},
-        Experience,
+        Experience, Profile,
     },
     id::{Id, Identifiable, Result as IdResult},
 };
 use prettytable::Table;
 use std::fmt::Display;
 
+// const KEY_VALUE_SEPARATOR: char = '=';
+
 #[derive(Args)]
-struct ProfileSetArgs {
-    /// The name of the field.
-    key: String,
-    /// The field's value.
-    value: Option<String>,
+struct ProfileSaveArgs {
+    /// A key-value pair expressed as key=value.
+    #[clap(short, long, alias = "value")]
+    values: Option<Vec<String>>,
 }
 
 #[derive(Subcommand)]
 enum ProfileCommand {
-    /// Set a new value in a profile.
-    Set(ProfileSetArgs),
+    /// Save a profile.
+    Save(ProfileSaveArgs),
     /// List all profiles.
     #[clap(alias = "ls")]
     List,
@@ -131,7 +132,7 @@ where
                 experience.ok_or(Error::MissingArgument("experience id"))?,
                 args.entity.map(TryInto::try_into).transpose()?,
                 args.command,
-            ),
+            )?,
         }
 
         Ok(())
@@ -139,11 +140,39 @@ where
 
     fn execute_profile_command(
         &self,
-        _experience: (Id<Entity>, Id<Event<EventRepo::Interval>>),
-        _entity: Option<Id<Entity>>,
-        _command: Option<ProfileCommand>,
-    ) {
-        todo!()
+        experience: (Id<Entity>, Id<Event<EventRepo::Interval>>),
+        entity: Option<Id<Entity>>,
+        command: Option<ProfileCommand>,
+    ) -> Result {
+        let Some(command) = command else {
+            return self.execute_profile_command(experience, entity, Some(ProfileCommand::List));
+        };
+
+        match command {
+            ProfileCommand::List => {
+                let experience = self.experience_app.find_experience(experience).execute()?;
+                let profile = entity.and_then(|entity| {
+                    experience
+                        .profiles()
+                        .iter()
+                        .find(|profile| profile.id() == entity)
+                });
+
+                if let Some(profile) = profile {
+                    print!("{}", SingleProfileFmt::new(&profile));
+                } else {
+                    print!("{}", ManyProfilesFmt::new(experience.profiles()));
+                };
+            }
+            ProfileCommand::Save(_args) => {
+                todo!()
+            }
+            ProfileCommand::Remove => {
+                todo!()
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -156,7 +185,8 @@ impl<'a, Intv> Display for ManyExperiencesFmt<'a, Intv> {
         let mut table = Table::new();
         table.add_row(row!["ENTITY ID", "EVENT ID"]);
         self.experiences.iter().for_each(|experience| {
-            table.add_row(row![&experience.entity, &experience.event]);
+            let (entity, event) = experience.id();
+            table.add_row(row![&entity, &event]);
         });
 
         table.fmt(f)
@@ -166,5 +196,51 @@ impl<'a, Intv> Display for ManyExperiencesFmt<'a, Intv> {
 impl<'a, Intv> ManyExperiencesFmt<'a, Intv> {
     pub fn new(experiences: &'a [Experience<Intv>]) -> Self {
         Self { experiences }
+    }
+}
+
+struct SingleProfileFmt<'a> {
+    profile: &'a Profile,
+}
+
+impl<'a> Display for SingleProfileFmt<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut table = Table::new();
+        table.add_row(row!["ENTITY", self.profile.id()]);
+        table.add_empty_row();
+    
+        self.profile.values().for_each(|(key, value)| {
+            table.add_row(row![key, value]);
+        });
+
+        table.fmt(f)
+    }
+}
+
+impl<'a> SingleProfileFmt<'a> {
+    pub fn new(profile: &'a Profile) -> Self {
+        Self { profile }
+    }
+}
+
+struct ManyProfilesFmt<'a> {
+    profiles: &'a [Profile],
+}
+
+impl<'a> Display for ManyProfilesFmt<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut table = Table::new();
+        table.add_row(row!["ID"]);
+        self.profiles.iter().for_each(|profile| {
+            table.add_row(row![profile.id()]);
+        });
+
+        table.fmt(f)
+    }
+}
+
+impl<'a> ManyProfilesFmt<'a> {
+    pub fn new(profiles: &'a [Profile]) -> Self {
+        Self { profiles }
     }
 }

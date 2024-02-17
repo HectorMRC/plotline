@@ -6,6 +6,9 @@ pub use save::*;
 mod filter;
 pub use filter::*;
 
+mod find;
+pub use find::*;
+
 use super::{constraint::Constraint, error::Result, ExperiencedEvent};
 use crate::{experience::Experience, interval::Interval, transaction::Tx};
 use std::{marker::PhantomData, sync::Arc};

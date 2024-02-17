@@ -1,4 +1,4 @@
-use super::{Constraint, Error, OwnedResult, Result};
+use super::{Constraint, Error, Recoverable, Result};
 use crate::{
     entity::Entity,
     experience::{query::SelectPreviousExperience, ExperiencedEvent},
@@ -16,7 +16,7 @@ impl<'a, Intv> Constraint<'a, Intv> for ExperienceBelongsToOneOfPrevious<'a, Int
 where
     Intv: Interval,
 {
-    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> OwnedResult<Self> {
+    fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Recoverable<Self> {
         self.previous.add(experienced_event);
         Ok(self)
     }

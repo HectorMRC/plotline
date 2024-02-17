@@ -123,7 +123,6 @@ struct SingleEntityFmt<'a> {
 impl<'a> Display for SingleEntityFmt<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut table = Table::new();
-        table.add_row(row!["", "ENTITY SHEET"]);
         table.add_row(row!["ID", self.entity.id]);
         table.add_row(row!["NAME", self.entity.name]);
         table.fmt(f)
