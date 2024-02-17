@@ -216,6 +216,12 @@ where
     }
 }
 
+impl<'a, Intv> ExperiencedEvent<'a, Intv> {
+    pub fn event(&self) -> &Event<Intv> {
+        self.event
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Experience, Profile};

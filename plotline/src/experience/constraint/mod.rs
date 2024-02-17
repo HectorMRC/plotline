@@ -10,9 +10,7 @@ pub use experience_belongs_to_one_of_previous::*;
 mod experience_is_not_simultaneous;
 pub use experience_is_not_simultaneous::*;
 
-use crate::{
-    error::PoisonError, experience::ExperiencedEvent, interval::Interval,
-};
+use crate::{error::PoisonError, experience::ExperiencedEvent};
 use std::fmt::Debug;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -190,6 +188,16 @@ where
     }
 }
 
+impl Default for LiFoConstraintChain<InfalibleContraint, InfalibleContraint> {
+    fn default() -> Self {
+        Self {
+            head: None,
+            constraint: InfalibleContraint,
+            early: true,
+        }
+    }
+}
+
 impl<Cnst> LiFoConstraintChain<InfalibleContraint, Cnst> {
     pub fn new(constraint: Cnst) -> Self {
         Self {
@@ -198,25 +206,13 @@ impl<Cnst> LiFoConstraintChain<InfalibleContraint, Cnst> {
             early: true,
         }
     }
+}
 
+impl<Head, Cnst> LiFoConstraintChain<Head, Cnst> {
+    /// Enable/disable short-circuiting.
     pub fn with_early(mut self, enable: bool) -> Self {
         self.early = enable;
         self
-    }
-}
-
-impl LiFoConstraintChain<InfalibleContraint, InfalibleContraint> {
-    /// Creates a [ConstraintChain] with the default [Constraint]s.
-    pub fn with_defaults<'a, Intv>(
-        experienced_event: &'a ExperiencedEvent<'a, Intv>,
-    ) -> impl ConstraintChain<'a, Intv>
-    where
-        Intv: Interval,
-    {
-        LiFoConstraintChain::new(ExperienceBelongsToOneOfPrevious::new(experienced_event))
-            .chain(ExperienceKindFollowsPrevious::new(experienced_event))
-            .chain(ExperienceKindPrecedesNext::new(experienced_event))
-            .chain(ExperienceIsNotSimultaneous::new(experienced_event.event))
     }
 }
 

@@ -12,7 +12,11 @@ use clap::Subcommand;
 use plotline::{
     experience::{
         application::ConstraintFactory,
-        constraint::{Constraint, LiFoConstraintChain},
+        constraint::{
+            Constraint, ConstraintChain, ExperienceBelongsToOneOfPrevious,
+            ExperienceIsNotSimultaneous, ExperienceKindFollowsPrevious, ExperienceKindPrecedesNext,
+            LiFoConstraintChain,
+        },
         ExperiencedEvent,
     },
     interval::Interval,
@@ -33,6 +37,11 @@ where
     Intv: Interval,
 {
     fn new<'a>(experienced_event: &'a ExperiencedEvent<'a, Intv>) -> impl Constraint<'a, Intv> {
-        LiFoConstraintChain::with_defaults(experienced_event)
+        LiFoConstraintChain::default()
+            .with_early(false)
+            .chain(ExperienceBelongsToOneOfPrevious::new(experienced_event))
+            .chain(ExperienceKindFollowsPrevious::new(experienced_event))
+            .chain(ExperienceKindPrecedesNext::new(experienced_event))
+            .chain(ExperienceIsNotSimultaneous::new(experienced_event.event()))
     }
 }
