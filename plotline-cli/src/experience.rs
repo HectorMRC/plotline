@@ -159,7 +159,7 @@ where
                 });
 
                 if let Some(profile) = profile {
-                    print!("{}", SingleProfileFmt::new(&profile));
+                    print!("{}", SingleProfileFmt::new(profile));
                 } else {
                     print!("{}", ManyProfilesFmt::new(experience.profiles()));
                 };
