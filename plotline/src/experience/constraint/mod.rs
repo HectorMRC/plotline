@@ -28,8 +28,6 @@ pub enum Error {
     TerminalPrecedesTerminal,
     #[error("{0:?}")]
     Stack(Vec<Error>),
-    #[error("{0}")]
-    Custom(&'static str),
 }
 
 impl<T> From<PoisonError<T, Error>> for Error {
