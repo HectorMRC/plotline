@@ -51,7 +51,7 @@ where
             .entity_repo
             .filter(&self.filter)?
             .into_iter()
-            .map(Tx::begin)
+            .map(Tx::read)
             .map(|entity| entity.clone())
             .collect())
     }

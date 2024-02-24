@@ -42,7 +42,7 @@ impl EntityRepository for InMemoryEntityRepository {
             .read()
             .map_err(Error::from)?
             .values()
-            .filter(|&entity| filter.filter(&entity.clone().begin()))
+            .filter(|&entity| filter.filter(&entity.clone().read()))
             .cloned()
             .collect())
     }

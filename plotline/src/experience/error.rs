@@ -9,9 +9,6 @@ pub enum Error {
     AlreadyExists,
     #[error("experience not found")]
     NotFound,
-    // application
-    #[error("an entity cannot experience an event more than once")]
-    EventAlreadyExperienced,
     // domain
     #[error("an entity cannot result from the same experience more than once")]
     RepeatedEntity,

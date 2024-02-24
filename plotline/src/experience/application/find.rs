@@ -32,7 +32,7 @@ where
             )?
             .into_iter()
             .next()
-            .map(Tx::begin)
+            .map(Tx::read)
             .as_deref()
             .cloned()
             .ok_or(Error::NotFound)

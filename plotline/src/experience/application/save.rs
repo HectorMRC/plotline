@@ -2,9 +2,7 @@ use super::{ConstraintFactory, ExperienceApplication, ExperienceFilter, Experien
 use crate::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
-    experience::{
-        constraint::Constraint, Error, ExperienceBuilder, ExperiencedEvent, Profile, Result,
-    },
+    experience::{constraint::Constraint, ExperienceBuilder, ExperiencedEvent, Profile, Result},
     id::Id,
     transaction::Tx,
 };
@@ -61,32 +59,24 @@ where
 
     fn create(self) -> Result<()> {
         let entity_tx = self.entity_repo.find(self.entity)?;
-        let entity = entity_tx.begin();
+        let entity = entity_tx.read();
 
         let event_tx = self.event_repo.find(self.event)?;
-        let event = event_tx.begin();
+        let event = event_tx.read();
 
         let experiences = self
             .experience_repo
             .filter(&ExperienceFilter::default().with_entity(Some(self.entity)))?
             .into_iter()
-            .map(Tx::begin)
+            .map(Tx::read)
             .collect::<Vec<_>>();
-
-        if experiences
-            .iter()
-            .any(|experience| experience.event == self.event)
-        {
-            // Avoid deadlock by acquiring the same event twice.
-            return Err(Error::EventAlreadyExperienced);
-        }
 
         let events = experiences
             .iter()
             .map(|experience| self.event_repo.find(experience.event).map_err(Into::into))
             .collect::<Result<Vec<_>>>()?
             .into_iter()
-            .map(Tx::begin)
+            .map(Tx::read)
             .collect::<Vec<_>>();
 
         let experienced_events = experiences

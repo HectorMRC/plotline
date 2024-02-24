@@ -78,7 +78,7 @@ where
             .experience_repo
             .filter(&self.filter)?
             .into_iter()
-            .map(Tx::begin)
+            .map(Tx::read)
             .map(|experience| experience.clone())
             .collect())
     }

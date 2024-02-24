@@ -5,7 +5,7 @@ use crate::{
     event::{Error, Result},
     id::Id,
     name::{Error as NameError, Name},
-    transaction::{Tx, TxGuard},
+    transaction::{Tx, TxWriteGuard},
 };
 use std::sync::Arc;
 
@@ -57,7 +57,7 @@ where
     }
 
     fn update(self, event_tx: EventRepo::Tx) -> Result<()> {
-        let mut event = event_tx.begin();
+        let mut event = event_tx.write();
 
         assign_inner_value(self.name, &mut event.name);
         assign_inner_value(self.interval, &mut event.interval);

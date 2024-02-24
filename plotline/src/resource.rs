@@ -1,8 +1,11 @@
 use crate::{
     id::Identifiable,
-    transaction::{Tx, TxGuard},
+    transaction::{Tx, TxReadGuard, TxWriteGuard},
 };
-use parking_lot::{lock_api::ArcMutexGuard, Mutex, RawMutex};
+use parking_lot::{
+    lock_api::{ArcRwLockReadGuard, ArcRwLockWriteGuard},
+    RawRwLock, RwLock,
+};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
     collections::HashMap,
@@ -14,20 +17,19 @@ use std::{
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("there cannot be two or more resources with the same id")]
-    DuplicatedKey,
+    DuplicatedId,
 }
 
 /// Resource implements the [Tx] trait for any piece of data.
 #[derive(Clone, Serialize, Deserialize)]
-#[serde(transparent)]
 pub struct Resource<T> {
-    mu: Arc<Mutex<T>>,
+    lock: Arc<RwLock<T>>,
 }
 
 impl<T> From<T> for Resource<T> {
     fn from(value: T) -> Self {
         Resource {
-            mu: Arc::new(Mutex::new(value)),
+            lock: Arc::new(RwLock::new(value)),
         }
     }
 }
@@ -36,30 +38,54 @@ impl<T> Tx<T> for Resource<T>
 where
     T: Clone,
 {
-    type Guard = ResourceGuard<T>;
+    type ReadGuard = ResourceReadGuard<T>;
+    type WriteGuard = ResourceWriteGuard<T>;
 
-    fn begin(self) -> Self::Guard {
-        let guard = self.mu.lock_arc();
-        ResourceGuard {
+    fn read(self) -> Self::ReadGuard {
+        ResourceReadGuard {
+            guard: self.lock.read_arc(),
+        }
+    }
+
+    fn write(self) -> Self::WriteGuard {
+        let guard = self.lock.write_arc();
+        ResourceWriteGuard {
             data: guard.clone(),
             guard,
         }
     }
 }
 
-impl<T> From<Arc<Mutex<T>>> for Resource<T> {
-    fn from(value: Arc<Mutex<T>>) -> Self {
-        Self { mu: value }
+impl<T> From<Arc<RwLock<T>>> for Resource<T> {
+    fn from(value: Arc<RwLock<T>>) -> Self {
+        Self { lock: value }
     }
 }
 
-/// ResourceGuard is the [TxGuard] implementation for [Resource].
-pub struct ResourceGuard<T> {
-    guard: ArcMutexGuard<RawMutex, T>,
+/// ResourceReadGuard is the [TxReadGuard] implementation for [Resource].
+pub struct ResourceReadGuard<T> {
+    guard: ArcRwLockReadGuard<RawRwLock, T>,
+}
+
+impl<T> Deref for ResourceReadGuard<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.guard
+    }
+}
+
+impl<T> TxReadGuard<T> for ResourceReadGuard<T> {
+    fn release(self) {}
+}
+
+/// ResourceWriteGuard is the [TxWriteGuard] implementation for [Resource].
+pub struct ResourceWriteGuard<T> {
+    guard: ArcRwLockWriteGuard<RawRwLock, T>,
     data: T,
 }
 
-impl<T> Deref for ResourceGuard<T> {
+impl<T> Deref for ResourceWriteGuard<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -67,19 +93,21 @@ impl<T> Deref for ResourceGuard<T> {
     }
 }
 
-impl<T> DerefMut for ResourceGuard<T> {
+impl<T> DerefMut for ResourceWriteGuard<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
     }
 }
 
-impl<T> TxGuard<T> for ResourceGuard<T> {
+impl<T> TxWriteGuard<T> for ResourceWriteGuard<T> {
     fn commit(mut self) {
         *self.guard = self.data;
     }
+
+    fn rollback(self) {}
 }
 
-/// A ResourceMap is a [HashMap] of [Identifiable] [Resource]s.
+/// A ResourceMap is a collection of [Identifiable] [Resource]s.
 pub struct ResourceMap<T>
 where
     T: Identifiable,
@@ -118,6 +146,15 @@ where
     }
 }
 
+impl<T> ResourceMap<T>
+where
+    T: Identifiable,
+{
+    pub fn new(resources: HashMap<T::Id, Resource<T>>) -> Self {
+        Self { resources }
+    }
+}
+
 impl<T> Serialize for ResourceMap<T>
 where
     T: Identifiable + Serialize,
@@ -146,17 +183,9 @@ where
                     .insert(entry.id(), entry.into())
                     .is_none()
                     .then_some(resources)
-                    .ok_or(Error::DuplicatedKey)
+                    .ok_or(Error::DuplicatedId)
             })
             .map(Self::new)
             .map_err(serde::de::Error::custom)
-    }
-}
-impl<T> ResourceMap<T>
-where
-    T: Identifiable,
-{
-    pub fn new(resources: HashMap<T::Id, Resource<T>>) -> Self {
-        Self { resources }
     }
 }

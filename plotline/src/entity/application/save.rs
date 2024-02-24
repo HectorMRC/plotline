@@ -4,7 +4,7 @@ use crate::{
     entity::{Entity, Error, Result},
     id::Id,
     name::{Error as NameError, Name},
-    transaction::{Tx, TxGuard},
+    transaction::{Tx, TxWriteGuard},
 };
 use std::sync::Arc;
 
@@ -34,7 +34,7 @@ where
     }
 
     fn update(self, entity_tx: EntityRepo::Tx) -> Result<()> {
-        let mut entity = entity_tx.begin();
+        let mut entity = entity_tx.write();
 
         assign_inner_value(self.name, &mut entity.name);
 
