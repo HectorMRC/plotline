@@ -5,7 +5,7 @@ use crate::{
     experience::{
         constraint::Constraint, Error, ExperienceBuilder, ExperiencedEvent, Profile, Result,
     },
-    id::{Id, Identifiable},
+    id::Id,
     transaction::Tx,
 };
 use std::{marker::PhantomData, sync::Arc};
@@ -68,14 +68,14 @@ where
 
         let experiences = self
             .experience_repo
-            .filter(&ExperienceFilter::default().with_entity(Some(entity.id())))?
+            .filter(&ExperienceFilter::default().with_entity(Some(self.entity)))?
             .into_iter()
             .map(Tx::begin)
             .collect::<Vec<_>>();
 
         if experiences
             .iter()
-            .any(|experience| experience.event == event.id())
+            .any(|experience| experience.event == self.event)
         {
             // Avoid deadlock by acquiring the same event twice.
             return Err(Error::EventAlreadyExperienced);

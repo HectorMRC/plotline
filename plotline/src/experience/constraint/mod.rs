@@ -188,17 +188,17 @@ where
     }
 }
 
-impl Default for LiFoConstraintChain<InfalibleContraint, InfalibleContraint> {
+impl Default for LiFoConstraintChain<InfalibleConstraint, InfalibleConstraint> {
     fn default() -> Self {
         Self {
             head: None,
-            constraint: InfalibleContraint,
+            constraint: InfalibleConstraint,
             early: true,
         }
     }
 }
 
-impl<Cnst> LiFoConstraintChain<InfalibleContraint, Cnst> {
+impl<Cnst> LiFoConstraintChain<InfalibleConstraint, Cnst> {
     pub fn new(constraint: Cnst) -> Self {
         Self {
             head: None,
@@ -217,9 +217,9 @@ impl<Head, Cnst> LiFoConstraintChain<Head, Cnst> {
 }
 
 /// A [Constraint] that never fails.
-pub struct InfalibleContraint;
+pub struct InfalibleConstraint;
 
-impl<'a, Intv> Constraint<'a, Intv> for InfalibleContraint {
+impl<'a, Intv> Constraint<'a, Intv> for InfalibleConstraint {
     fn with(self, _: &'a ExperiencedEvent<Intv>) -> Recoverable<Self> {
         Ok(self)
     }
