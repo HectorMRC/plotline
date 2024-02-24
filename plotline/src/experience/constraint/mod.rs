@@ -63,9 +63,6 @@ impl Error {
 pub trait Constraint<'a, Intv>: Sized {
     /// Determines the constraint must take into account the given
     /// [ExperiencedEvent].
-    ///
-    /// Short-Circuiting: this method may return an error if, and only if, the
-    /// given [ExperiencedEvent] already violates the constraint.
     fn with(self, experienced_event: &'a ExperiencedEvent<Intv>) -> Recoverable<Self>;
 
     /// Returns the same error as `with`, if any. Otherwise returns the final
