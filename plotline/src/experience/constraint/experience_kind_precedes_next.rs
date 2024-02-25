@@ -1,6 +1,7 @@
 use super::{Constraint, Error, Recoverable, Result};
 use crate::{
-    experience::{query::SelectNextExperience, ExperienceKind, ExperiencedEvent}, interval::Interval
+    experience::{query::SelectNextExperience, ExperienceKind, ExperiencedEvent},
+    interval::Interval,
 };
 
 pub struct ExperienceKindPrecedesNext<'a, Intv> {
@@ -69,15 +70,23 @@ mod tests {
             // transitive
             Test {
                 name: "transitive without next experience",
-                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
-                    .with_profiles(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(
+                    Id::default(),
+                    &Entity::fixture(),
+                    &Event::fixture([1, 1]),
+                )
+                .with_profiles(Some(vec![Profile::new(Id::default())])),
                 with: vec![],
                 result: Ok(()),
             },
             Test {
                 name: "transitive with transitive next experience",
-                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
-                    .with_profiles(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(
+                    Id::default(),
+                    &Entity::fixture(),
+                    &Event::fixture([1, 1]),
+                )
+                .with_profiles(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &Event::fixture([2, 2]),
@@ -86,8 +95,12 @@ mod tests {
             },
             Test {
                 name: "transitive with terminal next experience",
-                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
-                    .with_profiles(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(
+                    Id::default(),
+                    &Entity::fixture(),
+                    &Event::fixture([1, 1]),
+                )
+                .with_profiles(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
                     event: &Event::fixture([2, 2]),
@@ -97,13 +110,21 @@ mod tests {
             // terminal
             Test {
                 name: "terminal without next experience",
-                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
+                builder: ExperienceBuilder::new(
+                    Id::default(),
+                    &Entity::fixture(),
+                    &Event::fixture([1, 1]),
+                ),
                 with: vec![],
                 result: Ok(()),
             },
             Test {
                 name: "terminal with transitive next experience",
-                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
+                builder: ExperienceBuilder::new(
+                    Id::default(),
+                    &Entity::fixture(),
+                    &Event::fixture([1, 1]),
+                ),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &Event::fixture([2, 2]),
@@ -112,7 +133,11 @@ mod tests {
             },
             Test {
                 name: "terminal with terminal next experience",
-                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
+                builder: ExperienceBuilder::new(
+                    Id::default(),
+                    &Entity::fixture(),
+                    &Event::fixture([1, 1]),
+                ),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
                     event: &Event::fixture([2, 2]),

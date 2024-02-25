@@ -142,9 +142,9 @@ struct ManyEntitiesFmt<'a> {
 impl<'a> Display for ManyEntitiesFmt<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut table = Table::new();
-        table.add_row(row!["NAME", "ID"]);
+        table.add_row(row!["ID", "NAME"]);
         self.entities.iter().for_each(|entity| {
-            table.add_row(row![&entity.name, &entity.id]);
+            table.add_row(row![&entity.id, &entity.name]);
         });
 
         table.fmt(f)

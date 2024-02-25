@@ -1,5 +1,5 @@
 use super::{Constraint, Error, Recoverable, Result};
-use crate::{error::PoisonError, event::Event, experience::ExperiencedEvent, interval::Interval};
+use crate::{error::ResidueError, event::Event, experience::ExperiencedEvent, interval::Interval};
 
 pub struct ExperienceIsNotSimultaneous<'a, Intv> {
     event: &'a Event<Intv>,
@@ -13,7 +13,7 @@ where
     fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Recoverable<Self> {
         if self.event.intersects(experienced_event.event) {
             self.conflict = Some(experienced_event);
-            return Err(PoisonError::new(self, Error::SimultaneousEvents));
+            return Err(ResidueError::new(self, Error::SimultaneousEvents));
         }
 
         Ok(self)

@@ -84,14 +84,19 @@ mod tests {
             // transitive
             Test {
                 name: "transitive without previous experience",
-                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
-                    .with_profiles(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(
+                    Id::default(),
+                    &Entity::fixture(),
+                    &Event::fixture([1, 1]),
+                )
+                .with_profiles(Some(vec![Profile::new(Id::default())])),
                 with: vec![],
                 result: Ok(()),
             },
             Test {
                 name: "transitive belongs to non-terminal previous experience",
                 builder: ExperienceBuilder::new(
+                    Id::default(),
                     &Entity::fixture().with_id(const_id),
                     &Event::fixture([1, 1]),
                 )
@@ -115,8 +120,12 @@ mod tests {
             },
             Test {
                 name: "transitive does not belong to non-terminal previous experience",
-                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
-                    .with_profiles(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(
+                    Id::default(),
+                    &Entity::fixture(),
+                    &Event::fixture([1, 1]),
+                )
+                .with_profiles(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &Event::new(
@@ -129,8 +138,12 @@ mod tests {
             },
             Test {
                 name: "transitive with terminal previous experience",
-                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1]))
-                    .with_profiles(Some(vec![Profile::new(Id::default())])),
+                builder: ExperienceBuilder::new(
+                    Id::default(),
+                    &Entity::fixture(),
+                    &Event::fixture([1, 1]),
+                )
+                .with_profiles(Some(vec![Profile::new(Id::default())])),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
                     event: &Event::fixture([0, 0]),
@@ -140,13 +153,18 @@ mod tests {
             // terminal
             Test {
                 name: "terminal without previous experience",
-                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
+                builder: ExperienceBuilder::new(
+                    Id::default(),
+                    &Entity::fixture(),
+                    &Event::fixture([1, 1]),
+                ),
                 with: vec![],
                 result: Ok(()),
             },
             Test {
                 name: "terminal belongs to non-terminal previous experience",
                 builder: ExperienceBuilder::new(
+                    Id::default(),
                     &Entity::fixture().with_id(const_id),
                     &Event::fixture([1, 1]),
                 ),
@@ -169,7 +187,11 @@ mod tests {
             },
             Test {
                 name: "terminal does not belong to non-terminal previous experience",
-                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
+                builder: ExperienceBuilder::new(
+                    Id::default(),
+                    &Entity::fixture(),
+                    &Event::fixture([1, 1]),
+                ),
                 with: vec![ExperiencedEvent {
                     experience: &transitive_experience(),
                     event: &Event::new(
@@ -182,7 +204,11 @@ mod tests {
             },
             Test {
                 name: "terminal with terminal previous experience",
-                builder: ExperienceBuilder::new(&Entity::fixture(), &Event::fixture([1, 1])),
+                builder: ExperienceBuilder::new(
+                    Id::default(),
+                    &Entity::fixture(),
+                    &Event::fixture([1, 1]),
+                ),
                 with: vec![ExperiencedEvent {
                     experience: &terminal_experience(),
                     event: &Event::fixture([0, 0]),

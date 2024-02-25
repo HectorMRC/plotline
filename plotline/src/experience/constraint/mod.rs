@@ -13,11 +13,11 @@ pub use experience_is_not_simultaneous::*;
 mod event_is_not_experienced_more_than_once;
 pub use event_is_not_experienced_more_than_once::*;
 
-use crate::{error::PoisonError, experience::ExperiencedEvent};
+use crate::{error::ResidueError, experience::ExperiencedEvent};
 use std::fmt::Debug;
 
 pub type Result<T> = std::result::Result<T, Error>;
-pub type Recoverable<T> = std::result::Result<T, PoisonError<T, Error>>;
+pub type Recoverable<T> = std::result::Result<T, ResidueError<T, Error>>;
 
 #[derive(Debug, PartialEq, thiserror::Error, Clone)]
 pub enum Error {
@@ -35,8 +35,8 @@ pub enum Error {
     Stack(Vec<Error>),
 }
 
-impl<T> From<PoisonError<T, Error>> for Error {
-    fn from(value: PoisonError<T, Error>) -> Error {
+impl<T> From<ResidueError<T, Error>> for Error {
+    fn from(value: ResidueError<T, Error>) -> Error {
         value.error
     }
 }
@@ -130,7 +130,7 @@ where
             Ok(head) => {
                 chain.head = head;
                 if let Some(error) = tail_error {
-                    return Err(PoisonError::new(chain, error));
+                    return Err(ResidueError::new(chain, error));
                 }
 
                 Ok(chain)
@@ -143,7 +143,7 @@ where
                     error = error.push(tail_error);
                 }
 
-                Err(PoisonError::new(chain, error))
+                Err(ResidueError::new(chain, error))
             }
         };
 
@@ -158,7 +158,7 @@ where
                 let error = poison_err.error;
 
                 if self.early {
-                    return Err(PoisonError::new(self, error));
+                    return Err(ResidueError::new(self, error));
                 }
 
                 evaluate_head(self, Some(error))
@@ -257,7 +257,7 @@ where
                     return Ok(self);
                 }
 
-                Err(PoisonError::new(self, poison_err.error))
+                Err(ResidueError::new(self, poison_err.error))
             }
         }
     }

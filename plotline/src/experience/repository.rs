@@ -1,33 +1,16 @@
 use super::{
     application::{ExperienceFilter, ExperienceRepository},
-    Error, Experience,
+    Error, Experience, Result,
 };
 use crate::{
-    entity::Entity,
-    event::Event,
-    id::{Id, Identifiable},
+    id::Id,
     interval::Interval,
     resource::{Resource, ResourceMap},
     serde::{from_rwlock, into_rwlock},
+    transaction::Tx,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    collections::{HashMap, HashSet},
-    sync::RwLock,
-};
-
-#[derive(Default, Serialize, Deserialize)]
-#[serde(default)]
-struct Repository<Intv> {
-    #[serde(default)]
-    experiences: ResourceMap<Experience<Intv>>,
-
-    #[serde(skip)]
-    entity_by_event: HashMap<Id<Event<Intv>>, HashSet<Id<Entity>>>,
-
-    #[serde(skip)]
-    event_by_entity: HashMap<Id<Entity>, HashSet<Id<Event<Intv>>>>,
-}
+use std::sync::RwLock;
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -38,10 +21,9 @@ where
     #[serde(
         serialize_with = "from_rwlock",
         deserialize_with = "into_rwlock",
-        default,
-        flatten
+        default
     )]
-    data: RwLock<Repository<Intv>>,
+    experiences: RwLock<ResourceMap<Experience<Intv>>>,
 }
 
 impl<Intv> ExperienceRepository for InMemoryExperienceRepository<Intv>
@@ -51,84 +33,45 @@ where
     type Interval = Intv;
     type Tx = Resource<Experience<Intv>>;
 
-    fn create(&self, experience: &Experience<Intv>) -> super::Result<()> {
-        let mut data = self
-            .data
-            .write()
-            .map_err(|err| err.to_string())
-            .map_err(Error::Lock)?;
+    fn find(&self, id: Id<Experience<Intv>>) -> Result<Self::Tx> {
+        self.experiences
+            .read()
+            .map_err(Error::from)?
+            .get(&id)
+            .cloned()
+            .map(Resource::from)
+            .ok_or(Error::NotFound)
+    }
 
-        let experience_id @ (entity_id, event_id) = experience.id();
-        if data.experiences.contains_key(&experience_id) {
+    fn filter(&self, filter: &ExperienceFilter<Intv>) -> Result<Vec<Self::Tx>> {
+        Ok(self
+            .experiences
+            .read()
+            .map_err(Error::from)?
+            .values()
+            .filter(|&entity| filter.filter(&entity.clone().read()))
+            .cloned()
+            .collect())
+    }
+
+    fn create(&self, experience: &Experience<Intv>) -> Result<()> {
+        let mut experiences = self.experiences.write().map_err(Error::from)?;
+
+        if experiences.contains_key(&experience.id) {
             return Err(Error::AlreadyExists);
         }
 
-        data.experiences
-            .insert(experience_id, experience.clone().into());
-
-        if let Some(events) = data.event_by_entity.get_mut(&entity_id) {
-            events.insert(event_id);
-        } else {
-            data.event_by_entity
-                .insert(entity_id, HashSet::from_iter([event_id]));
-        }
-
-        if let Some(entities) = data.entity_by_event.get_mut(&event_id) {
-            entities.insert(entity_id);
-        } else {
-            data.entity_by_event
-                .insert(event_id, HashSet::from_iter([entity_id]));
-        }
-
+        experiences.insert(experience.id, experience.clone().into());
         Ok(())
     }
 
-    fn filter(&self, filter: &ExperienceFilter<Intv>) -> super::Result<Vec<Self::Tx>> {
-        let data = self
-            .data
-            .read()
-            .map_err(|err| err.to_string())
-            .map_err(Error::Lock)?;
+    fn delete(&self, id: Id<Experience<Intv>>) -> Result<()> {
+        let mut experiences = self.experiences.write().map_err(Error::from)?;
 
-        if let (Some(entity_id), Some(event_id)) = (filter.entity, filter.event) {
-            return Ok(data
-                .experiences
-                .get(&(entity_id, event_id))
-                .cloned()
-                .map(|experience| vec![experience])
-                .unwrap_or_default());
-        };
-
-        if let Some(entity_id) = filter.entity {
-            return Ok(data
-                .event_by_entity
-                .get(&entity_id)
-                .map(|events| {
-                    events
-                        .iter()
-                        .filter_map(|event_id| {
-                            data.experiences.get(&(entity_id, *event_id)).cloned()
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .unwrap_or_default());
+        if experiences.remove(&id).is_none() {
+            return Err(Error::NotFound);
         }
 
-        if let Some(event_id) = filter.event {
-            return Ok(data
-                .entity_by_event
-                .get(&event_id)
-                .map(|entities| {
-                    entities
-                        .iter()
-                        .filter_map(|entity_id| {
-                            data.experiences.get(&(*entity_id, event_id)).cloned()
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .unwrap_or_default());
-        }
-
-        Ok(Vec::new())
+        Ok(())
     }
 }

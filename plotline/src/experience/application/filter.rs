@@ -12,6 +12,7 @@ use std::sync::Arc;
 /// Implements the filter query, through which zero o more experiences may be
 /// retrived.
 pub struct ExperienceFilter<Intv> {
+    pub(crate) id: Option<Id<Experience<Intv>>>,
     /// Determines the [Entity] involved in the experience, no matter it is
     /// before or after.
     pub(crate) entity: Option<Id<Entity>>,
@@ -22,6 +23,7 @@ pub struct ExperienceFilter<Intv> {
 impl<Intv> Default for ExperienceFilter<Intv> {
     fn default() -> Self {
         Self {
+            id: Default::default(),
             entity: Default::default(),
             event: Default::default(),
         }
@@ -40,22 +42,10 @@ impl<Intv> ExperienceFilter<Intv> {
     }
 
     pub fn filter(&self, experience: &Experience<Intv>) -> bool {
+        equals_or_return!(self.id, &experience.id);
+        equals_or_return!(self.entity, &experience.entity);
         equals_or_return!(self.event, &experience.event);
-        self.filter_by_entity(experience)
-    }
-
-    /// An [Experience] not only belongs to the [Entity] associated with it,
-    /// but also to each one owning a [Profile] in that experience.  
-    fn filter_by_entity(&self, experience: &Experience<Intv>) -> bool {
-        let Some(entity_id) = self.entity else {
-            return true; // no filter by entity has been set
-        };
-
-        entity_id == experience.entity
-            || experience
-                .profiles
-                .iter()
-                .any(|profile| profile.entity == entity_id)
+        true
     }
 }
 

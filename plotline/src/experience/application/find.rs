@@ -1,7 +1,7 @@
-use super::{ExperienceApplication, ExperienceFilter, ExperienceRepository};
+use super::{ExperienceApplication, ExperienceRepository};
 use crate::{
     event::application::EventRepository,
-    experience::{Error, Experience, Result},
+    experience::{Experience, Result},
     id::Identifiable,
     interval::Interval,
     transaction::Tx,
@@ -24,18 +24,7 @@ where
     /// Executes the find query, through which one, and exactly one, experience
     /// must be retrived.
     pub fn execute(self) -> Result<Experience<Intv>> {
-        self.experience_repo
-            .filter(
-                &ExperienceFilter::default()
-                    .with_entity(Some(self.id.0))
-                    .with_event(Some(self.id.1)),
-            )?
-            .into_iter()
-            .next()
-            .map(Tx::read)
-            .as_deref()
-            .cloned()
-            .ok_or(Error::NotFound)
+        Ok(self.experience_repo.find(self.id)?.read().clone())
     }
 }
 

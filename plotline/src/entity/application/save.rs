@@ -2,7 +2,7 @@ use super::{EntityApplication, EntityRepository};
 use crate::{
     entity::{Entity, Error, Result},
     id::Id,
-    name::{Error as NameError, Name},
+    name::Name,
     transaction::{Tx, TxWriteGuard},
     update_if_some,
 };
@@ -29,7 +29,7 @@ where
     }
 
     fn create(self) -> Result<()> {
-        let entity = Entity::new(self.id, self.name.ok_or(NameError::NotAName)?);
+        let entity = Entity::new(self.id, self.name.ok_or(Error::MandatoryField("name"))?);
         self.entity_repo.create(&entity)
     }
 

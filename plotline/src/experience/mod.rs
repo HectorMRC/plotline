@@ -50,19 +50,20 @@ impl Profile {
 /// An Experience represents the change caused by an [Event] on an [Entity].
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Experience<Intv> {
+    pub id: Id<Self>,
     /// The id of the entity involved in the experience.
-    entity: Id<Entity>,
+    pub entity: Id<Entity>,
     /// The id of the event causing the experience.
-    event: Id<Event<Intv>>,
+    pub event: Id<Event<Intv>>,
     /// The profiles resulting from the experience.
-    profiles: Vec<Profile>,
+    pub profiles: Vec<Profile>,
 }
 
 impl<Intv> Identifiable for Experience<Intv> {
-    type Id = (Id<Entity>, Id<Event<Intv>>);
+    type Id = Id<Self>;
 
     fn id(&self) -> Self::Id {
-        (self.entity, self.event)
+        self.id
     }
 }
 
@@ -80,6 +81,7 @@ impl<Intv> Experience<Intv> {
 /// ExperienceBuilder makes sure an [Experience] is created if, and only if,
 /// all of its requirements are meet.
 pub struct ExperienceBuilder<'a, Intv> {
+    id: Id<Experience<Intv>>,
     entity: &'a Entity,
     event: &'a Event<Intv>,
     profiles: Option<Vec<Profile>>,
@@ -88,6 +90,7 @@ pub struct ExperienceBuilder<'a, Intv> {
 impl<'a, Intv: Clone> Clone for ExperienceBuilder<'a, Intv> {
     fn clone(&self) -> Self {
         Self {
+            id: self.id,
             entity: self.entity,
             event: self.event,
             profiles: self.profiles.clone(),
@@ -96,8 +99,9 @@ impl<'a, Intv: Clone> Clone for ExperienceBuilder<'a, Intv> {
 }
 
 impl<'a, Intv> ExperienceBuilder<'a, Intv> {
-    pub fn new(entity: &'a Entity, event: &'a Event<Intv>) -> Self {
+    pub fn new(id: Id<Experience<Intv>>, entity: &'a Entity, event: &'a Event<Intv>) -> Self {
         Self {
+            id,
             entity,
             event,
             profiles: Default::default(),
@@ -121,6 +125,7 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
         }
 
         Ok(Experience {
+            id: self.id,
             entity: self.entity.id(),
             event: self.event.id(),
             profiles: self.profiles.unwrap_or_default(),
@@ -229,6 +234,7 @@ mod tests {
 
     pub fn transitive_experience<Intv>() -> Experience<Intv> {
         Experience {
+            id: Id::default(),
             entity: Id::default(),
             event: Id::default(),
             profiles: vec![Profile::new(Id::default())],
@@ -237,6 +243,7 @@ mod tests {
 
     pub fn terminal_experience<Intv>() -> Experience<Intv> {
         Experience {
+            id: Id::default(),
             entity: Id::default(),
             event: Id::default(),
             profiles: Vec::default(),

@@ -23,7 +23,7 @@ pub struct Event<Intv> {
 }
 
 impl<Intv> Identifiable for Event<Intv> {
-    type Id = Id<Event<Intv>>;
+    type Id = Id<Self>;
 
     fn id(&self) -> Id<Self> {
         self.id

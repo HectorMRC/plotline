@@ -2,7 +2,10 @@ use super::{ConstraintFactory, ExperienceApplication, ExperienceFilter, Experien
 use crate::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
-    experience::{constraint::Constraint, ExperienceBuilder, ExperiencedEvent, Profile, Result},
+    experience::{
+        constraint::Constraint, Error, Experience, ExperienceBuilder, ExperiencedEvent, Profile,
+        Result,
+    },
     id::Id,
     transaction::Tx,
 };
@@ -17,8 +20,9 @@ where
     entity_repo: Arc<EntityRepo>,
     event_repo: Arc<EventRepo>,
     cnst_factory: PhantomData<CnstFactory>,
-    entity: Id<Entity>,
-    event: Id<Event<EventRepo::Interval>>,
+    id: Id<Experience<EventRepo::Interval>>,
+    entity: Option<Id<Entity>>,
+    event: Option<Id<Event<EventRepo::Interval>>>,
     profiles: Option<Vec<Profile>>,
 }
 
@@ -41,32 +45,41 @@ where
     EventRepo: EventRepository,
     CnstFactory: ConstraintFactory<EventRepo::Interval>,
 {
+    pub fn with_entity(mut self, entity: Option<Id<Entity>>) -> Self {
+        self.entity = entity;
+        self
+    }
+
+    pub fn with_event(mut self, event: Option<Id<Event<EventRepo::Interval>>>) -> Self {
+        self.event = event;
+        self
+    }
+
     /// Executes the save experience transaction.
     pub fn execute(self) -> Result<()> {
-        let experiences_tx = self.experience_repo.filter(
-            &ExperienceFilter::default()
-                .with_event(Some(self.event))
-                .with_entity(Some(self.entity)),
-        )?;
-
-        // there should be impossible to have more than one
-        if let Some(experience) = experiences_tx.into_iter().next() {
-            self.update(experience)
-        } else {
-            self.create()
+        match self.experience_repo.find(self.id) {
+            Ok(experience_tx) => self.update(experience_tx),
+            Err(Error::NotFound) => self.create(),
+            Err(err) => Err(err),
         }
     }
 
     fn create(self) -> Result<()> {
-        let entity_tx = self.entity_repo.find(self.entity)?;
+        let entity_tx = self
+            .entity_repo
+            .find(self.entity.ok_or(Error::MandatoryField("entity"))?)?;
+
         let entity = entity_tx.read();
 
-        let event_tx = self.event_repo.find(self.event)?;
+        let event_tx = self
+            .event_repo
+            .find(self.event.ok_or(Error::MandatoryField("event"))?)?;
+
         let event = event_tx.read();
 
         let experiences = self
             .experience_repo
-            .filter(&ExperienceFilter::default().with_entity(Some(self.entity)))?
+            .filter(&ExperienceFilter::default().with_entity(self.entity))?
             .into_iter()
             .map(Tx::read)
             .collect::<Vec<_>>();
@@ -85,7 +98,7 @@ where
             .map(|(experience, event)| ExperiencedEvent { experience, event })
             .collect::<Vec<_>>();
 
-        let experience = ExperienceBuilder::new(&entity, &event)
+        let experience = ExperienceBuilder::new(self.id, &entity, &event)
             .with_profiles(self.profiles)
             .with_fallbacks(&experienced_events)
             .build()?;
@@ -122,16 +135,16 @@ where
 {
     pub fn save_experience(
         &self,
-        entity_id: Id<Entity>,
-        event_id: Id<Event<EventRepo::Interval>>,
+        id: Id<Experience<EventRepo::Interval>>,
     ) -> SaveExperience<ExperienceRepo, EntityRepo, EventRepo, CnstFactory> {
         SaveExperience {
             experience_repo: self.experience_repo.clone(),
             entity_repo: self.entity_repo.clone(),
             event_repo: self.event_repo.clone(),
             cnst_factory: PhantomData,
-            entity: entity_id,
-            event: event_id,
+            id,
+            entity: Default::default(),
+            event: Default::default(),
             profiles: Default::default(),
         }
     }

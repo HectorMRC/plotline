@@ -22,6 +22,7 @@ pub enum Error {
 
 /// Resource implements the [Tx] trait for any piece of data.
 #[derive(Clone, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct Resource<T> {
     lock: Arc<RwLock<T>>,
 }
