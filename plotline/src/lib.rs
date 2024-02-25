@@ -16,10 +16,11 @@ mod resource;
 mod serde;
 mod transaction;
 
-/// Given an [Option] and a variable, sets to that variable the inner value of
-/// the [Option::Some], if it is so. Otherwise the variable gets unchanged.
+/// Given a mutable reference of T, and an [Option] of the same type, updates
+/// the reference with the inner value of the [Option::Some], if it is so.
+/// Otherwise leaves the reference unchanged.
 #[inline]
-fn assign_some_or_ignore<T>(from: Option<T>, to: &mut T) {
+fn update_if_some<T>(to: &mut T, from: Option<T>) {
     if let Some(value) = from {
         *to = value;
     }

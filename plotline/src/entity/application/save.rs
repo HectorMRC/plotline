@@ -1,10 +1,10 @@
 use super::{EntityApplication, EntityRepository};
 use crate::{
-    assign_some_or_ignore,
     entity::{Entity, Error, Result},
     id::Id,
     name::{Error as NameError, Name},
     transaction::{Tx, TxWriteGuard},
+    update_if_some,
 };
 use std::sync::Arc;
 
@@ -36,7 +36,7 @@ where
     fn update(self, entity_tx: EntityRepo::Tx) -> Result<()> {
         let mut entity = entity_tx.write();
 
-        assign_some_or_ignore(self.name, &mut entity.name);
+        update_if_some(&mut entity.name, self.name);
 
         entity.commit();
         Ok(())

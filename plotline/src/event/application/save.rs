@@ -1,11 +1,11 @@
 use super::{EventApplication, EventRepository};
 use crate::{
-    assign_some_or_ignore,
     event::Event,
     event::{Error, Result},
     id::Id,
     name::{Error as NameError, Name},
     transaction::{Tx, TxWriteGuard},
+    update_if_some,
 };
 use std::sync::Arc;
 
@@ -59,8 +59,8 @@ where
     fn update(self, event_tx: EventRepo::Tx) -> Result<()> {
         let mut event = event_tx.write();
 
-        assign_some_or_ignore(self.name, &mut event.name);
-        assign_some_or_ignore(self.interval, &mut event.interval);
+        update_if_some(&mut event.name, self.name);
+        update_if_some(&mut event.interval, self.interval);
 
         event.commit();
         Ok(())
