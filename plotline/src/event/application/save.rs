@@ -1,6 +1,6 @@
 use super::{EventApplication, EventRepository};
 use crate::{
-    assign_inner_value,
+    assign_some_or_ignore,
     event::Event,
     event::{Error, Result},
     id::Id,
@@ -59,8 +59,8 @@ where
     fn update(self, event_tx: EventRepo::Tx) -> Result<()> {
         let mut event = event_tx.write();
 
-        assign_inner_value(self.name, &mut event.name);
-        assign_inner_value(self.interval, &mut event.interval);
+        assign_some_or_ignore(self.name, &mut event.name);
+        assign_some_or_ignore(self.interval, &mut event.interval);
 
         event.commit();
         Ok(())

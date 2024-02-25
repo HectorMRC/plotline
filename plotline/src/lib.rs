@@ -19,7 +19,7 @@ mod transaction;
 /// Given an [Option] and a variable, sets to that variable the inner value of
 /// the [Option::Some], if it is so. Otherwise the variable gets unchanged.
 #[inline]
-fn assign_inner_value<T>(from: Option<T>, to: &mut T) {
+fn assign_some_or_ignore<T>(from: Option<T>, to: &mut T) {
     if let Some(value) = from {
         *to = value;
     }

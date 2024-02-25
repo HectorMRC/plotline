@@ -1,6 +1,6 @@
 use super::{EntityApplication, EntityRepository};
 use crate::{
-    assign_inner_value,
+    assign_some_or_ignore,
     entity::{Entity, Error, Result},
     id::Id,
     name::{Error as NameError, Name},
@@ -36,7 +36,7 @@ where
     fn update(self, entity_tx: EntityRepo::Tx) -> Result<()> {
         let mut entity = entity_tx.write();
 
-        assign_inner_value(self.name, &mut entity.name);
+        assign_some_or_ignore(self.name, &mut entity.name);
 
         entity.commit();
         Ok(())

@@ -10,6 +10,9 @@ pub use experience_belongs_to_one_of_previous::*;
 mod experience_is_not_simultaneous;
 pub use experience_is_not_simultaneous::*;
 
+mod event_is_not_experienced_more_than_once;
+pub use event_is_not_experienced_more_than_once::*;
+
 use crate::{error::PoisonError, experience::ExperiencedEvent};
 use std::fmt::Debug;
 
@@ -26,6 +29,8 @@ pub enum Error {
     TerminalFollowsTerminal,
     #[error("a terminal experience cannot precede a terminal one")]
     TerminalPrecedesTerminal,
+    #[error("an entity cannot experience an event more than once")]
+    EventAlreadyExperienced,
     #[error("{0:?}")]
     Stack(Vec<Error>),
 }
@@ -87,6 +92,7 @@ pub trait ConstraintChain<'a, Intv>: Constraint<'a, Intv> {
 pub struct LiFoConstraintChain<Head, Cnst> {
     head: Option<Head>,
     constraint: Cnst,
+    /// If true, the chain will return as soon an an error happen,
     early: bool,
 }
 

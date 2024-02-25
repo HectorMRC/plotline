@@ -1,38 +1,38 @@
 use super::{Constraint, Error, Recoverable, Result};
 use crate::{error::PoisonError, event::Event, experience::ExperiencedEvent, interval::Interval};
 
-pub struct ExperienceIsNotSimultaneous<'a, Intv> {
+pub struct EventIsNotExperiencedMoreThanOnce<'a, Intv> {
     event: &'a Event<Intv>,
-    conflict: Option<&'a ExperiencedEvent<'a, Intv>>,
+    already_experienced: bool,
 }
 
-impl<'a, Intv> Constraint<'a, Intv> for ExperienceIsNotSimultaneous<'a, Intv>
+impl<'a, Intv> Constraint<'a, Intv> for EventIsNotExperiencedMoreThanOnce<'a, Intv>
 where
     Intv: Interval,
 {
     fn with(mut self, experienced_event: &'a ExperiencedEvent<Intv>) -> Recoverable<Self> {
-        if self.event.intersects(experienced_event.event) {
-            self.conflict = Some(experienced_event);
-            return Err(PoisonError::new(self, Error::SimultaneousEvents));
+        self.already_experienced = self.event == experienced_event.event;
+        if self.already_experienced {
+            return Err(PoisonError::new(self, Error::EventAlreadyExperienced));
         }
 
         Ok(self)
     }
 
     fn result(self) -> Result<()> {
-        if self.conflict.is_some() {
-            return Err(Error::SimultaneousEvents);
+        if self.already_experienced {
+            return Err(Error::EventAlreadyExperienced);
         }
 
         Ok(())
     }
 }
 
-impl<'a, Intv> ExperienceIsNotSimultaneous<'a, Intv> {
+impl<'a, Intv> EventIsNotExperiencedMoreThanOnce<'a, Intv> {
     pub fn new(event: &'a Event<Intv>) -> Self {
         Self {
             event,
-            conflict: None,
+            already_experienced: false,
         }
     }
 }
@@ -42,7 +42,7 @@ mod tests {
     use crate::{
         event::Event,
         experience::{
-            constraint::{Constraint, Error, ExperienceIsNotSimultaneous, Result},
+            constraint::{Constraint, Error, EventIsNotExperiencedMoreThanOnce, Result},
             tests::transitive_experience,
             ExperiencedEvent,
         },
@@ -122,7 +122,7 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let constraint = ExperienceIsNotSimultaneous::new(&test.event);
+            let constraint = EventIsNotExperiencedMoreThanOnce::new(&test.event);
             let result = test
                 .with
                 .iter()
