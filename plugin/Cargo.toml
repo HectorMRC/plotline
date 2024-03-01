@@ -1,0 +1,9 @@
+[package]
+edition = "2021"
+name    = "plugin"
+version = "0.1.0"
+
+[dependencies]
+wasmer = "4.2.5"
+plotline       = {path = "../plotline"}
+thiserror = "1.0.56"

@@ -1,4 +1,5 @@
 use clap::{error::ErrorKind, Parser};
+use cli::{entity::EntityCli, event::EventCli, experience::ExperienceCli, CliCommand};
 use once_cell::sync::Lazy;
 use plotline::{
     entity::application::EntityApplication,
@@ -16,7 +17,6 @@ use plotline::{
     interval::Interval,
     snapshot::Snapshot,
 };
-use plotline_cli::{entity::EntityCli, event::EventCli, experience::ExperienceCli, CliCommand};
 use std::{
     ffi::OsString,
     fmt::Display,
