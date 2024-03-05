@@ -1,37 +1,26 @@
-use plotline::id::Id;
-use std::{fs::File, io::Read, path::Path};
-use wasmer::{imports, Instance, Module, Store, Value};
+#[cfg(feature = "wasm")]
+mod wasm;
 
-pub type Result<T> = std::result::Result<T, Error>;
+use plotline::id::Identifiable;
+use std::collections::HashMap;
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {}
-
+/// PluginFamily determines the kind of a plugin.
+#[derive(strum_macros::EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum PluginFamily {
-    ExperienceConstraint,
+    OnSaveExperienceConstraint,
 }
 
-struct WasmPlugin {
-    store: Store,
-    module: Module,
-    instance: Instance,
+/// A PluginId uniquely identifies a plugin.
+#[derive(Hash, PartialEq, Eq)]
+pub struct PluginId(String);
+
+/// A Plugin is a piece of code that extens the default behavior of Plotline.
+trait Plugin: Identifiable<Id = PluginId> {
+    fn family(&self) -> PluginFamily;
 }
 
-pub struct Plugin {
-    id: Id<Self>,
-    family: PluginFamily,
-    wasm: WasmPlugin,
-}
-
-/// Stores all the available plugins.
-#[derive(Default)]
+/// A PluginStore holds all the available plugins, ready to be executed.
 pub struct PluginStore {
-    wasm: Store,
-}
-
-impl PluginStore {
-    /// Given the plugin's binary, adds it into the store.
-    pub fn add(&mut self, bytes: &[u8]) -> Result<()> {
-        Ok(())
-    }
+    _plugins: HashMap<PluginId, Box<dyn Plugin>>,
 }

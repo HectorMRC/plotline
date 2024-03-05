@@ -15,7 +15,7 @@ fn is_invalid_char(c: char) -> bool {
     INVALID_CHARS.contains(&c)
 }
 
-/// An Name identifies one or more resources.
+/// A Name identifies one or more resources.
 #[derive(Debug, Clone)]
 pub struct Name<T> {
     name: String,
