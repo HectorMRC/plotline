@@ -15,5 +15,5 @@ wasmer       = {version = "4.2.5", optional = true}
 wasm    = ["protobuf", "wasmer"]
 
 [lib]
-name = "plotline"
+name = "plugin"
 path = "src/lib.rs"
