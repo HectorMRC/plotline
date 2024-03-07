@@ -49,7 +49,7 @@ where
             .read()
             .map_err(Error::from)?
             .values()
-            .filter(|&entity| filter.filter(&entity.clone().read()))
+            .filter(|&entity| filter.matches(&entity.clone().read()))
             .cloned()
             .collect())
     }

@@ -41,7 +41,7 @@ impl<Intv> ExperienceFilter<Intv> {
         self
     }
 
-    pub fn filter(&self, experience: &Experience<Intv>) -> bool {
+    pub fn matches(&self, experience: &Experience<Intv>) -> bool {
         equals_or_return!(self.id, &experience.id);
         equals_or_return!(self.entity, &experience.entity);
         equals_or_return!(self.event, &experience.event);

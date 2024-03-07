@@ -27,7 +27,7 @@ impl EntityFilter {
         self
     }
 
-    pub fn filter(&self, entity: &Entity) -> bool {
+    pub fn matches(&self, entity: &Entity) -> bool {
         equals_or_return!(self.name, &entity.name);
         equals_or_return!(self.id, &entity.id);
         true
