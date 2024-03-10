@@ -1,6 +1,9 @@
 #[cfg(feature = "wasm")]
 mod wasm;
 
+mod experience;
+pub use experience::*;
+
 use plotline::id::Identifiable;
 use std::collections::HashMap;
 
@@ -12,6 +15,8 @@ pub enum Error {
     NotFound,
     #[error("plugin already exists ")]
     AlreadyExists,
+    #[error("plugin is not of the expected kind")]
+    WrongKind,
 }
 
 /// PluginKind determines the kind of a plugin.
@@ -21,7 +26,7 @@ pub enum PluginKind {
     /// Plugins of this kind will be executed before saving an experience. Its
     /// result will indicate whether the experience is suitable to be saved or
     /// not.
-    OnSaveExperienceConstraint,
+    OnSaveExperience,
 }
 
 /// A PluginId uniquely identifies a plugin.
@@ -29,15 +34,23 @@ pub enum PluginKind {
 pub struct PluginId(String);
 
 /// PluginResult represents the output or crashing cause of a plugin.
-type PluginResult = std::result::Result<Vec<u8>, String>;
+pub type PluginResult = std::result::Result<Vec<u8>, String>;
 
 /// A Plugin is a set of methods loaded at runtime that extends the default
 /// behavior based on its [PluginKind].
 pub trait Plugin: Identifiable<Id = PluginId> {
     /// Identifies the kind of the plugin.
     fn kind(&self) -> PluginKind;
-    /// Executes the corresponding action passing its inpu encoded in bytes.
+    /// Executes the corresponding action passing its input encoded in bytes.
     fn run(&self, action: &str, input: &[u8]) -> PluginResult;
+}
+
+/// A FlavoredPlugin represents a layer of abstraction between the generic form
+/// given by the trait [Plugin] and the actual methods associated to the kind
+/// of plugin.
+pub trait FlavoredPlugin<'a>: TryFrom<&'a Box<dyn Plugin>, Error = Error> {
+    /// Determines the kind of the plugin.
+    fn kind() -> PluginKind;
 }
 
 /// A PluginStore holds all the available plugins.
@@ -66,51 +79,15 @@ impl PluginStore {
         Ok(())
     }
 
-    /// Returns a vector with all those plugins matching the given filter.
-    pub fn filter<'a>(&'a self, filter: PluginFilter) -> Vec<&'a Box<dyn Plugin>> {
+    /// Returns a vector with all those plugins of the corresponding flavor.
+    pub fn retrieve<'a, T>(&'a self) -> Result<Vec<T>>
+    where
+        T: FlavoredPlugin<'a>,
+    {
         self.plugins
             .values()
-            .filter(|plugin| filter.matches(plugin))
-            .collect()
-    }
-}
-
-#[derive(Default)]
-pub struct PluginFilter {
-    id: Option<PluginId>,
-    kind: Option<PluginKind>,
-}
-
-impl PluginFilter {
-    pub fn with_id(mut self, id: Option<PluginId>) -> Self {
-        self.id = id;
-        self
-    }
-
-    pub fn with_kind(mut self, kind: Option<PluginKind>) -> Self {
-        self.kind = kind;
-        self
-    }
-
-    fn matches(&self, plugin: &Box<dyn Plugin>) -> bool {
-        if self
-            .id
-            .as_ref()
-            .map(|id| id != &plugin.id())
-            .unwrap_or_default()
-        {
-            return false;
-        }
-
-        if self
-            .kind
-            .as_ref()
-            .map(|kind| kind != &plugin.kind())
-            .unwrap_or_default()
-        {
-            return false;
-        }
-
-        true
+            .filter(|plugin| plugin.kind() == T::kind())
+            .map(TryInto::try_into)
+            .collect::<Result<Vec<_>>>()
     }
 }
