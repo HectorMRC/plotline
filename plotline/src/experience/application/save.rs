@@ -75,6 +75,8 @@ where
             .event_repo
             .find(self.event.ok_or(Error::MandatoryField("event"))?)?;
 
+        // read-only ensures the same event could be locked for reading more
+        // than once.
         let event = event_tx.read();
 
         let experiences = self
@@ -89,6 +91,7 @@ where
             .map(|experience| self.event_repo.find(experience.event).map_err(Into::into))
             .collect::<Result<Vec<_>>>()?
             .into_iter()
+            // read-only ensure no dead-lock happens for the same event.
             .map(Tx::read)
             .collect::<Vec<_>>();
 

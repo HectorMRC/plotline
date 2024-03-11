@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package model;
+
+message Entity {
+    string id = 1;
+    string name = 2;
+}
+
+message Interval {
+    string as_text = 1;
+}
+
+message Event {
+    string id = 1;
+    string name = 2;
+    Interval interval = 3;
+}
+
+message Profile {
+    string key = 1;
+    string value = 2;
+}
+
+message Experience {
+    string id = 1;
+    Entity entity = 2;
+    Event event = 3;
+    repeated Profile profiles = 4;
+}

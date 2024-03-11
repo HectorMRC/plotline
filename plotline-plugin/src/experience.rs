@@ -1,7 +1,8 @@
 use crate::{Error, FlavoredPlugin, Plugin, PluginKind, Result};
+use plotline::experience::{Experience, ExperiencedEvent};
 
 /// An OnSaveExperience is a plugin that is executed before saving an
-/// experience.
+/// [Experience].
 pub struct OnSaveExperience<'a> {
     plugin: &'a Box<dyn Plugin>,
 }
@@ -25,7 +26,11 @@ impl<'a> FlavoredPlugin<'a> for OnSaveExperience<'a> {
 }
 
 impl<'a> OnSaveExperience<'a> {
-    pub fn execute(&self) {
+    pub fn execute<'b, Intv>(
+        &self,
+        subject: ExperiencedEvent<'b, Intv>,
+        timeline: &[ExperiencedEvent<'b, Intv>],
+    ) -> Result<()> {
         todo!()
     }
 }
