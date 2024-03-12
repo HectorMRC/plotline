@@ -17,9 +17,14 @@ message Event {
     Interval interval = 3;
 }
 
-message Profile {
+message KeyValue {
     string key = 1;
     string value = 2;
+}
+
+message Profile {
+    Entity entity = 1;
+    repeated KeyValue values = 2;
 }
 
 message Experience {
