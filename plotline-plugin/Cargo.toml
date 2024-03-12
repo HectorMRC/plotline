@@ -5,6 +5,7 @@ version = "0.1.0"
 
 [dependencies]
 plotline     = {path = "../plotline"}
+plotline-proto     = {path = "../plotline-proto"}
 protobuf     = "3.4.0"
 strum        = "0.26.1"
 strum_macros = "0.26.1"
