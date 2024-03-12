@@ -8,7 +8,7 @@ message Entity {
 }
 
 message Interval {
-    string as_text = 1;
+    bytes raw = 1;
 }
 
 message Event {
