@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package plugin;
+
+import "model.proto";
+
+message OnSaveExperienceInput {
+    model.Experience subject = 1;
+    repeated model.Experience timeline = 2;
+}
