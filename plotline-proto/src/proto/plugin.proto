@@ -8,3 +8,7 @@ message OnSaveExperienceInput {
     model.Experience subject = 1;
     repeated model.Experience timeline = 2;
 }
+
+message OnSaveExperienceOutput {
+    string error = 1;
+}
