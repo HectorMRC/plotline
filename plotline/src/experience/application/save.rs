@@ -1,33 +1,31 @@
-use super::{ConstraintFactory, ExperienceApplication, ExperienceFilter, ExperienceRepository};
+use super::{ExperienceApplication, ExperienceFilter, ExperienceRepository};
 use crate::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
     experience::{
-        constraint::Constraint, Error, Experience, ExperienceBuilder, ExperiencedEvent, Profile,
-        Result,
+        Error, Experience, ExperienceBuilder, ExperiencedEvent, Profile, Result,
     },
     id::Id,
     transaction::Tx,
 };
-use std::{marker::PhantomData, sync::Arc};
+use std::sync::Arc;
 
 /// Implements the save experience transaction.
-pub struct SaveExperience<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
+pub struct SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
 where
     EventRepo: EventRepository,
 {
     experience_repo: Arc<ExperienceRepo>,
     entity_repo: Arc<EntityRepo>,
     event_repo: Arc<EventRepo>,
-    cnst_factory: PhantomData<CnstFactory>,
     id: Id<Experience<EventRepo::Interval>>,
     entity: Option<Id<Entity>>,
     event: Option<Id<Event<EventRepo::Interval>>>,
     profiles: Option<Vec<Profile>>,
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
-    SaveExperience<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
+impl<ExperienceRepo, EntityRepo, EventRepo>
+    SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
 where
     EventRepo: EventRepository,
 {
@@ -37,13 +35,12 @@ where
     }
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
-    SaveExperience<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
+impl<ExperienceRepo, EntityRepo, EventRepo>
+    SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
 where
     ExperienceRepo: ExperienceRepository<Interval = EventRepo::Interval>,
     EntityRepo: EntityRepository,
     EventRepo: EventRepository,
-    CnstFactory: ConstraintFactory<EventRepo::Interval>,
 {
     pub fn with_entity(mut self, entity: Option<Id<Entity>>) -> Self {
         self.entity = entity;
@@ -106,19 +103,6 @@ where
             .with_fallbacks(&experienced_events)
             .build()?;
 
-        let experienced_event = ExperiencedEvent {
-            experience: &experience,
-            event: &event,
-        };
-
-        experienced_events
-            .iter()
-            .try_fold(
-                CnstFactory::new(&experienced_event),
-                |constraint, experienced_event| constraint.with(experienced_event),
-            )?
-            .result()?;
-
         self.experience_repo.create(&experience)?;
         Ok(())
     }
@@ -128,23 +112,21 @@ where
     }
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
-    ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
+impl<ExperienceRepo, EntityRepo, EventRepo>
+    ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo>
 where
     ExperienceRepo: ExperienceRepository<Interval = EventRepo::Interval>,
     EntityRepo: EntityRepository,
     EventRepo: EventRepository,
-    CnstFactory: ConstraintFactory<EventRepo::Interval>,
 {
     pub fn save_experience(
         &self,
         id: Id<Experience<EventRepo::Interval>>,
-    ) -> SaveExperience<ExperienceRepo, EntityRepo, EventRepo, CnstFactory> {
+    ) -> SaveExperience<ExperienceRepo, EntityRepo, EventRepo> {
         SaveExperience {
             experience_repo: self.experience_repo.clone(),
             entity_repo: self.entity_repo.clone(),
             event_repo: self.event_repo.clone(),
-            cnst_factory: PhantomData,
             id,
             entity: Default::default(),
             event: Default::default(),

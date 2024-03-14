@@ -5,16 +5,6 @@ use plotline::{
     entity::application::EntityApplication,
     event::application::EventApplication,
     experience::application::ExperienceApplication,
-    experience::{
-        application::ConstraintFactory,
-        constraint::{
-            Constraint, ConstraintChain, EventIsNotExperiencedMoreThanOnce,
-            ExperienceBelongsToOneOfPrevious, ExperienceIsNotSimultaneous,
-            ExperienceKindFollowsPrevious, ExperienceKindPrecedesNext, LiFoConstraintChain,
-        },
-        ExperiencedEvent,
-    },
-    interval::Interval,
     snapshot::Snapshot,
 };
 use std::{
@@ -22,7 +12,6 @@ use std::{
     fmt::Display,
     fs::{self, OpenOptions},
     io::{BufReader, BufWriter, Write},
-    marker::PhantomData,
     path::Path,
 };
 
@@ -52,23 +41,6 @@ struct Cli {
         short, long
     )]
     file: OsString,
-}
-
-impl<Intv> ConstraintFactory<Intv> for Cli
-where
-    Intv: Interval,
-{
-    fn new<'a>(experienced_event: &'a ExperiencedEvent<'a, Intv>) -> impl Constraint<'a, Intv> {
-        LiFoConstraintChain::default()
-            .with_early(false)
-            .chain(ExperienceBelongsToOneOfPrevious::new(experienced_event))
-            .chain(ExperienceKindFollowsPrevious::new(experienced_event))
-            .chain(ExperienceKindPrecedesNext::new(experienced_event))
-            .chain(ExperienceIsNotSimultaneous::new(experienced_event.event()))
-            .chain(EventIsNotExperiencedMoreThanOnce::new(
-                experienced_event.event(),
-            ))
-    }
 }
 
 /// Returns the value of the result if, and only if, the result is OK.
@@ -117,7 +89,6 @@ fn main() {
             experience_repo: snapshot.experiences.clone(),
             entity_repo: snapshot.entities.clone(),
             event_repo: snapshot.events.clone(),
-            cnst_factory: PhantomData::<Cli>,
         },
     };
 

@@ -4,7 +4,7 @@ use plotline::{
     entity::{application::EntityRepository, Entity},
     event::application::EventRepository,
     experience::{
-        application::{ConstraintFactory, ExperienceApplication, ExperienceRepository},
+        application::{ExperienceApplication, ExperienceRepository},
         Experience, Profile,
     },
     id::{Id, Identifiable},
@@ -77,17 +77,16 @@ pub struct ExperienceCommand {
     command: Option<ExperienceSubCommand>,
 }
 
-pub struct ExperienceCli<ExperienceRepo, EntityRepo, EventRepo, CnstFactory> {
-    pub experience_app: ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>,
+pub struct ExperienceCli<ExperienceRepo, EntityRepo, EventRepo> {
+    pub experience_app: ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo>,
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
-    ExperienceCli<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
+impl<ExperienceRepo, EntityRepo, EventRepo>
+    ExperienceCli<ExperienceRepo, EntityRepo, EventRepo>
 where
     ExperienceRepo: 'static + ExperienceRepository<Interval = EventRepo::Interval> + Sync + Send,
     EntityRepo: 'static + EntityRepository + Sync + Send,
     EventRepo: 'static + EventRepository + Sync + Send,
-    CnstFactory: 'static + ConstraintFactory<EventRepo::Interval> + Sync + Send,
 {
     /// Given an [ExperienceCommand], executes the corresponding logic.
     pub fn execute(&self, experience_cmd: ExperienceCommand) -> Result {

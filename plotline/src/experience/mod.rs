@@ -1,5 +1,4 @@
 pub mod application;
-pub mod constraint;
 pub mod query;
 #[cfg(feature = "in_memory")]
 pub mod repository;
@@ -224,29 +223,5 @@ where
 impl<'a, Intv> ExperiencedEvent<'a, Intv> {
     pub fn event(&self) -> &Event<Intv> {
         self.event
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{Experience, Profile};
-    use crate::id::Id;
-
-    pub fn transitive_experience<Intv>() -> Experience<Intv> {
-        Experience {
-            id: Id::default(),
-            entity: Id::default(),
-            event: Id::default(),
-            profiles: vec![Profile::new(Id::default())],
-        }
-    }
-
-    pub fn terminal_experience<Intv>() -> Experience<Intv> {
-        Experience {
-            id: Id::default(),
-            entity: Id::default(),
-            event: Id::default(),
-            profiles: Vec::default(),
-        }
     }
 }

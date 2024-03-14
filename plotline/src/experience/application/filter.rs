@@ -84,8 +84,8 @@ where
     }
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
-    ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo, CnstFactory>
+impl<ExperienceRepo, EntityRepo, EventRepo>
+    ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo>
 where
     ExperienceRepo: ExperienceRepository<Interval = EventRepo::Interval>,
     EventRepo: EventRepository,

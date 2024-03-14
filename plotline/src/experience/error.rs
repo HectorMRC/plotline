@@ -21,8 +21,8 @@ pub enum Error {
     Entity(#[from] crate::entity::Error),
     #[error("{0}")]
     Event(#[from] crate::event::Error),
-    #[error("{0}")]
-    Constraint(#[from] super::constraint::Error),
+    // #[error("{0}")]
+    // Constraint(#[from] super::constraint::Error),
     #[error("{0}")]
     Lock(String),
 }

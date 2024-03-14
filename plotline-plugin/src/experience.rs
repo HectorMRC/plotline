@@ -63,6 +63,8 @@ impl<'a, 'b, Intv> OnSaveExperience<'a, 'b, Intv> {
     } 
 
     fn run(&self) -> std::result::Result<(), String> {
+        let _ = self.subject;
+
         let input = OnSaveExperienceInput::default();
         let input = input.write_to_bytes().map_err(|err| err.to_string())?;
         
