@@ -82,6 +82,16 @@ impl<T> TryFrom<String> for Name<T> {
     }
 }
 
+impl<T> Default for Name<T> {
+    /// Returns the "no name" name.
+    fn default() -> Self {
+        Self {
+            name: "no name".to_string(),
+            _marker: PhantomData,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Error, Name};

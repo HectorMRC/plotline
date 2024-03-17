@@ -4,7 +4,6 @@ use crate::{
     event::{application::EventRepository, Event},
     experience::{Experience, Result},
     id::Id,
-    macros::equals_or_return,
     transaction::Tx,
 };
 use std::sync::Arc;
@@ -12,12 +11,11 @@ use std::sync::Arc;
 /// Implements the filter query, through which zero o more experiences may be
 /// retrived.
 pub struct ExperienceFilter<Intv> {
-    pub(crate) id: Option<Id<Experience<Intv>>>,
-    /// Determines the [Entity] involved in the experience, no matter it is
-    /// before or after.
-    pub(crate) entity: Option<Id<Entity>>,
+    pub id: Option<Id<Experience<Intv>>>,
+    /// Determines the [Entity] involved in the experience.
+    pub entity: Option<Id<Entity>>,
     /// Determines the [Event] causing the [Experience].
-    pub(crate) event: Option<Id<Event<Intv>>>,
+    pub event: Option<Id<Event<Intv>>>,
 }
 
 impl<Intv> Default for ExperienceFilter<Intv> {
@@ -39,13 +37,6 @@ impl<Intv> ExperienceFilter<Intv> {
     pub fn with_event(mut self, id: Option<Id<Event<Intv>>>) -> Self {
         self.event = id;
         self
-    }
-
-    pub fn matches(&self, experience: &Experience<Intv>) -> bool {
-        equals_or_return!(self.id, &experience.id);
-        equals_or_return!(self.entity, &experience.entity);
-        equals_or_return!(self.event, &experience.event);
-        true
     }
 }
 

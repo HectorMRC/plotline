@@ -19,7 +19,7 @@ use std::collections::{HashMap, HashSet};
 /// of time.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Profile {
-    entity: Id<Entity>,
+    entity: Entity,
     values: HashMap<String, String>,
 }
 
@@ -27,12 +27,12 @@ impl Identifiable for Profile {
     type Id = <Entity as Identifiable>::Id;
 
     fn id(&self) -> Self::Id {
-        self.entity
+        self.entity.id()
     }
 }
 
 impl Profile {
-    pub fn new(entity: Id<Entity>) -> Self {
+    pub fn new(entity: Entity) -> Self {
         Self {
             entity,
             values: HashMap::new(),
@@ -50,10 +50,10 @@ impl Profile {
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Experience<Intv> {
     pub id: Id<Self>,
-    /// The id of the entity involved in the experience.
-    pub entity: Id<Entity>,
-    /// The id of the event causing the experience.
-    pub event: Id<Event<Intv>>,
+    /// The entity involved in the experience.
+    pub entity: Entity,
+    /// The event causing the experience.
+    pub event: Event<Intv>,
     /// The profiles resulting from the experience.
     pub profiles: Vec<Profile>,
 }
@@ -154,7 +154,7 @@ where
                         .experience
                         .profiles
                         .iter()
-                        .find(|profile| profile.entity == self.entity.id())
+                        .find(|profile| profile.entity.id() == self.entity.id())
                         .cloned()
                 })
                 .map(|profile| vec![profile])

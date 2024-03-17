@@ -2,7 +2,6 @@ use super::{EntityApplication, EntityRepository};
 use crate::{
     entity::{Entity, Result},
     id::Id,
-    macros::equals_or_return,
     name::Name,
     transaction::Tx,
 };
@@ -12,8 +11,8 @@ use std::sync::Arc;
 /// retrived.
 #[derive(Default)]
 pub struct EntityFilter {
-    name: Option<Name<Entity>>,
-    id: Option<Id<Entity>>,
+    pub name: Option<Name<Entity>>,
+    pub id: Option<Id<Entity>>,
 }
 
 impl EntityFilter {
@@ -25,12 +24,6 @@ impl EntityFilter {
     pub fn with_name(mut self, name: Option<Name<Entity>>) -> Self {
         self.name = name;
         self
-    }
-
-    pub fn matches(&self, entity: &Entity) -> bool {
-        equals_or_return!(self.name, &entity.name);
-        equals_or_return!(self.id, &entity.id);
-        true
     }
 }
 

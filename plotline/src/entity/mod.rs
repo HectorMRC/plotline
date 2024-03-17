@@ -10,7 +10,7 @@ use crate::name::Name;
 use serde::{Deserialize, Serialize};
 
 /// An Entity is anything which to interact with.
-#[derive(Debug, Clone, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Eq, Serialize, Deserialize)]
 pub struct Entity {
     /// The id of the entity.
     pub id: Id<Self>,
@@ -37,12 +37,21 @@ impl Entity {
     pub fn new(id: Id<Self>, name: Name<Self>) -> Self {
         Self { id, name }
     }
+
+    pub fn with_id(mut self, id: Id<Self>) -> Self {
+        self.id = id;
+        self
+    }
+
+    pub fn with_name(mut self, name: Name<Self>) -> Self {
+        self.name = name;
+        self
+    }
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
     use super::Entity;
-    use crate::id::Id;
 
     impl Entity {
         pub fn fixture() -> Self {
@@ -50,11 +59,6 @@ pub(crate) mod tests {
                 id: Default::default(),
                 name: "fixture".to_string().try_into().unwrap(),
             }
-        }
-
-        pub fn with_id(mut self, id: Id<Entity>) -> Self {
-            self.id = id;
-            self
         }
     }
 }

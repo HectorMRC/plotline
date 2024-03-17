@@ -4,10 +4,7 @@ use super::{
     Entity,
 };
 use crate::{
-    id::Id,
-    resource::{Resource, ResourceMap},
-    serde::{from_rwlock, into_rwlock},
-    transaction::Tx,
+    id::Id, macros::equals_or_return, resource::{Resource, ResourceMap}, serde::{from_rwlock, into_rwlock}, transaction::Tx
 };
 use serde::{Deserialize, Serialize};
 use std::sync::RwLock;
@@ -66,5 +63,13 @@ impl EntityRepository for InMemoryEntityRepository {
         }
 
         Ok(())
+    }
+}
+
+impl EntityFilter {
+    fn matches(&self, entity: &Entity) -> bool {
+        equals_or_return!(self.name, &entity.name);
+        equals_or_return!(self.id, &entity.id);
+        true
     }
 }
