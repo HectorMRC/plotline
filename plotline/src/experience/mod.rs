@@ -66,6 +66,24 @@ impl<Intv> Identifiable for Experience<Intv> {
     }
 }
 
+impl<Intv> Ord for Experience<Intv>
+where
+    Intv: Interval,
+{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.event.cmp(&other.event)
+    }
+}
+
+impl<Intv> PartialOrd for Experience<Intv>
+where
+    Intv: Interval,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl<Intv> Experience<Intv> {
     pub fn with_profiles(mut self, profiles: Vec<Profile>) -> Self {
         self.profiles = profiles;
@@ -79,26 +97,15 @@ impl<Intv> Experience<Intv> {
 
 /// ExperienceBuilder makes sure an [Experience] is created if, and only if,
 /// all of its requirements are meet.
-pub struct ExperienceBuilder<'a, Intv> {
+pub struct ExperienceBuilder<Intv> {
     id: Id<Experience<Intv>>,
-    entity: &'a Entity,
-    event: &'a Event<Intv>,
+    entity: Entity,
+    event: Event<Intv>,
     profiles: Option<Vec<Profile>>,
 }
 
-impl<'a, Intv: Clone> Clone for ExperienceBuilder<'a, Intv> {
-    fn clone(&self) -> Self {
-        Self {
-            id: self.id,
-            entity: self.entity,
-            event: self.event,
-            profiles: self.profiles.clone(),
-        }
-    }
-}
-
-impl<'a, Intv> ExperienceBuilder<'a, Intv> {
-    pub fn new(id: Id<Experience<Intv>>, entity: &'a Entity, event: &'a Event<Intv>) -> Self {
+impl<Intv> ExperienceBuilder<Intv> {
+    pub fn new(id: Id<Experience<Intv>>, entity: Entity, event: Event<Intv>) -> Self {
         Self {
             id,
             entity,
@@ -117,7 +124,7 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
             let mut uniq = HashSet::new();
             if !profiles
                 .iter()
-                .all(move |profile| uniq.insert(profile.entity))
+                .all(move |profile| uniq.insert(profile.entity.id()))
             {
                 return Err(Error::RepeatedEntity);
             }
@@ -125,33 +132,36 @@ impl<'a, Intv> ExperienceBuilder<'a, Intv> {
 
         Ok(Experience {
             id: self.id,
-            entity: self.entity.id(),
-            event: self.event.id(),
+            entity: self.entity,
+            event: self.event,
             profiles: self.profiles.unwrap_or_default(),
         })
     }
 }
 
-impl<'a, Intv> ExperienceBuilder<'a, Intv>
+impl<Intv> ExperienceBuilder<Intv>
 where
     Intv: Interval,
 {
     /// Tries to compute some value for those fields set to [Option::None].
-    pub fn with_fallbacks(mut self, experienced_events: &[ExperiencedEvent<'a, Intv>]) -> Self {
-        let mut previous = query::SelectPreviousExperience::new(self.event);
-        let mut next = query::SelectNextExperience::new(self.event);
-        for experienced_event in experienced_events.iter() {
-            previous = previous.with(experienced_event);
-            next = next.with(experienced_event);
+    fn with_fallbacks<'a, I>(mut self, experiences: I) -> Self
+    where
+        I: Iterator<Item = &'a Experience<Intv>>,
+        Intv: 'a,
+    {
+        let mut previous = query::SelectPreviousExperience::new(&self.event);
+        let mut next = query::SelectNextExperience::new(&self.event);
+        for experience in experiences {
+            previous = previous.with(experience);
+            next = next.with(experience);
         }
 
         self.profiles = self.profiles.or_else(|| {
             previous
                 .value()
                 .or_else(|| next.value())
-                .and_then(|experienced_event| {
-                    experienced_event
-                        .experience
+                .and_then(|experience| {
+                    experience
                         .profiles
                         .iter()
                         .find(|profile| profile.entity.id() == self.entity.id())
@@ -191,37 +201,5 @@ impl ExperienceKind {
 
     pub fn is_terminal(&self) -> bool {
         matches!(self, ExperienceKind::Terminal)
-    }
-}
-
-/// An ExperiencedEvent represents the union between an [Experience] and the
-/// [Event] that causes it.
-#[derive(PartialEq, Eq)]
-pub struct ExperiencedEvent<'a, Intv> {
-    experience: &'a Experience<Intv>,
-    event: &'a Event<Intv>,
-}
-
-impl<Intv> Ord for ExperiencedEvent<'_, Intv>
-where
-    Intv: Interval,
-{
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.event.cmp(other.event)
-    }
-}
-
-impl<Intv> PartialOrd for ExperiencedEvent<'_, Intv>
-where
-    Intv: Interval,
-{
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<'a, Intv> ExperiencedEvent<'a, Intv> {
-    pub fn event(&self) -> &Event<Intv> {
-        self.event
     }
 }

@@ -81,8 +81,7 @@ pub struct ExperienceCli<ExperienceRepo, EntityRepo, EventRepo> {
     pub experience_app: ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo>,
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo>
-    ExperienceCli<ExperienceRepo, EntityRepo, EventRepo>
+impl<ExperienceRepo, EntityRepo, EventRepo> ExperienceCli<ExperienceRepo, EntityRepo, EventRepo>
 where
     ExperienceRepo: 'static + ExperienceRepository<Interval = EventRepo::Interval> + Sync + Send,
     EntityRepo: 'static + EntityRepository + Sync + Send,
@@ -179,7 +178,11 @@ impl<'a, Intv> Display for ManyExperiencesFmt<'a, Intv> {
         let mut table = Table::new();
         table.add_row(row!["ID", "ENTITY ID", "EVENT ID"]);
         self.experiences.iter().for_each(|experience| {
-            table.add_row(row![&experience.id, &experience.entity, &experience.event]);
+            table.add_row(row![
+                &experience.id,
+                &experience.entity.id(),
+                &experience.event.id()
+            ]);
         });
 
         table.fmt(f)

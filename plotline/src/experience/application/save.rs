@@ -2,13 +2,11 @@ use super::{ExperienceApplication, ExperienceFilter, ExperienceRepository};
 use crate::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
-    experience::{
-        Error, Experience, ExperienceBuilder, ExperiencedEvent, Profile, Result,
-    },
+    experience::{Error, Experience, ExperienceBuilder, Profile, Result},
     id::Id,
     transaction::Tx,
 };
-use std::sync::Arc;
+use std::{ops::Deref, sync::Arc};
 
 /// Implements the save experience transaction.
 pub struct SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
@@ -24,8 +22,7 @@ where
     profiles: Option<Vec<Profile>>,
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo>
-    SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
+impl<ExperienceRepo, EntityRepo, EventRepo> SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
 where
     EventRepo: EventRepository,
 {
@@ -35,8 +32,7 @@ where
     }
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo>
-    SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
+impl<ExperienceRepo, EntityRepo, EventRepo> SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
 where
     ExperienceRepo: ExperienceRepository<Interval = EventRepo::Interval>,
     EntityRepo: EntityRepository,
@@ -62,19 +58,15 @@ where
     }
 
     fn create(self) -> Result<()> {
-        let entity_tx = self
+        let entity = self
             .entity_repo
-            .find(self.entity.ok_or(Error::MandatoryField("entity"))?)?;
+            .find(self.entity.ok_or(Error::MandatoryField("entity"))?)?
+            .read();
 
-        let entity = entity_tx.read();
-
-        let event_tx = self
+        let event = self
             .event_repo
-            .find(self.event.ok_or(Error::MandatoryField("event"))?)?;
-
-        // read-only ensures the same event could be locked for reading more
-        // than once.
-        let event = event_tx.read();
+            .find(self.event.ok_or(Error::MandatoryField("event"))?)?
+            .read();
 
         let experiences = self
             .experience_repo
@@ -83,24 +75,9 @@ where
             .map(Tx::read)
             .collect::<Vec<_>>();
 
-        let events = experiences
-            .iter()
-            .map(|experience| self.event_repo.find(experience.event).map_err(Into::into))
-            .collect::<Result<Vec<_>>>()?
-            .into_iter()
-            // read-only ensure no dead-lock happens for the same event.
-            .map(Tx::read)
-            .collect::<Vec<_>>();
-
-        let experienced_events = experiences
-            .iter()
-            .zip(events.iter())
-            .map(|(experience, event)| ExperiencedEvent { experience, event })
-            .collect::<Vec<_>>();
-
-        let experience = ExperienceBuilder::new(self.id, &entity, &event)
+        let experience = ExperienceBuilder::new(self.id, entity.clone(), event.clone())
             .with_profiles(self.profiles)
-            .with_fallbacks(&experienced_events)
+            .with_fallbacks(experiences.iter().map(|experience| experience.deref()))
             .build()?;
 
         self.experience_repo.create(&experience)?;

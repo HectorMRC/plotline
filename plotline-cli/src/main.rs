@@ -1,12 +1,10 @@
 use clap::{error::ErrorKind, Parser};
-use plotline_cli::{entity::EntityCli, event::EventCli, experience::ExperienceCli, CliCommand};
 use once_cell::sync::Lazy;
 use plotline::{
-    entity::application::EntityApplication,
-    event::application::EventApplication,
-    experience::application::ExperienceApplication,
-    snapshot::Snapshot,
+    entity::application::EntityApplication, event::application::EventApplication,
+    experience::application::ExperienceApplication, snapshot::Snapshot,
 };
+use plotline_cli::{entity::EntityCli, event::EventCli, experience::ExperienceCli, CliCommand};
 use std::{
     ffi::OsString,
     fmt::Display,

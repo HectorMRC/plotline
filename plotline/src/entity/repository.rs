@@ -4,7 +4,11 @@ use super::{
     Entity,
 };
 use crate::{
-    id::Id, macros::equals_or_return, resource::{Resource, ResourceMap}, serde::{from_rwlock, into_rwlock}, transaction::Tx
+    id::Id,
+    macros::equals_or_return,
+    resource::{Resource, ResourceMap},
+    serde::{from_rwlock, into_rwlock},
+    transaction::Tx,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::RwLock;

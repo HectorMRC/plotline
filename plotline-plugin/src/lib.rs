@@ -5,7 +5,7 @@ mod experience;
 pub use experience::*;
 
 use plotline::id::Identifiable;
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Deref};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -48,7 +48,7 @@ pub trait Plugin: Identifiable<Id = PluginId> {
 /// A FlavoredPlugin represents a layer of abstraction between the generic form
 /// given by the trait [Plugin] and the actual methods associated to the kind
 /// of plugin.
-pub trait FlavoredPlugin<'a>: TryFrom<&'a Box<dyn Plugin>, Error = Error> {
+pub trait FlavoredPlugin<'a>: TryFrom<&'a dyn Plugin, Error = Error> {
     /// Determines the kind of the plugin.
     fn kind() -> PluginKind;
 }
@@ -87,6 +87,7 @@ impl PluginStore {
         self.plugins
             .values()
             .filter(|plugin| plugin.kind() == T::kind())
+            .map(Deref::deref)
             .map(TryInto::try_into)
             .collect::<Result<Vec<_>>>()
     }
