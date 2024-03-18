@@ -1,20 +1,19 @@
 use crate::{Error, FlavoredPlugin, Plugin, PluginKind, Result};
 use plotline::experience::Experience;
-use plotline_proto::plugin::{OnSaveExperienceInput, OnSaveExperienceOutput};
+use plotline_proto::plugin::{BeforeSaveExperienceInput, BeforeSaveExperienceOutput};
 use protobuf::Message;
 
-/// An OnSaveExperiencePlugin is a plugin that is executed before saving
-/// an [Experience], determining if the experience is suitable to be saved
-/// or not.
-pub struct OnSaveExperiencePlugin<'a> {
+/// An BeforeSaveExperiencePlugin is a plugin that is executed before saving an
+/// [Experience], determining if the experience is suitable to be saved or not.
+pub struct BeforeSaveExperiencePlugin<'a> {
     plugin: &'a dyn Plugin,
 }
 
-impl<'a> TryFrom<&'a dyn Plugin> for OnSaveExperiencePlugin<'a> {
+impl<'a> TryFrom<&'a dyn Plugin> for BeforeSaveExperiencePlugin<'a> {
     type Error = Error;
 
     fn try_from(plugin: &'a dyn Plugin) -> Result<Self> {
-        if plugin.kind() != PluginKind::OnSaveExperience {
+        if plugin.kind() != PluginKind::BeforeSaveExperience {
             return Err(Error::WrongKind);
         }
 
@@ -22,18 +21,18 @@ impl<'a> TryFrom<&'a dyn Plugin> for OnSaveExperiencePlugin<'a> {
     }
 }
 
-impl<'a> FlavoredPlugin<'a> for OnSaveExperiencePlugin<'a> {
+impl<'a> FlavoredPlugin<'a> for BeforeSaveExperiencePlugin<'a> {
     fn kind() -> PluginKind {
-        PluginKind::OnSaveExperience
+        PluginKind::BeforeSaveExperience
     }
 }
 
-impl<'a> OnSaveExperiencePlugin<'a> {
+impl<'a> BeforeSaveExperiencePlugin<'a> {
     pub fn with_subject<'b, Intv>(
         &self,
         subject: &'b Experience<Intv>,
-    ) -> OnSaveExperience<'a, 'b, Intv> {
-        OnSaveExperience {
+    ) -> BeforeSaveExperience<'a, 'b, Intv> {
+        BeforeSaveExperience {
             plugin: self.plugin,
             subject,
             timeline: Default::default(),
@@ -42,15 +41,15 @@ impl<'a> OnSaveExperiencePlugin<'a> {
     }
 }
 
-/// OnSaveExperience is the [OnSaveExperiencePlugin]'s command.
-pub struct OnSaveExperience<'a, 'b, Intv> {
+/// BeforeSaveExperience is the [BeforeSaveExperiencePlugin]'s command.
+pub struct BeforeSaveExperience<'a, 'b, Intv> {
     plugin: &'a dyn Plugin,
     subject: &'b Experience<Intv>,
     timeline: &'a [&'b Experience<Intv>],
     result: std::result::Result<(), String>,
 }
 
-impl<'a, 'b, Intv> OnSaveExperience<'a, 'b, Intv> {
+impl<'a, 'b, Intv> BeforeSaveExperience<'a, 'b, Intv> {
     pub fn with_timeline(mut self, timeline: &'a [&'b Experience<Intv>]) -> Self {
         self.timeline = timeline;
         self
@@ -68,12 +67,12 @@ impl<'a, 'b, Intv> OnSaveExperience<'a, 'b, Intv> {
     fn run(&self) -> std::result::Result<(), String> {
         let _ = self.subject;
 
-        let input = OnSaveExperienceInput::default();
+        let input = BeforeSaveExperienceInput::default();
         let input = input.write_to_bytes().map_err(|err| err.to_string())?;
 
         let output = self.plugin.run("main", &input)?;
         let output =
-            OnSaveExperienceOutput::parse_from_bytes(&output).map_err(|err| err.to_string())?;
+            BeforeSaveExperienceOutput::parse_from_bytes(&output).map_err(|err| err.to_string())?;
 
         if !output.error.is_empty() {
             return Err(output.error);

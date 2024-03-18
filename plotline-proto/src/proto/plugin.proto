@@ -4,11 +4,11 @@ package plugin;
 
 import "model.proto";
 
-message OnSaveExperienceInput {
+message BeforeSaveExperienceInput {
     model.Experience subject = 1;
     repeated model.Experience timeline = 2;
 }
 
-message OnSaveExperienceOutput {
+message BeforeSaveExperienceOutput {
     string error = 1;
 }

@@ -26,7 +26,7 @@ pub enum PluginKind {
     /// Plugins of this kind will be executed before saving an experience. Its
     /// result will indicate whether the experience is suitable to be saved or
     /// not.
-    OnSaveExperience,
+    BeforeSaveExperience,
 }
 
 /// A PluginId uniquely identifies a plugin.
