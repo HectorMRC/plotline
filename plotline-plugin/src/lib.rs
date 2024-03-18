@@ -1,6 +1,9 @@
 #[cfg(feature = "wasm")]
 mod wasm;
 
+mod entity;
+mod event;
+
 mod experience;
 pub use experience::*;
 

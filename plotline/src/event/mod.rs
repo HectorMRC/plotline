@@ -16,10 +16,12 @@ use serde::{Deserialize, Serialize};
 /// An Event is a specific happening in which one or more entities are involved.
 #[derive(Clone, Eq, Serialize, Deserialize)]
 pub struct Event<Intv> {
-    id: Id<Self>,
-    name: Name<Self>,
-    /// the interval is the time during which the event takes place.
-    interval: Intv,
+    /// The id of the event.
+    pub id: Id<Self>,
+    /// The name of the event.
+    pub name: Name<Self>,
+    /// The time during which the event takes place.
+    pub interval: Intv,
 }
 
 impl<Intv> Identifiable for Event<Intv> {

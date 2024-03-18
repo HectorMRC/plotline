@@ -1,7 +1,16 @@
-use crate::{Error, FlavoredPlugin, Plugin, PluginKind, Result};
-use plotline::experience::Experience;
-use plotline_proto::plugin::{BeforeSaveExperienceInput, BeforeSaveExperienceOutput};
-use protobuf::Message;
+use crate::{
+    entity::proto_entity, event::proto_event, Error, FlavoredPlugin, Plugin, PluginKind, Result,
+};
+use plotline::{
+    experience::{Experience, Profile},
+    id::Identifiable,
+};
+use plotline_proto::{
+    model as proto,
+    plugin::{BeforeSaveExperienceInput, BeforeSaveExperienceOutput},
+};
+use protobuf::{Message, MessageField};
+use std::ops::Deref;
 
 /// An BeforeSaveExperiencePlugin is a plugin that is executed before saving an
 /// [Experience], determining if the experience is suitable to be saved or not.
@@ -65,19 +74,53 @@ impl<'a, 'b, Intv> BeforeSaveExperience<'a, 'b, Intv> {
     }
 
     fn run(&self) -> std::result::Result<(), String> {
-        let _ = self.subject;
+        let input = BeforeSaveExperienceInput {
+            subject: MessageField::some(proto_experience(&self.subject)),
+            timeline: self
+                .timeline
+                .iter()
+                .map(Deref::deref)
+                .map(proto_experience)
+                .collect(),
+            ..Default::default()
+        }
+        .write_to_bytes()
+        .map_err(|err| err.to_string())?;
 
-        let input = BeforeSaveExperienceInput::default();
-        let input = input.write_to_bytes().map_err(|err| err.to_string())?;
-
-        let output = self.plugin.run("main", &input)?;
         let output =
-            BeforeSaveExperienceOutput::parse_from_bytes(&output).map_err(|err| err.to_string())?;
+            BeforeSaveExperienceOutput::parse_from_bytes(&self.plugin.run("main", &input)?)
+                .map_err(|err| err.to_string())?;
 
         if !output.error.is_empty() {
             return Err(output.error);
         }
 
         Ok(())
+    }
+}
+
+fn proto_profile(profile: &Profile) -> proto::Profile {
+    proto::Profile {
+        entity: MessageField::some(proto_entity(&profile.entity)),
+        values: profile
+            .values
+            .iter()
+            .map(|(key, value)| proto::KeyValue {
+                key: key.to_string(),
+                value: value.to_string(),
+                ..Default::default()
+            })
+            .collect(),
+        ..Default::default()
+    }
+}
+
+fn proto_experience<Intv>(experience: &Experience<Intv>) -> proto::Experience {
+    proto::Experience {
+        id: experience.id().to_string(),
+        entity: MessageField::some(proto_entity(&experience.entity)),
+        event: MessageField::some(proto_event(&experience.event)),
+        profiles: experience.profiles.iter().map(proto_profile).collect(),
+        ..Default::default()
     }
 }

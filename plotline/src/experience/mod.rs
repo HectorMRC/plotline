@@ -19,8 +19,8 @@ use std::collections::{HashMap, HashSet};
 /// of time.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Profile {
-    entity: Entity,
-    values: HashMap<String, String>,
+    pub entity: Entity,
+    pub values: HashMap<String, String>,
 }
 
 impl Identifiable for Profile {
