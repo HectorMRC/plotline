@@ -59,8 +59,7 @@ where
             .experience_repo
             .filter(&self.filter)?
             .into_iter()
-            .map(Tx::read)
-            .map(|experience| experience.clone())
+            .map(|entity_tx| entity_tx.read().clone())
             .collect())
     }
 }

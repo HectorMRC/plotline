@@ -2,16 +2,12 @@ use crate::{
     id::Identifiable,
     transaction::{Tx, TxReadGuard, TxWriteGuard},
 };
-use parking_lot::{
-    lock_api::{ArcRwLockReadGuard, ArcRwLockWriteGuard},
-    RawRwLock, RwLock,
-};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
     collections::HashMap,
     hash::Hash,
     ops::{Deref, DerefMut},
-    sync::Arc,
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -39,17 +35,24 @@ impl<T> Tx<T> for Resource<T>
 where
     T: Clone,
 {
-    type ReadGuard = ResourceReadGuard<T>;
-    type WriteGuard = ResourceWriteGuard<T>;
+    type ReadGuard<'a> = ResourceReadGuard<'a, T> where T: 'a;
+    type WriteGuard<'a> = ResourceWriteGuard<'a, T> where T: 'a;
 
-    fn read(self) -> Self::ReadGuard {
+    fn read(&self) -> Self::ReadGuard<'_> {
         ResourceReadGuard {
-            guard: self.lock.read_arc(),
+            guard: match self.lock.read() {
+                Ok(reader) => reader,
+                Err(err) => err.into_inner(),
+            },
         }
     }
 
-    fn write(self) -> Self::WriteGuard {
-        let guard = self.lock.write_arc();
+    fn write(&self) -> Self::WriteGuard<'_> {
+        let guard = match self.lock.write() {
+            Ok(writer) => writer,
+            Err(err) => err.into_inner(),
+        };
+
         ResourceWriteGuard {
             data: guard.clone(),
             guard,
@@ -64,11 +67,11 @@ impl<T> From<Arc<RwLock<T>>> for Resource<T> {
 }
 
 /// ResourceReadGuard is the [TxReadGuard] implementation for [Resource].
-pub struct ResourceReadGuard<T> {
-    guard: ArcRwLockReadGuard<RawRwLock, T>,
+pub struct ResourceReadGuard<'a, T> {
+    guard: RwLockReadGuard<'a, T>,
 }
 
-impl<T> Deref for ResourceReadGuard<T> {
+impl<'a, T> Deref for ResourceReadGuard<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -76,17 +79,17 @@ impl<T> Deref for ResourceReadGuard<T> {
     }
 }
 
-impl<T> TxReadGuard<T> for ResourceReadGuard<T> {
+impl<'a, T> TxReadGuard<T> for ResourceReadGuard<'a, T> {
     fn release(self) {}
 }
 
 /// ResourceWriteGuard is the [TxWriteGuard] implementation for [Resource].
-pub struct ResourceWriteGuard<T> {
-    guard: ArcRwLockWriteGuard<RawRwLock, T>,
+pub struct ResourceWriteGuard<'a, T> {
+    guard: RwLockWriteGuard<'a, T>,
     data: T,
 }
 
-impl<T> Deref for ResourceWriteGuard<T> {
+impl<'a, T> Deref for ResourceWriteGuard<'a, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -94,13 +97,13 @@ impl<T> Deref for ResourceWriteGuard<T> {
     }
 }
 
-impl<T> DerefMut for ResourceWriteGuard<T> {
+impl<'a, T> DerefMut for ResourceWriteGuard<'a, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
     }
 }
 
-impl<T> TxWriteGuard<T> for ResourceWriteGuard<T> {
+impl<'a, T> TxWriteGuard<T> for ResourceWriteGuard<'a, T> {
     fn commit(mut self) {
         *self.guard = self.data;
     }

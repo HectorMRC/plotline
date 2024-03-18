@@ -2,8 +2,9 @@ use super::{ExperienceApplication, ExperienceFilter, ExperienceRepository};
 use crate::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
-    experience::{Error, Experience, ExperienceBuilder, Profile, Result},
-    id::Id,
+    experience::{query, Error, Experience, ExperienceBuilder, Profile, Result},
+    id::{Id, Identifiable},
+    interval::Interval,
     transaction::Tx,
 };
 use std::{ops::Deref, sync::Arc};
@@ -58,26 +59,32 @@ where
     }
 
     fn create(self) -> Result<()> {
-        let entity = self
+        let entity_tx = self
             .entity_repo
-            .find(self.entity.ok_or(Error::MandatoryField("entity"))?)?
-            .read();
+            .find(self.entity.ok_or(Error::MandatoryField("entity"))?)?;
 
-        let event = self
+        let entity = entity_tx.read();
+
+        let event_tx = self
             .event_repo
-            .find(self.event.ok_or(Error::MandatoryField("event"))?)?
-            .read();
+            .find(self.event.ok_or(Error::MandatoryField("event"))?)?;
 
-        let experiences = self
+        let event = event_tx.read();
+
+        let experiences_txs = self
             .experience_repo
             .filter(&ExperienceFilter::default().with_entity(self.entity))?
             .into_iter()
-            .map(Tx::read)
             .collect::<Vec<_>>();
+
+        let mut experiences = Vec::with_capacity(experiences_txs.len());
+        for experience_tx in &experiences_txs {
+            experiences.push(experience_tx.read())
+        }
 
         let experience = ExperienceBuilder::new(self.id, entity.clone(), event.clone())
             .with_profiles(self.profiles)
-            .with_fallbacks(experiences.iter().map(|experience| experience.deref()))
+            .with_fallbacks(experiences.iter().map(Deref::deref))
             .build()?;
 
         self.experience_repo.create(&experience)?;
@@ -86,6 +93,41 @@ where
 
     fn update(self, _experience_tx: ExperienceRepo::Tx) -> Result<()> {
         Ok(())
+    }
+}
+
+impl<Intv> ExperienceBuilder<Intv>
+where
+    Intv: Interval,
+{
+    /// Tries to compute some value for those fields set to [Option::None].
+    fn with_fallbacks<'a, I>(mut self, experiences: I) -> Self
+    where
+        I: Iterator<Item = &'a Experience<Intv>>,
+        Intv: 'a,
+    {
+        let mut previous = query::SelectPreviousExperience::new(&self.event);
+        let mut next = query::SelectNextExperience::new(&self.event);
+        for experience in experiences {
+            previous = previous.with(experience);
+            next = next.with(experience);
+        }
+
+        self.profiles = self.profiles.or_else(|| {
+            previous
+                .value()
+                .or_else(|| next.value())
+                .and_then(|experience| {
+                    experience
+                        .profiles
+                        .iter()
+                        .find(|profile| profile.entity.id() == self.entity.id())
+                        .cloned()
+                })
+                .map(|profile| vec![profile])
+        });
+
+        self
     }
 }
 

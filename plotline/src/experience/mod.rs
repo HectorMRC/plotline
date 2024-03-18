@@ -139,41 +139,6 @@ impl<Intv> ExperienceBuilder<Intv> {
     }
 }
 
-impl<Intv> ExperienceBuilder<Intv>
-where
-    Intv: Interval,
-{
-    /// Tries to compute some value for those fields set to [Option::None].
-    fn with_fallbacks<'a, I>(mut self, experiences: I) -> Self
-    where
-        I: Iterator<Item = &'a Experience<Intv>>,
-        Intv: 'a,
-    {
-        let mut previous = query::SelectPreviousExperience::new(&self.event);
-        let mut next = query::SelectNextExperience::new(&self.event);
-        for experience in experiences {
-            previous = previous.with(experience);
-            next = next.with(experience);
-        }
-
-        self.profiles = self.profiles.or_else(|| {
-            previous
-                .value()
-                .or_else(|| next.value())
-                .and_then(|experience| {
-                    experience
-                        .profiles
-                        .iter()
-                        .find(|profile| profile.entity.id() == self.entity.id())
-                        .cloned()
-                })
-                .map(|profile| vec![profile])
-        });
-
-        self
-    }
-}
-
 /// An ExperienceKind determines the kind of an [Experience] based on its
 /// cardinality.
 #[derive(Clone, Copy)]

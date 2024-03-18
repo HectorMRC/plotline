@@ -146,7 +146,9 @@ where
         &self,
         raw_experience: Resource<RawExperience<Intv>>,
     ) -> Result<ExperienceAggregate<Intv>> {
-        let experience: ResourceReadGuard<RawExperience<Intv>> = raw_experience.clone().read();
+        let experience_tx = raw_experience.clone();
+        let experience = experience_tx.read();
+
         let mut entities =
             HashSet::<Id<Entity>>::from_iter(experience.profiles.iter().map(Identifiable::id));
 
@@ -177,12 +179,12 @@ impl<Intv> Tx<Experience<Intv>> for ExperienceAggregate<Intv>
 where
     Intv: Interval,
 {
-    type ReadGuard = ExperienceAggregateReadGuard<Intv>;
-    type WriteGuard = ExperienceAggregateWriteGuard<Intv>;
+    type ReadGuard<'a> = ExperienceAggregateReadGuard<'a, Intv> where Intv: 'a;
+    type WriteGuard<'a> = ExperienceAggregateWriteGuard<'a, Intv> where Intv: 'a;
 
-    fn read(self) -> Self::ReadGuard {
+    fn read(&self) -> Self::ReadGuard<'_> {
         let experience = self.experience.read();
-        let entities = self.entities.into_iter().map(Tx::read).collect::<Vec<_>>();
+        let entities = self.entities.iter().map(Tx::read).collect::<Vec<_>>();
         let event = self.event.read();
 
         let data = Self::experience(&experience, &event, &entities);
@@ -195,9 +197,9 @@ where
         }
     }
 
-    fn write(self) -> Self::WriteGuard {
+    fn write(&self) -> Self::WriteGuard<'_> {
         let experience = self.experience.write();
-        let entities = self.entities.into_iter().map(Tx::read).collect::<Vec<_>>();
+        let entities = self.entities.iter().map(Tx::read).collect::<Vec<_>>();
         let event = self.event.read();
 
         let data = Self::experience(&experience, &event, &entities);
@@ -245,14 +247,14 @@ where
     }
 }
 
-pub struct ExperienceAggregateReadGuard<Intv> {
-    _experience: ResourceReadGuard<RawExperience<Intv>>,
-    _entities: Vec<ResourceReadGuard<Entity>>,
-    _event: ResourceReadGuard<Event<Intv>>,
+pub struct ExperienceAggregateReadGuard<'a, Intv> {
+    _experience: ResourceReadGuard<'a, RawExperience<Intv>>,
+    _entities: Vec<ResourceReadGuard<'a, Entity>>,
+    _event: ResourceReadGuard<'a, Event<Intv>>,
     data: Experience<Intv>,
 }
 
-impl<Intv> Deref for ExperienceAggregateReadGuard<Intv> {
+impl<'a, Intv> Deref for ExperienceAggregateReadGuard<'a, Intv> {
     type Target = Experience<Intv>;
 
     fn deref(&self) -> &Self::Target {
@@ -260,18 +262,18 @@ impl<Intv> Deref for ExperienceAggregateReadGuard<Intv> {
     }
 }
 
-impl<Intv> TxReadGuard<Experience<Intv>> for ExperienceAggregateReadGuard<Intv> {
+impl<'a, Intv> TxReadGuard<Experience<Intv>> for ExperienceAggregateReadGuard<'a, Intv> {
     fn release(self) {}
 }
 
-pub struct ExperienceAggregateWriteGuard<Intv> {
-    experience: ResourceWriteGuard<RawExperience<Intv>>,
-    _entities: Vec<ResourceReadGuard<Entity>>,
-    _event: ResourceReadGuard<Event<Intv>>,
+pub struct ExperienceAggregateWriteGuard<'a, Intv> {
+    experience: ResourceWriteGuard<'a, RawExperience<Intv>>,
+    _entities: Vec<ResourceReadGuard<'a, Entity>>,
+    _event: ResourceReadGuard<'a, Event<Intv>>,
     data: Experience<Intv>,
 }
 
-impl<Intv> Deref for ExperienceAggregateWriteGuard<Intv> {
+impl<'a, Intv> Deref for ExperienceAggregateWriteGuard<'a, Intv> {
     type Target = Experience<Intv>;
 
     fn deref(&self) -> &Self::Target {
@@ -279,13 +281,13 @@ impl<Intv> Deref for ExperienceAggregateWriteGuard<Intv> {
     }
 }
 
-impl<Intv> DerefMut for ExperienceAggregateWriteGuard<Intv> {
+impl<'a, Intv> DerefMut for ExperienceAggregateWriteGuard<'a, Intv> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
     }
 }
 
-impl<Intv> TxWriteGuard<Experience<Intv>> for ExperienceAggregateWriteGuard<Intv> {
+impl<'a, Intv> TxWriteGuard<Experience<Intv>> for ExperienceAggregateWriteGuard<'a, Intv> {
     fn commit(mut self) {
         *self.experience = (&self.data).into()
     }

@@ -10,7 +10,6 @@ version     = "0.1.0"
 
 [dependencies]
 futures = "0.3.30"
-parking_lot = {version = "0.12.1", features = ["arc_lock", "serde"]}
 serde = {version = "1.0.195", features = ["derive", "rc"]} # data parser
 thiserror = "1.0.56"
 uuid = {version = "1.7.0", features = ["v4"]}

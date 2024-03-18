@@ -2,16 +2,21 @@ use std::ops::{Deref, DerefMut};
 
 /// Tx represents a resource to be manipulated transactionally.
 pub trait Tx<T> {
-    type ReadGuard: TxReadGuard<T>;
-    type WriteGuard: TxWriteGuard<T>;
+    type ReadGuard<'a>: TxReadGuard<T>
+    where
+        Self: 'a;
+
+    type WriteGuard<'a>: TxWriteGuard<T>
+    where
+        Self: 'a;
 
     /// Acquires the resource, blocking the current thread until it is available
     /// to do so.
-    fn read(self) -> Self::ReadGuard;
+    fn read(&self) -> Self::ReadGuard<'_>;
 
     /// Acquires the resource, blocking the current thread until it is available
     /// to do so.
-    fn write(self) -> Self::WriteGuard;
+    fn write(&self) -> Self::WriteGuard<'_>;
 }
 
 /// A TxReadGuard holds T ensuring its consistency between transactions.
