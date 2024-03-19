@@ -27,7 +27,7 @@ impl<Intv> EventRepository for InMemoryEventRepository<Intv>
 where
     Intv: Interval + Serialize + for<'a> Deserialize<'a>,
 {
-    type Interval = Intv;
+    type Intv = Intv;
     type Tx = Resource<Event<Intv>>;
 
     fn create(&self, event: &Event<Intv>) -> Result<()> {

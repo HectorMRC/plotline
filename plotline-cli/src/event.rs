@@ -42,8 +42,8 @@ pub struct EventCli<EventRepo> {
 impl<EventRepo> EventCli<EventRepo>
 where
     EventRepo: 'static + EventRepository + Sync + Send,
-    EventRepo::Interval: TryFrom<Vec<String>> + Sync + Send,
-    <EventRepo::Interval as TryFrom<Vec<String>>>::Error: Into<Error>,
+    EventRepo::Intv: TryFrom<Vec<String>> + Sync + Send,
+    <EventRepo::Intv as TryFrom<Vec<String>>>::Error: Into<Error>,
 {
     /// Given a [EventCommand], executes the corresponding logic.
     pub fn execute(&self, event_cmd: EventCommand) -> Result {
@@ -58,7 +58,7 @@ where
     fn execute_subcommand(
         &self,
         subcommand: EventSubCommand,
-        event_id: Option<Id<Event<EventRepo::Interval>>>,
+        event_id: Option<Id<Event<EventRepo::Intv>>>,
     ) -> Result {
         match subcommand {
             EventSubCommand::Save(args) => {

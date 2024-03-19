@@ -1,4 +1,7 @@
-use super::{ExperienceApplication, ExperienceFilter, ExperienceRepository};
+use super::{
+    BeforeSaveExperience, Command, ExperienceApplication, ExperienceFilter, ExperienceRepository,
+    PluginFactory,
+};
 use crate::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
@@ -10,20 +13,22 @@ use crate::{
 use std::{ops::Deref, sync::Arc};
 
 /// Implements the save experience transaction.
-pub struct SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
+pub struct SaveExperience<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
 where
     EventRepo: EventRepository,
 {
     experience_repo: Arc<ExperienceRepo>,
     entity_repo: Arc<EntityRepo>,
     event_repo: Arc<EventRepo>,
-    id: Id<Experience<EventRepo::Interval>>,
+    plugin_factory: Arc<PluginFcty>,
+    id: Id<Experience<EventRepo::Intv>>,
     entity: Option<Id<Entity>>,
-    event: Option<Id<Event<EventRepo::Interval>>>,
+    event: Option<Id<Event<EventRepo::Intv>>>,
     profiles: Option<Vec<Profile>>,
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo> SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
+impl<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
+    SaveExperience<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
 where
     EventRepo: EventRepository,
 {
@@ -31,24 +36,26 @@ where
         self.profiles = profiles;
         self
     }
-}
 
-impl<ExperienceRepo, EntityRepo, EventRepo> SaveExperience<ExperienceRepo, EntityRepo, EventRepo>
-where
-    ExperienceRepo: ExperienceRepository<Interval = EventRepo::Interval>,
-    EntityRepo: EntityRepository,
-    EventRepo: EventRepository,
-{
     pub fn with_entity(mut self, entity: Option<Id<Entity>>) -> Self {
         self.entity = entity;
         self
     }
 
-    pub fn with_event(mut self, event: Option<Id<Event<EventRepo::Interval>>>) -> Self {
+    pub fn with_event(mut self, event: Option<Id<Event<EventRepo::Intv>>>) -> Self {
         self.event = event;
         self
     }
+}
 
+impl<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
+    SaveExperience<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
+where
+    ExperienceRepo: ExperienceRepository<Intv = EventRepo::Intv>,
+    EntityRepo: EntityRepository,
+    EventRepo: EventRepository,
+    PluginFcty: PluginFactory<Intv = EventRepo::Intv>,
+{
     /// Executes the save experience transaction.
     pub fn execute(self) -> Result<()> {
         match self.experience_repo.find(self.id) {
@@ -87,6 +94,13 @@ where
             .with_profiles(self.profiles)
             .with_fallbacks(experiences.iter().map(Deref::deref))
             .build()?;
+
+        self.plugin_factory
+            .before_save_experience()
+            .with_subject(&experience)
+            .with_timeline(&experiences.iter().map(Deref::deref).collect::<Vec<_>>())
+            .execute()
+            .result()?;
 
         self.experience_repo.create(&experience)?;
         Ok(())
@@ -132,21 +146,22 @@ where
     }
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo>
-    ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo>
+impl<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
+    ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
 where
-    ExperienceRepo: ExperienceRepository<Interval = EventRepo::Interval>,
+    ExperienceRepo: ExperienceRepository<Intv = EventRepo::Intv>,
     EntityRepo: EntityRepository,
     EventRepo: EventRepository,
 {
     pub fn save_experience(
         &self,
-        id: Id<Experience<EventRepo::Interval>>,
-    ) -> SaveExperience<ExperienceRepo, EntityRepo, EventRepo> {
+        id: Id<Experience<EventRepo::Intv>>,
+    ) -> SaveExperience<ExperienceRepo, EntityRepo, EventRepo, PluginFcty> {
         SaveExperience {
             experience_repo: self.experience_repo.clone(),
             entity_repo: self.entity_repo.clone(),
             event_repo: self.event_repo.clone(),
+            plugin_factory: self.plugin_factory.clone(),
             id,
             entity: Default::default(),
             event: Default::default(),

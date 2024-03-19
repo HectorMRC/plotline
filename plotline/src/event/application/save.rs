@@ -15,21 +15,21 @@ where
     EventRepo: EventRepository,
 {
     event_repo: Arc<EventRepo>,
-    id: Id<Event<EventRepo::Interval>>,
-    name: Option<Name<Event<EventRepo::Interval>>>,
-    interval: Option<EventRepo::Interval>,
+    id: Id<Event<EventRepo::Intv>>,
+    name: Option<Name<Event<EventRepo::Intv>>>,
+    interval: Option<EventRepo::Intv>,
 }
 
 impl<EventRepo> SaveEvent<EventRepo>
 where
     EventRepo: EventRepository,
 {
-    pub fn with_name(mut self, name: Option<Name<Event<EventRepo::Interval>>>) -> Self {
+    pub fn with_name(mut self, name: Option<Name<Event<EventRepo::Intv>>>) -> Self {
         self.name = name;
         self
     }
 
-    pub fn with_interval(mut self, intv: Option<EventRepo::Interval>) -> Self {
+    pub fn with_interval(mut self, intv: Option<EventRepo::Intv>) -> Self {
         self.interval = intv;
         self
     }
@@ -71,7 +71,7 @@ impl<EventRepo> EventApplication<EventRepo>
 where
     EventRepo: EventRepository,
 {
-    pub fn save_event(&self, id: Id<Event<EventRepo::Interval>>) -> SaveEvent<EventRepo> {
+    pub fn save_event(&self, id: Id<Event<EventRepo::Intv>>) -> SaveEvent<EventRepo> {
         SaveEvent {
             event_repo: self.event_repo.clone(),
             id,

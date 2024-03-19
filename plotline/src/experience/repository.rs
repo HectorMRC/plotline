@@ -91,7 +91,7 @@ impl<Intv> ExperienceRepository for InMemoryExperienceRepository<Intv>
 where
     Intv: Interval + Serialize + for<'a> Deserialize<'a>,
 {
-    type Interval = Intv;
+    type Intv = Intv;
     type Tx = ExperienceAggregate<Intv>;
 
     fn find(&self, id: Id<Experience<Intv>>) -> Result<Self::Tx> {

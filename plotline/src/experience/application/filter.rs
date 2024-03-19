@@ -47,14 +47,14 @@ where
     ExperienceRepo: ExperienceRepository,
 {
     experience_repo: Arc<ExperienceRepo>,
-    filter: ExperienceFilter<ExperienceRepo::Interval>,
+    filter: ExperienceFilter<ExperienceRepo::Intv>,
 }
 
 impl<ExperienceRepo> FilterExperiences<ExperienceRepo>
 where
     ExperienceRepo: ExperienceRepository,
 {
-    pub fn execute(self) -> Result<Vec<Experience<ExperienceRepo::Interval>>> {
+    pub fn execute(self) -> Result<Vec<Experience<ExperienceRepo::Intv>>> {
         Ok(self
             .experience_repo
             .filter(&self.filter)?
@@ -68,16 +68,16 @@ impl<ExperienceRepo> FilterExperiences<ExperienceRepo>
 where
     ExperienceRepo: ExperienceRepository,
 {
-    pub fn with_filter(mut self, filter: ExperienceFilter<ExperienceRepo::Interval>) -> Self {
+    pub fn with_filter(mut self, filter: ExperienceFilter<ExperienceRepo::Intv>) -> Self {
         self.filter = filter;
         self
     }
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo>
-    ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo>
+impl<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
+    ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
 where
-    ExperienceRepo: ExperienceRepository<Interval = EventRepo::Interval>,
+    ExperienceRepo: ExperienceRepository<Intv = EventRepo::Intv>,
     EventRepo: EventRepository,
 {
     pub fn filter_experiences(&self) -> FilterExperiences<ExperienceRepo> {

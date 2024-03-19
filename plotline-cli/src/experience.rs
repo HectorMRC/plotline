@@ -77,13 +77,14 @@ pub struct ExperienceCommand {
     command: Option<ExperienceSubCommand>,
 }
 
-pub struct ExperienceCli<ExperienceRepo, EntityRepo, EventRepo> {
-    pub experience_app: ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo>,
+pub struct ExperienceCli<ExperienceRepo, EntityRepo, EventRepo, PluginFcty> {
+    pub experience_app: ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>,
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo> ExperienceCli<ExperienceRepo, EntityRepo, EventRepo>
+impl<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
+    ExperienceCli<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
 where
-    ExperienceRepo: 'static + ExperienceRepository<Interval = EventRepo::Interval> + Sync + Send,
+    ExperienceRepo: 'static + ExperienceRepository<Intv = EventRepo::Intv> + Sync + Send,
     EntityRepo: 'static + EntityRepository + Sync + Send,
     EventRepo: 'static + EventRepository + Sync + Send,
 {
@@ -104,7 +105,7 @@ where
     fn execute_subcommand(
         &self,
         subcommand: ExperienceSubCommand,
-        experience: Option<Id<Experience<EventRepo::Interval>>>,
+        experience: Option<Id<Experience<EventRepo::Intv>>>,
     ) -> Result {
         match subcommand {
             ExperienceSubCommand::Save(args) => {
@@ -133,7 +134,7 @@ where
 
     fn execute_profile_command(
         &self,
-        experience: Id<Experience<EventRepo::Interval>>,
+        experience: Id<Experience<EventRepo::Intv>>,
         entity: Option<Id<Entity>>,
         command: Option<ProfileCommand>,
     ) -> Result {

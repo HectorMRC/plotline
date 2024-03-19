@@ -12,6 +12,32 @@ use plotline_proto::{
 use protobuf::{Message, MessageField};
 use std::ops::Deref;
 
+fn proto_profile(profile: &Profile) -> proto::Profile {
+    proto::Profile {
+        entity: MessageField::some(proto_entity(&profile.entity)),
+        values: profile
+            .values
+            .iter()
+            .map(|(key, value)| proto::KeyValue {
+                key: key.to_string(),
+                value: value.to_string(),
+                ..Default::default()
+            })
+            .collect(),
+        ..Default::default()
+    }
+}
+
+fn proto_experience<Intv>(experience: &Experience<Intv>) -> proto::Experience {
+    proto::Experience {
+        id: experience.id().to_string(),
+        entity: MessageField::some(proto_entity(&experience.entity)),
+        event: MessageField::some(proto_event(&experience.event)),
+        profiles: experience.profiles.iter().map(proto_profile).collect(),
+        ..Default::default()
+    }
+}
+
 /// An BeforeSaveExperiencePlugin is a plugin that is executed before saving an
 /// [Experience], determining if the experience is suitable to be saved or not.
 pub struct BeforeSaveExperiencePlugin<'a> {
@@ -40,8 +66,8 @@ impl<'a> BeforeSaveExperiencePlugin<'a> {
     pub fn with_subject<'b, Intv>(
         &self,
         subject: &'b Experience<Intv>,
-    ) -> BeforeSaveExperience<'a, 'b, Intv> {
-        BeforeSaveExperience {
+    ) -> BeforeSaveExperienceCommand<'a, 'b, Intv> {
+        BeforeSaveExperienceCommand {
             plugin: self.plugin,
             subject,
             timeline: Default::default(),
@@ -51,14 +77,14 @@ impl<'a> BeforeSaveExperiencePlugin<'a> {
 }
 
 /// BeforeSaveExperience is the [BeforeSaveExperiencePlugin]'s command.
-pub struct BeforeSaveExperience<'a, 'b, Intv> {
+pub struct BeforeSaveExperienceCommand<'a, 'b, Intv> {
     plugin: &'a dyn Plugin,
     subject: &'b Experience<Intv>,
     timeline: &'a [&'b Experience<Intv>],
     result: std::result::Result<(), String>,
 }
 
-impl<'a, 'b, Intv> BeforeSaveExperience<'a, 'b, Intv> {
+impl<'a, 'b, Intv> BeforeSaveExperienceCommand<'a, 'b, Intv> {
     pub fn with_timeline(mut self, timeline: &'a [&'b Experience<Intv>]) -> Self {
         self.timeline = timeline;
         self
@@ -96,31 +122,5 @@ impl<'a, 'b, Intv> BeforeSaveExperience<'a, 'b, Intv> {
         }
 
         Ok(())
-    }
-}
-
-fn proto_profile(profile: &Profile) -> proto::Profile {
-    proto::Profile {
-        entity: MessageField::some(proto_entity(&profile.entity)),
-        values: profile
-            .values
-            .iter()
-            .map(|(key, value)| proto::KeyValue {
-                key: key.to_string(),
-                value: value.to_string(),
-                ..Default::default()
-            })
-            .collect(),
-        ..Default::default()
-    }
-}
-
-fn proto_experience<Intv>(experience: &Experience<Intv>) -> proto::Experience {
-    proto::Experience {
-        id: experience.id().to_string(),
-        entity: MessageField::some(proto_entity(&experience.entity)),
-        event: MessageField::some(proto_event(&experience.event)),
-        profiles: experience.profiles.iter().map(proto_profile).collect(),
-        ..Default::default()
     }
 }

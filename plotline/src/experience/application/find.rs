@@ -18,7 +18,7 @@ pub struct FindExperience<ExperienceRepo, Intv> {
 
 impl<ExperienceRepo, Intv> FindExperience<ExperienceRepo, Intv>
 where
-    ExperienceRepo: ExperienceRepository<Interval = Intv>,
+    ExperienceRepo: ExperienceRepository<Intv = Intv>,
     Intv: Interval,
 {
     /// Executes the find query, through which one, and exactly one, experience
@@ -28,16 +28,16 @@ where
     }
 }
 
-impl<ExperienceRepo, EntityRepo, EventRepo>
-    ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo>
+impl<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
+    ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
 where
-    ExperienceRepo: ExperienceRepository<Interval = EventRepo::Interval>,
+    ExperienceRepo: ExperienceRepository<Intv = EventRepo::Intv>,
     EventRepo: EventRepository,
 {
     pub fn find_experience(
         &self,
-        id: <Experience<EventRepo::Interval> as Identifiable>::Id,
-    ) -> FindExperience<ExperienceRepo, EventRepo::Interval> {
+        id: <Experience<EventRepo::Intv> as Identifiable>::Id,
+    ) -> FindExperience<ExperienceRepo, EventRepo::Intv> {
         FindExperience {
             experience_repo: self.experience_repo.clone(),
             id,
