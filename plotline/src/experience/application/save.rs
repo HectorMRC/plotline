@@ -82,7 +82,8 @@ where
             experiences.push(experience_tx.read())
         }
 
-        let experience = ExperienceBuilder::new(self.id, entity.clone(), event.clone())
+        let experience = ExperienceBuilder::new(entity.clone(), event.clone())
+            .with_id(self.id)
             .with_profiles(self.profiles)
             .with_fallbacks(experiences.iter().map(Deref::deref))
             .build()?;

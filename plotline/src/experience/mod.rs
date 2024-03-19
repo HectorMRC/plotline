@@ -105,13 +105,18 @@ pub struct ExperienceBuilder<Intv> {
 }
 
 impl<Intv> ExperienceBuilder<Intv> {
-    pub fn new(id: Id<Experience<Intv>>, entity: Entity, event: Event<Intv>) -> Self {
+    pub fn new(entity: Entity, event: Event<Intv>) -> Self {
         Self {
-            id,
+            id: Default::default(),
             entity,
             event,
             profiles: Default::default(),
         }
+    }
+
+    pub fn with_id(mut self, id: Id<Experience<Intv>>) -> Self {
+        self.id = id;
+        self
     }
 
     pub fn with_profiles(mut self, profiles: Option<Vec<Profile>>) -> Self {
