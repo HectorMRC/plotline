@@ -89,18 +89,25 @@ where
             experiences.push(experience_tx.read())
         }
 
-        let experience = ExperienceBuilder::new(entity.clone(), event.clone())
+        let experience = ExperienceBuilder::new(&entity, &event)
             .with_id(self.id)
             .with_profiles(self.profiles)
             .with_fallbacks(experiences.iter().map(Deref::deref))
             .build()?;
 
+        let timeline = experiences.iter().map(Deref::deref).collect::<Vec<_>>();
+
         self.plugin_factory
             .before_save_experience()
-            .with_subject(&experience)
-            .with_timeline(&experiences.iter().map(Deref::deref).collect::<Vec<_>>())
-            .execute()
-            .result()?;
+            .into_iter()
+            .try_for_each(|plugin| {
+                plugin
+                    .with_subject(&experience)
+                    .with_timeline(&timeline)
+                    .execute()
+                    .result()
+                    .map_err(Error::Plugin)
+            })?;
 
         self.experience_repo.create(&experience)?;
         Ok(())
@@ -111,18 +118,17 @@ where
     }
 }
 
-impl<Intv> ExperienceBuilder<Intv>
+impl<'a, Intv> ExperienceBuilder<'a, Intv>
 where
     Intv: Interval,
 {
     /// Tries to compute some value for those fields set to [Option::None].
-    fn with_fallbacks<'a, I>(mut self, experiences: I) -> Self
+    fn with_fallbacks<I>(mut self, experiences: I) -> Self
     where
         I: Iterator<Item = &'a Experience<Intv>>,
-        Intv: 'a,
     {
-        let mut previous = query::SelectPreviousExperience::new(&self.event);
-        let mut next = query::SelectNextExperience::new(&self.event);
+        let mut previous = query::SelectPreviousExperience::new(self.event);
+        let mut next = query::SelectNextExperience::new(self.event);
         for experience in experiences {
             previous = previous.with(experience);
             next = next.with(experience);

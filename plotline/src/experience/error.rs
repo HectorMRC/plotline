@@ -22,6 +22,8 @@ pub enum Error {
     #[error("{0}")]
     Event(#[from] crate::event::Error),
     #[error("{0}")]
+    Plugin(String),
+    #[error("{0}")]
     Lock(String),
 }
 

@@ -1,7 +1,8 @@
 use clap::{error::ErrorKind, Parser};
 use once_cell::sync::Lazy;
 use plotline::{
-    entity::application::EntityApplication, event::application::EventApplication, experience::application::ExperienceApplication, period::Period, snapshot::Snapshot
+    entity::application::EntityApplication, event::application::EventApplication,
+    experience::application::ExperienceApplication, period::Period, snapshot::Snapshot,
 };
 use plotline_cli::{entity::EntityCli, event::EventCli, experience::ExperienceCli, CliCommand};
 use plugin::PluginStore;
@@ -10,7 +11,8 @@ use std::{
     fmt::Display,
     fs::{self, OpenOptions},
     io::{BufReader, BufWriter, Write},
-    path::Path, sync::Arc,
+    path::Path,
+    sync::Arc,
 };
 
 const ENV_PLOTFILE: &str = "PLOTFILE";

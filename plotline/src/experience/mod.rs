@@ -97,15 +97,18 @@ impl<Intv> Experience<Intv> {
 
 /// ExperienceBuilder makes sure an [Experience] is created if, and only if,
 /// all of its requirements are meet.
-pub struct ExperienceBuilder<Intv> {
+pub struct ExperienceBuilder<'a, Intv> {
     id: Id<Experience<Intv>>,
-    entity: Entity,
-    event: Event<Intv>,
+    entity: &'a Entity,
+    event: &'a Event<Intv>,
     profiles: Option<Vec<Profile>>,
 }
 
-impl<Intv> ExperienceBuilder<Intv> {
-    pub fn new(entity: Entity, event: Event<Intv>) -> Self {
+impl<'a, Intv> ExperienceBuilder<'a, Intv>
+where
+    Intv: Clone,
+{
+    pub fn new(entity: &'a Entity, event: &'a Event<Intv>) -> Self {
         Self {
             id: Default::default(),
             entity,
@@ -137,8 +140,8 @@ impl<Intv> ExperienceBuilder<Intv> {
 
         Ok(Experience {
             id: self.id,
-            entity: self.entity,
-            event: self.event,
+            entity: self.entity.clone(),
+            event: self.event.clone(),
             profiles: self.profiles.unwrap_or_default(),
         })
     }

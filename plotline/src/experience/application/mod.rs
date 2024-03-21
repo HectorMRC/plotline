@@ -23,20 +23,20 @@ pub trait ExperienceRepository {
     fn delete(&self, id: Id<Experience<Self::Intv>>) -> Result<()>;
 }
 
-pub trait BeforeSaveExperience<Intv> {
-    fn with_subject(self, subject: &Experience<Intv>) -> Self;
-    fn with_timeline(self, timeline: &[&Experience<Intv>]) -> Self;
+pub trait BeforeSaveExperience<'a, Intv> {
+    fn with_subject(self, subject: &'a Experience<Intv>) -> Self;
+    fn with_timeline(self, timeline: &'a [&Experience<Intv>]) -> Self;
     fn execute(self) -> Self;
-    fn result(self) -> Result<()>;
+    fn result(self) -> std::result::Result<(), String>;
 }
 
 pub trait PluginFactory {
     type Intv: Interval;
-    type BeforeSaveExperience<'a>: BeforeSaveExperience<Self::Intv>
+    type BeforeSaveExperience<'a>: BeforeSaveExperience<'a, Self::Intv>
     where
         Self: 'a;
 
-    fn before_save_experience(&self) -> Self::BeforeSaveExperience<'_>;
+    fn before_save_experience(&self) -> Vec<Self::BeforeSaveExperience<'_>>;
 }
 
 pub struct ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo, PluginFactory> {
