@@ -58,13 +58,12 @@ pub trait FlavoredPlugin<'a>: TryFrom<&'a dyn Plugin, Error = Error> {
 
 /// A PluginStore holds all the available plugins.
 #[derive(Default)]
-pub struct PluginStore<'a, Intv> {
+pub struct PluginStore<Intv> {
     plugins: HashMap<PluginId, Box<dyn Plugin>>,
     _interval: PhantomData<Intv>,
-    _scope: PhantomData<&'a ()>
 }
 
-impl<'a, Intv> PluginStore<'a, Intv> {
+impl<Intv> PluginStore<Intv> {
     /// Adds a new plugin into the store.
     pub fn add(&mut self, plugin: Box<dyn Plugin>) -> Result<()> {
         if self.plugins.contains_key(&plugin.id()) {

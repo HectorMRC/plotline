@@ -161,7 +161,7 @@ impl<'a, Intv> BeforeSaveExperienceGroup<'a, Intv> {
     }
 }
 
-impl<'a, Intv> PluginFactory for PluginStore<'a, Intv>
+impl<Intv> PluginFactory for PluginStore<Intv>
 where
     Intv: Interval,
 {
