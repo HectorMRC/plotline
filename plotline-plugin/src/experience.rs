@@ -1,9 +1,14 @@
 use crate::{
-    entity::proto_entity, event::proto_event, Error, FlavoredPlugin, Plugin, PluginKind, Result,
+    entity::proto_entity, event::proto_event, Error, FlavoredPlugin, Plugin, PluginKind,
+    PluginStore, Result,
 };
 use plotline::{
-    experience::{Experience, Profile},
+    experience::{
+        application::{BeforeSaveExperience, PluginFactory},
+        Experience, Profile,
+    },
     id::Identifiable,
+    interval::Interval,
 };
 use plotline_proto::{
     model as proto,
@@ -38,13 +43,22 @@ fn proto_experience<Intv>(experience: &Experience<Intv>) -> proto::Experience {
     }
 }
 
-/// An BeforeSaveExperiencePlugin is a plugin that is executed before saving an
+/// A BeforeSaveExperiencePlugin is a plugin that is executed before saving an
 /// [Experience], determining if the experience is suitable to be saved or not.
-pub struct BeforeSaveExperiencePlugin<'a> {
+pub struct BeforeSaveExperiencePlugin<'a, Intv> {
     plugin: &'a dyn Plugin,
+    subject: Option<&'a Experience<Intv>>,
+    timeline: &'a [&'a Experience<Intv>],
+    result: std::result::Result<(), String>,
 }
 
-impl<'a> TryFrom<&'a dyn Plugin> for BeforeSaveExperiencePlugin<'a> {
+impl<'a, Intv> FlavoredPlugin<'a> for BeforeSaveExperiencePlugin<'a, Intv> {
+    fn kind() -> PluginKind {
+        PluginKind::BeforeSaveExperience
+    }
+}
+
+impl<'a, Intv> TryFrom<&'a dyn Plugin> for BeforeSaveExperiencePlugin<'a, Intv> {
     type Error = Error;
 
     fn try_from(plugin: &'a dyn Plugin) -> Result<Self> {
@@ -52,40 +66,22 @@ impl<'a> TryFrom<&'a dyn Plugin> for BeforeSaveExperiencePlugin<'a> {
             return Err(Error::WrongKind);
         }
 
-        Ok(Self { plugin })
-    }
-}
-
-impl<'a> FlavoredPlugin<'a> for BeforeSaveExperiencePlugin<'a> {
-    fn kind() -> PluginKind {
-        PluginKind::BeforeSaveExperience
-    }
-}
-
-impl<'a> BeforeSaveExperiencePlugin<'a> {
-    pub fn with_subject<'b, Intv>(
-        &self,
-        subject: &'b Experience<Intv>,
-    ) -> BeforeSaveExperienceCommand<'a, 'b, Intv> {
-        BeforeSaveExperienceCommand {
-            plugin: self.plugin,
-            subject,
+        Ok(Self {
+            plugin,
+            subject: Default::default(),
             timeline: Default::default(),
             result: Err("not executed".to_string()),
-        }
+        })
     }
 }
 
-/// BeforeSaveExperience is the [BeforeSaveExperiencePlugin]'s command.
-pub struct BeforeSaveExperienceCommand<'a, 'b, Intv> {
-    plugin: &'a dyn Plugin,
-    subject: &'b Experience<Intv>,
-    timeline: &'a [&'b Experience<Intv>],
-    result: std::result::Result<(), String>,
-}
+impl<'a, Intv> BeforeSaveExperiencePlugin<'a, Intv> {
+    pub fn with_subject(mut self, subject: &'a Experience<Intv>) -> Self {
+        self.subject = Some(subject);
+        self
+    }
 
-impl<'a, 'b, Intv> BeforeSaveExperienceCommand<'a, 'b, Intv> {
-    pub fn with_timeline(mut self, timeline: &'a [&'b Experience<Intv>]) -> Self {
+    pub fn with_timeline(mut self, timeline: &'a [&Experience<Intv>]) -> Self {
         self.timeline = timeline;
         self
     }
@@ -100,8 +96,12 @@ impl<'a, 'b, Intv> BeforeSaveExperienceCommand<'a, 'b, Intv> {
     }
 
     fn run(&self) -> std::result::Result<(), String> {
+        let Some(subject) = self.subject else {
+            return Err("subject has to be set".to_string());
+        };
+
         let input = BeforeSaveExperienceInput {
-            subject: MessageField::some(proto_experience(&self.subject)),
+            subject: MessageField::some(proto_experience(&subject)),
             timeline: self
                 .timeline
                 .iter()
@@ -122,5 +122,57 @@ impl<'a, 'b, Intv> BeforeSaveExperienceCommand<'a, 'b, Intv> {
         }
 
         Ok(())
+    }
+}
+
+pub struct BeforeSaveExperienceGroup<'a, Intv> {
+    plugins: Vec<BeforeSaveExperiencePlugin<'a, Intv>>,
+}
+
+impl<'a, Intv> Default for BeforeSaveExperienceGroup<'a, Intv> {
+    fn default() -> Self {
+        Self {
+            plugins: Default::default(),
+        }
+    }
+}
+
+impl<'a, Intv> BeforeSaveExperience<Intv> for BeforeSaveExperienceGroup<'a, Intv> {
+    fn with_subject(self, subject: &Experience<Intv>) -> Self {
+        todo!()
+    }
+
+    fn with_timeline(self, timeline: &[&Experience<Intv>]) -> Self {
+        todo!()
+    }
+
+    fn execute(self) -> Self {
+        todo!()
+    }
+
+    fn result(self) -> plotline::experience::Result<()> {
+        todo!()
+    }
+}
+
+impl<'a, Intv> BeforeSaveExperienceGroup<'a, Intv> {
+    pub fn new(plugins: Vec<BeforeSaveExperiencePlugin<'a, Intv>>) -> Self {
+        BeforeSaveExperienceGroup { plugins }
+    }
+}
+
+impl<'a, Intv> PluginFactory for PluginStore<'a, Intv>
+where
+    Intv: Interval,
+{
+    type Intv = Intv;
+    type BeforeSaveExperience<'b> = BeforeSaveExperienceGroup<'b, Intv>
+    where
+        Self: 'b;
+
+    fn before_save_experience(&self) -> Self::BeforeSaveExperience<'_> {
+        self.retrieve()
+            .map(BeforeSaveExperienceGroup::new)
+            .unwrap_or_default()
     }
 }

@@ -10,9 +10,7 @@ mod find;
 pub use find::*;
 
 use super::error::Result;
-use crate::{
-    command::Command, experience::Experience, id::Id, interval::Interval, transaction::Tx,
-};
+use crate::{experience::Experience, id::Id, interval::Interval, transaction::Tx};
 use std::sync::Arc;
 
 pub trait ExperienceRepository {
@@ -25,16 +23,20 @@ pub trait ExperienceRepository {
     fn delete(&self, id: Id<Experience<Self::Intv>>) -> Result<()>;
 }
 
-pub trait BeforeSaveExperience<Intv>: Command<Result = Result<()>> {
+pub trait BeforeSaveExperience<Intv> {
     fn with_subject(self, subject: &Experience<Intv>) -> Self;
     fn with_timeline(self, timeline: &[&Experience<Intv>]) -> Self;
+    fn execute(self) -> Self;
+    fn result(self) -> Result<()>;
 }
 
 pub trait PluginFactory {
     type Intv: Interval;
-    type BeforeSaveExperience: BeforeSaveExperience<Self::Intv>;
+    type BeforeSaveExperience<'a>: BeforeSaveExperience<Self::Intv>
+    where
+        Self: 'a;
 
-    fn before_save_experience(&self) -> Self::BeforeSaveExperience;
+    fn before_save_experience(&self) -> Self::BeforeSaveExperience<'_>;
 }
 
 pub struct ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo, PluginFactory> {

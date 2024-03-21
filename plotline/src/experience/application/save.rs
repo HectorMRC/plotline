@@ -1,5 +1,5 @@
 use super::{
-    BeforeSaveExperience, Command, ExperienceApplication, ExperienceFilter, ExperienceRepository,
+    BeforeSaveExperience, ExperienceApplication, ExperienceFilter, ExperienceRepository,
     PluginFactory,
 };
 use crate::{

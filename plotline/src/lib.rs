@@ -7,10 +7,9 @@ pub mod interval;
 pub mod name;
 #[cfg(feature = "in_memory")]
 pub mod snapshot;
+pub mod period;
 
-mod command;
 mod macros;
-mod period;
 #[cfg(feature = "in_memory")]
 mod resource;
 #[cfg(feature = "in_memory")]

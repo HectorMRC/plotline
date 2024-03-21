@@ -1,16 +1,16 @@
 use clap::{error::ErrorKind, Parser};
 use once_cell::sync::Lazy;
 use plotline::{
-    entity::application::EntityApplication, event::application::EventApplication,
-    experience::application::ExperienceApplication, snapshot::Snapshot,
+    entity::application::EntityApplication, event::application::EventApplication, experience::application::ExperienceApplication, period::Period, snapshot::Snapshot
 };
 use plotline_cli::{entity::EntityCli, event::EventCli, experience::ExperienceCli, CliCommand};
+use plugin::PluginStore;
 use std::{
     ffi::OsString,
     fmt::Display,
     fs::{self, OpenOptions},
     io::{BufReader, BufWriter, Write},
-    path::Path,
+    path::Path, sync::Arc,
 };
 
 const ENV_PLOTFILE: &str = "PLOTFILE";
@@ -69,6 +69,9 @@ fn main() {
         Snapshot::default()
     };
 
+    // Load plugins
+    let plugin_store = Arc::new(PluginStore::<Period<usize>>::default());
+
     // Build dependencies
     let entity_cli = EntityCli {
         entity_app: EntityApplication {
@@ -87,6 +90,7 @@ fn main() {
             experience_repo: snapshot.experiences.clone(),
             entity_repo: snapshot.entities.clone(),
             event_repo: snapshot.events.clone(),
+            plugin_factory: plugin_store.clone(),
         },
     };
 

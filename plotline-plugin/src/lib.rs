@@ -8,7 +8,7 @@ mod experience;
 pub use experience::*;
 
 use plotline::id::Identifiable;
-use std::{collections::HashMap, ops::Deref};
+use std::{collections::HashMap, marker::PhantomData, ops::Deref};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -58,11 +58,13 @@ pub trait FlavoredPlugin<'a>: TryFrom<&'a dyn Plugin, Error = Error> {
 
 /// A PluginStore holds all the available plugins.
 #[derive(Default)]
-pub struct PluginStore {
+pub struct PluginStore<'a, Intv> {
     plugins: HashMap<PluginId, Box<dyn Plugin>>,
+    _interval: PhantomData<Intv>,
+    _scope: PhantomData<&'a ()>
 }
 
-impl PluginStore {
+impl<'a, Intv> PluginStore<'a, Intv> {
     /// Adds a new plugin into the store.
     pub fn add(&mut self, plugin: Box<dyn Plugin>) -> Result<()> {
         if self.plugins.contains_key(&plugin.id()) {
@@ -83,9 +85,9 @@ impl PluginStore {
     }
 
     /// Returns a vector with all those plugins of the corresponding flavor.
-    pub fn retrieve<'a, T>(&'a self) -> Result<Vec<T>>
+    pub fn retrieve<'b, T>(&'b self) -> Result<Vec<T>>
     where
-        T: FlavoredPlugin<'a>,
+        T: FlavoredPlugin<'b>,
     {
         self.plugins
             .values()
