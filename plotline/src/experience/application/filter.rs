@@ -54,10 +54,11 @@ impl<ExperienceRepo> FilterExperiences<ExperienceRepo>
 where
     ExperienceRepo: ExperienceRepository,
 {
-    pub fn execute(self) -> Result<Vec<Experience<ExperienceRepo::Intv>>> {
+    pub async fn execute(self) -> Result<Vec<Experience<ExperienceRepo::Intv>>> {
         Ok(self
             .experience_repo
-            .filter(&self.filter)?
+            .filter(&self.filter)
+            .await?
             .into_iter()
             .map(|entity_tx| entity_tx.read().clone())
             .collect())

@@ -20,20 +20,20 @@ where
     EntityRepo: EntityRepository,
 {
     /// Executes the save entity transaction.
-    pub fn execute(self) -> Result<()> {
-        match self.entity_repo.find(self.id) {
-            Ok(entity_tx) => self.update(entity_tx),
-            Err(Error::NotFound) => self.create(),
+    pub async fn execute(self) -> Result<()> {
+        match self.entity_repo.find(self.id).await {
+            Ok(entity_tx) => self.update(entity_tx).await,
+            Err(Error::NotFound) => self.create().await,
             Err(err) => Err(err),
         }
     }
 
-    fn create(self) -> Result<()> {
+    async fn create(self) -> Result<()> {
         let entity = Entity::new(self.id, self.name.ok_or(Error::MandatoryField("name"))?);
-        self.entity_repo.create(&entity)
+        self.entity_repo.create(&entity).await
     }
 
-    fn update(self, entity_tx: EntityRepo::Tx) -> Result<()> {
+    async fn update(self, entity_tx: EntityRepo::Tx) -> Result<()> {
         let mut entity = entity_tx.write();
 
         update_if_some(&mut entity.name, self.name);

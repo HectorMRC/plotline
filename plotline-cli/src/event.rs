@@ -46,16 +46,16 @@ where
     <EventRepo::Intv as TryFrom<Vec<String>>>::Error: Into<Error>,
 {
     /// Given a [EventCommand], executes the corresponding logic.
-    pub fn execute(&self, event_cmd: EventCommand) -> Result {
+    pub async fn execute(&self, event_cmd: EventCommand) -> Result {
         let event_id = event_cmd.event.map(TryInto::try_into).transpose()?;
         if let Some(command) = event_cmd.command {
-            return self.execute_subcommand(command, event_id);
+            return self.execute_subcommand(command, event_id).await;
         }
 
         Ok(())
     }
 
-    fn execute_subcommand(
+    async fn execute_subcommand(
         &self,
         subcommand: EventSubCommand,
         event_id: Option<Id<Event<EventRepo::Intv>>>,
@@ -72,7 +72,8 @@ where
                             .transpose()
                             .map_err(Into::into)?,
                     )
-                    .execute()?;
+                    .execute()
+                    .await?;
 
                 println!("{}", event_id);
             }

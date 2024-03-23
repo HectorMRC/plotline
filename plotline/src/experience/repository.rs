@@ -12,6 +12,7 @@ use crate::{
     serde::{from_rwlock, into_rwlock},
     transaction::{Tx, TxReadGuard, TxWriteGuard},
 };
+use futures::future;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
@@ -94,7 +95,7 @@ where
     type Intv = Intv;
     type Tx = ExperienceAggregate<Intv>;
 
-    fn find(&self, id: Id<Experience<Intv>>) -> Result<Self::Tx> {
+    async fn find(&self, id: Id<Experience<Intv>>) -> Result<Self::Tx> {
         self.aggregate(
             self.experiences
                 .read()
@@ -103,20 +104,25 @@ where
                 .cloned()
                 .ok_or(Error::NotFound)?,
         )
+        .await
     }
 
-    fn filter(&self, filter: &ExperienceFilter<Intv>) -> Result<Vec<Self::Tx>> {
-        self.experiences
-            .read()
-            .map_err(Error::from)?
-            .values()
-            .filter(|&entity| filter.matches(&entity.clone().read()))
-            .cloned()
-            .map(|experience| self.aggregate(experience))
-            .collect()
+    async fn filter(&self, filter: &ExperienceFilter<Intv>) -> Result<Vec<Self::Tx>> {
+        future::join_all(
+            self.experiences
+                .read()
+                .map_err(Error::from)?
+                .values()
+                .filter(|&entity| filter.matches(&entity.clone().read()))
+                .cloned()
+                .map(|experience| async { self.aggregate(experience).await }),
+        )
+        .await
+        .into_iter()
+        .collect()
     }
 
-    fn create(&self, experience: &Experience<Intv>) -> Result<()> {
+    async fn create(&self, experience: &Experience<Intv>) -> Result<()> {
         let mut experiences = self.experiences.write().map_err(Error::from)?;
 
         if experiences.contains_key(&experience.id) {
@@ -127,7 +133,7 @@ where
         Ok(())
     }
 
-    fn delete(&self, id: Id<Experience<Intv>>) -> Result<()> {
+    async fn delete(&self, id: Id<Experience<Intv>>) -> Result<()> {
         let mut experiences = self.experiences.write().map_err(Error::from)?;
 
         if experiences.remove(&id).is_none() {
@@ -142,7 +148,7 @@ impl<Intv> InMemoryExperienceRepository<Intv>
 where
     Intv: Interval + Serialize + for<'a> Deserialize<'a>,
 {
-    fn aggregate(
+    async fn aggregate(
         &self,
         raw_experience: Resource<RawExperience<Intv>>,
     ) -> Result<ExperienceAggregate<Intv>> {
@@ -158,14 +164,28 @@ where
         let mut entities: Vec<_> = entities.into_iter().collect();
         entities.sort();
 
+        let (entities, event) = future::join(
+            self.aggregate_entities(entities),
+            self.event_repo.find(experience.event),
+        )
+        .await;
+
         Ok(ExperienceAggregate {
             experience: raw_experience,
-            entities: entities
-                .into_iter()
-                .map(|id| self.entity_repo.find(id).map_err(Into::into))
-                .collect::<Result<Vec<_>>>()?,
-            event: self.event_repo.find(experience.event)?,
+            entities: entities?,
+            event: event?,
         })
+    }
+
+    async fn aggregate_entities(&self, entities: Vec<Id<Entity>>) -> Result<Vec<Resource<Entity>>> {
+        future::join_all(
+            entities
+                .into_iter()
+                .map(|id| async move { self.entity_repo.find(id).await.map_err(Into::into) }),
+        )
+        .await
+        .into_iter()
+        .collect()
     }
 }
 

@@ -57,30 +57,33 @@ where
     PluginFcty: PluginFactory<Intv = EventRepo::Intv>,
 {
     /// Executes the save experience transaction.
-    pub fn execute(self) -> Result<()> {
-        match self.experience_repo.find(self.id) {
-            Ok(experience_tx) => self.update(experience_tx),
-            Err(Error::NotFound) => self.create(),
+    pub async fn execute(self) -> Result<()> {
+        match self.experience_repo.find(self.id).await {
+            Ok(experience_tx) => self.update(experience_tx).await,
+            Err(Error::NotFound) => self.create().await,
             Err(err) => Err(err),
         }
     }
 
-    fn create(self) -> Result<()> {
+    async fn create(self) -> Result<()> {
         let entity_tx = self
             .entity_repo
-            .find(self.entity.ok_or(Error::MandatoryField("entity"))?)?;
+            .find(self.entity.ok_or(Error::MandatoryField("entity"))?)
+            .await?;
 
         let entity = entity_tx.read();
 
         let event_tx = self
             .event_repo
-            .find(self.event.ok_or(Error::MandatoryField("event"))?)?;
+            .find(self.event.ok_or(Error::MandatoryField("event"))?)
+            .await?;
 
         let event = event_tx.read();
 
         let experiences_txs = self
             .experience_repo
-            .filter(&ExperienceFilter::default().with_entity(self.entity))?
+            .filter(&ExperienceFilter::default().with_entity(self.entity))
+            .await?
             .into_iter()
             .collect::<Vec<_>>();
 
@@ -109,11 +112,11 @@ where
                     .map_err(Error::Plugin)
             })?;
 
-        self.experience_repo.create(&experience)?;
+        self.experience_repo.create(&experience).await?;
         Ok(())
     }
 
-    fn update(self, _experience_tx: ExperienceRepo::Tx) -> Result<()> {
+    async fn update(self, _experience_tx: ExperienceRepo::Tx) -> Result<()> {
         Ok(())
     }
 }

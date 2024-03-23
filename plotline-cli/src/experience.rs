@@ -89,20 +89,20 @@ where
     EventRepo: 'static + EventRepository + Sync + Send,
 {
     /// Given an [ExperienceCommand], executes the corresponding logic.
-    pub fn execute(&self, experience_cmd: ExperienceCommand) -> Result {
+    pub async fn execute(&self, experience_cmd: ExperienceCommand) -> Result {
         let experience_id = experience_cmd
             .experience
             .map(TryInto::try_into)
             .transpose()?;
 
         if let Some(command) = experience_cmd.command {
-            return self.execute_subcommand(command, experience_id);
+            return self.execute_subcommand(command, experience_id).await;
         }
 
         Ok(())
     }
 
-    fn execute_subcommand(
+    async fn execute_subcommand(
         &self,
         subcommand: ExperienceSubCommand,
         experience: Option<Id<Experience<EventRepo::Intv>>>,
@@ -119,45 +119,34 @@ where
                 println!("{}", experience_id);
             }
             ExperienceSubCommand::List => {
-                let experiences = self.experience_app.filter_experiences().execute()?;
+                let experiences = self.experience_app.filter_experiences().execute().await?;
                 print!("{}", ManyExperiencesFmt::new(&experiences));
             }
-            ExperienceSubCommand::Profile(args) => self.execute_profile_command(
-                experience.ok_or(Error::MissingArgument("experience id"))?,
-                args.entity.map(TryInto::try_into).transpose()?,
-                args.command,
-            )?,
+            ExperienceSubCommand::Profile(args) => {
+                self.execute_profile_command(
+                    experience.ok_or(Error::MissingArgument("experience id"))?,
+                    args.entity.map(TryInto::try_into).transpose()?,
+                    args.command,
+                )
+                .await?
+            }
         }
 
         Ok(())
     }
 
-    fn execute_profile_command(
+    async fn execute_profile_command(
         &self,
         experience: Id<Experience<EventRepo::Intv>>,
         entity: Option<Id<Entity>>,
         command: Option<ProfileCommand>,
     ) -> Result {
         let Some(command) = command else {
-            return self.execute_profile_command(experience, entity, Some(ProfileCommand::List));
+            return self.list(experience, entity).await;
         };
 
         match command {
-            ProfileCommand::List => {
-                let experience = self.experience_app.find_experience(experience).execute()?;
-                let profile = entity.and_then(|entity| {
-                    experience
-                        .profiles()
-                        .iter()
-                        .find(|profile| profile.id() == entity)
-                });
-
-                if let Some(profile) = profile {
-                    print!("{}", SingleProfileFmt::new(profile));
-                } else {
-                    print!("{}", ManyProfilesFmt::new(experience.profiles()));
-                };
-            }
+            ProfileCommand::List => self.list(experience, entity).await,
             ProfileCommand::Save(_args) => {
                 todo!()
             }
@@ -165,6 +154,30 @@ where
                 todo!()
             }
         }
+    }
+
+    async fn list(
+        &self,
+        experience: Id<Experience<EventRepo::Intv>>,
+        entity: Option<Id<Entity>>,
+    ) -> Result {
+        let experience = self
+            .experience_app
+            .find_experience(experience)
+            .execute()
+            .await?;
+        let profile = entity.and_then(|entity| {
+            experience
+                .profiles()
+                .iter()
+                .find(|profile| profile.id() == entity)
+        });
+
+        if let Some(profile) = profile {
+            print!("{}", SingleProfileFmt::new(profile));
+        } else {
+            print!("{}", ManyProfilesFmt::new(experience.profiles()));
+        };
 
         Ok(())
     }

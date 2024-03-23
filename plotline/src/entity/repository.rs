@@ -27,7 +27,7 @@ pub struct InMemoryEntityRepository {
 impl EntityRepository for InMemoryEntityRepository {
     type Tx = Resource<Entity>;
 
-    fn find(&self, id: Id<Entity>) -> Result<Self::Tx> {
+    async fn find(&self, id: Id<Entity>) -> Result<Self::Tx> {
         self.entities
             .read()
             .map_err(Error::from)?
@@ -37,7 +37,7 @@ impl EntityRepository for InMemoryEntityRepository {
             .ok_or(Error::NotFound)
     }
 
-    fn filter(&self, filter: &EntityFilter) -> Result<Vec<Self::Tx>> {
+    async fn filter(&self, filter: &EntityFilter) -> Result<Vec<Self::Tx>> {
         Ok(self
             .entities
             .read()
@@ -48,7 +48,7 @@ impl EntityRepository for InMemoryEntityRepository {
             .collect())
     }
 
-    fn create(&self, entity: &Entity) -> Result<()> {
+    async fn create(&self, entity: &Entity) -> Result<()> {
         let mut entities = self.entities.write().map_err(Error::from)?;
 
         if entities.contains_key(&entity.id) {
@@ -59,7 +59,7 @@ impl EntityRepository for InMemoryEntityRepository {
         Ok(())
     }
 
-    fn delete(&self, id: Id<Entity>) -> Result<()> {
+    async fn delete(&self, id: Id<Entity>) -> Result<()> {
         let mut entities = self.entities.write().map_err(Error::from)?;
 
         if entities.remove(&id).is_none() {

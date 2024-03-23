@@ -55,7 +55,7 @@ where
     EntityRepo: 'static + EntityRepository + Sync + Send,
 {
     /// Given an [EntityCommand], executes the corresponding logic.
-    pub fn execute(&self, entity_cmd: EntityCommand) -> Result {
+    pub async fn execute(&self, entity_cmd: EntityCommand) -> Result {
         let entity_id = entity_cmd.entity.map(TryInto::try_into).transpose()?;
         if let Some(command) = entity_cmd.command {
             return self.execute_subcommand(command, entity_id);
@@ -65,13 +65,13 @@ where
             return self.execute_subcommand(EntitySubCommand::List, None);
         };
 
-        let entity = self.entity_app.find_entity(entity_id).execute()?;
+        let entity = self.entity_app.find_entity(entity_id).execute().await?;
         print!("{}", SingleEntityFmt::new(&entity));
 
         Ok(())
     }
 
-    fn execute_subcommand(
+    async fn execute_subcommand(
         &self,
         subcommand: EntitySubCommand,
         entity_id: Option<Id<Entity>>,
@@ -82,13 +82,14 @@ where
                 self.entity_app
                     .save_entity(entity_id)
                     .with_name(args.name.map(TryInto::try_into).transpose()?)
-                    .execute()?;
+                    .execute()
+                    .await?;
 
                 println!("{}", entity_id);
             }
 
             EntitySubCommand::List => {
-                let entities = self.entity_app.filter_entities().execute()?;
+                let entities = self.entity_app.filter_entities().execute().await?;
                 print!("{}", ManyEntitiesFmt::new(&entities));
             }
 
@@ -98,6 +99,7 @@ where
                         self.entity_app
                             .remove_entity(entity_id)
                             .execute()
+                            .await
                             .map(|_| entity_id),
                     );
                 } else {
@@ -106,6 +108,7 @@ where
                         self.entity_app
                             .remove_entity(entity_id)
                             .execute()
+                            .await
                             .map(|_| entity_id)
                     })?;
                 }

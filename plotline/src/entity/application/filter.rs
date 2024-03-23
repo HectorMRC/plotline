@@ -39,10 +39,11 @@ where
 {
     /// Executes the filter query, through which zero o more entities may be
     /// retrived.
-    pub fn execute(self) -> Result<Vec<Entity>> {
+    pub async fn execute(self) -> Result<Vec<Entity>> {
         Ok(self
             .entity_repo
-            .filter(&self.filter)?
+            .filter(&self.filter)
+            .await?
             .into_iter()
             .map(|entity_tx| entity_tx.read().clone())
             .collect())
