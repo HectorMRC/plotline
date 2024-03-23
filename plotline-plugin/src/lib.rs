@@ -41,7 +41,7 @@ pub type PluginResult = std::result::Result<Vec<u8>, String>;
 
 /// A Plugin is a set of methods loaded at runtime that extends the default
 /// behavior based on its [PluginKind].
-pub trait Plugin: Identifiable<Id = PluginId> {
+pub trait Plugin: Identifiable<Id = PluginId> + Sync + Send {
     /// Identifies the kind of the plugin.
     fn kind(&self) -> PluginKind;
     /// Executes the corresponding action passing its input encoded in bytes.
