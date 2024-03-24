@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     ffi::OsString,
     fmt::Display,
-    fs,
+    fs::{File, OpenOptions},
     io::{BufReader, BufWriter, Write},
     path::Path,
     sync::Arc,
@@ -77,14 +77,17 @@ fn main() {
     // Load data from YAML file
     let filepath = Path::new(&args.file);
     let mut snapshot = if filepath.exists() {
-        let f = unwrap_or_exit(fs::File::open(filepath));
+        let f = unwrap_or_exit(File::open(filepath));
         let reader = BufReader::new(f);
         unwrap_or_exit(serde_yaml::from_reader(reader))
     } else {
         Snapshot::default()
     };
 
-    // Ensure proper binding between repositories
+    // Load plugins
+    let plugin_factory = Arc::new(PluginStore::<Period<usize>>::default());
+
+    // Inject dependencies
     snapshot.experience_repo = Arc::new(
         unwrap_or_exit(
             Arc::into_inner(snapshot.experience_repo).ok_or("could not bind experience repository"),
@@ -93,10 +96,6 @@ fn main() {
         .with_event_repo(snapshot.event_repo.clone()),
     );
 
-    // Load plugins
-    let plugin_factory = Arc::new(PluginStore::<Period<usize>>::default());
-
-    // Inject dependencies
     let entity_cli = EntityCli {
         entity_app: EntityApplication {
             entity_repo: snapshot.entity_repo.clone(),
@@ -127,7 +126,7 @@ fn main() {
 
     // Persist data into YAML file
     let f = unwrap_or_exit(
-        fs::OpenOptions::new()
+        OpenOptions::new()
             .write(true)
             .create(true)
             .truncate(true)
