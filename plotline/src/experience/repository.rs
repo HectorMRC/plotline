@@ -157,9 +157,59 @@ where
         &self,
         raw_experience: Resource<RawExperience<Intv>>,
     ) -> Result<ExperienceAggregate<Intv>> {
-        let experience_tx = raw_experience.clone();
-        let experience = experience_tx.read();
+        Ok(ExperienceAggregate {
+            experience: raw_experience,
+            entity_repo: self.entity_repo.clone(),
+            event_repo: self.event_repo.clone(),
+        })
+    }
+}
 
+pub struct ExperienceAggregate<Intv>
+where
+    Intv: Serialize + for<'a> Deserialize<'a>,
+{
+    experience: Resource<RawExperience<Intv>>,
+    entity_repo: Arc<InMemoryEntityRepository>,
+    event_repo: Arc<InMemoryEventRepository<Intv>>,
+}
+
+impl<Intv> Tx<Experience<Intv>> for ExperienceAggregate<Intv>
+where
+    Intv: Interval + Serialize + for<'a> Deserialize<'a>,
+{
+    type ReadGuard<'a> = ExperienceAggregateReadGuard<'a, Intv> where Intv: 'a;
+    type WriteGuard<'a> = ExperienceAggregateWriteGuard<'a, Intv> where Intv: 'a;
+
+    fn read(&self) -> Self::ReadGuard<'_> {
+        let experience = self.experience.read();
+        let entities = self.entities(&experience);
+        let event = self.event(&experience);
+
+        let data = Self::experience(&experience, &event, &entities);
+
+        ExperienceAggregateReadGuard {
+            _experience: experience,
+            data,
+        }
+    }
+
+    fn write(&self) -> Self::WriteGuard<'_> {
+        let experience = self.experience.write();
+        let entities = self.entities(&experience);
+        let event = self.event(&experience);
+
+        let data = Self::experience(&experience, &event, &entities);
+
+        ExperienceAggregateWriteGuard { experience, data }
+    }
+}
+
+impl<Intv> ExperienceAggregate<Intv>
+where
+    Intv: Interval + Serialize + for<'a> Deserialize<'a>,
+{
+    fn entities(&self, experience: &RawExperience<Intv>) -> Vec<Entity> {
         let mut entities =
             HashSet::<Id<Entity>>::from_iter(experience.profiles.iter().map(Identifiable::id));
 
@@ -169,75 +219,33 @@ where
         let mut entities: Vec<_> = entities.into_iter().collect();
         entities.sort();
 
-        Ok(ExperienceAggregate {
-            experience: raw_experience,
-            entities: entities
-                .into_iter()
-                .map(|id| self.entity_repo.find(id).map_err(Into::into))
-                .collect::<Result<Vec<_>>>()?,
-            event: self.event_repo.find(experience.event)?,
-        })
-    }
-}
-
-pub struct ExperienceAggregate<Intv> {
-    experience: Resource<RawExperience<Intv>>,
-    entities: Vec<Resource<Entity>>,
-    event: Resource<Event<Intv>>,
-}
-
-impl<Intv> Tx<Experience<Intv>> for ExperienceAggregate<Intv>
-where
-    Intv: Interval,
-{
-    type ReadGuard<'a> = ExperienceAggregateReadGuard<'a, Intv> where Intv: 'a;
-    type WriteGuard<'a> = ExperienceAggregateWriteGuard<'a, Intv> where Intv: 'a;
-
-    fn read(&self) -> Self::ReadGuard<'_> {
-        let experience = self.experience.read();
-        let entities = self.entities.iter().map(Tx::read).collect::<Vec<_>>();
-        let event = self.event.read();
-
-        let data = Self::experience(&experience, &event, &entities);
-
-        ExperienceAggregateReadGuard {
-            _experience: experience,
-            _entities: entities,
-            _event: event,
-            data,
-        }
+        entities
+            .into_iter()
+            .map(|id| {
+                self.entity_repo
+                    .find(id)
+                    .map(|entity_tx| entity_tx.read().clone())
+                    .unwrap_or_else(|_| Entity::default().with_id(id))
+            })
+            .collect()
     }
 
-    fn write(&self) -> Self::WriteGuard<'_> {
-        let experience = self.experience.write();
-        let entities = self.entities.iter().map(Tx::read).collect::<Vec<_>>();
-        let event = self.event.read();
-
-        let data = Self::experience(&experience, &event, &entities);
-
-        ExperienceAggregateWriteGuard {
-            experience,
-            _entities: entities,
-            _event: event,
-            data,
-        }
+    fn event(&self, experience: &RawExperience<Intv>) -> Event<Intv> {
+        self.event_repo
+            .find(experience.event)
+            .map(|event_tx| event_tx.read().clone())
+            .unwrap_or_else(|_| Event::default().with_id(experience.event))
     }
-}
 
-impl<Intv> ExperienceAggregate<Intv>
-where
-    Intv: Interval,
-{
     fn experience(
         experience: &RawExperience<Intv>,
         event: &Event<Intv>,
-        entities: &[ResourceReadGuard<Entity>],
+        entities: &[Entity],
     ) -> Experience<Intv> {
         let find_or_default = |entity_id: Id<Entity>| -> Entity {
             entities
                 .iter()
                 .find(|&entity| entity.id() == entity_id)
-                .map(Deref::deref)
                 .cloned()
                 .unwrap_or_else(|| Entity::default().with_id(entity_id))
         };
@@ -260,8 +268,6 @@ where
 
 pub struct ExperienceAggregateReadGuard<'a, Intv> {
     _experience: ResourceReadGuard<'a, RawExperience<Intv>>,
-    _entities: Vec<ResourceReadGuard<'a, Entity>>,
-    _event: ResourceReadGuard<'a, Event<Intv>>,
     data: Experience<Intv>,
 }
 
@@ -279,8 +285,6 @@ impl<'a, Intv> TxReadGuard<Experience<Intv>> for ExperienceAggregateReadGuard<'a
 
 pub struct ExperienceAggregateWriteGuard<'a, Intv> {
     experience: ResourceWriteGuard<'a, RawExperience<Intv>>,
-    _entities: Vec<ResourceReadGuard<'a, Entity>>,
-    _event: ResourceReadGuard<'a, Event<Intv>>,
     data: Experience<Intv>,
 }
 

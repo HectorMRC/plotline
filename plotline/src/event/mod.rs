@@ -14,7 +14,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 
 /// An Event is a specific happening in which one or more entities are involved.
-#[derive(Clone, Eq, Serialize, Deserialize)]
+#[derive(Clone, Default, Eq, Serialize, Deserialize)]
 pub struct Event<Intv> {
     /// The id of the event.
     pub id: Id<Self>,
@@ -57,6 +57,16 @@ impl<Intv> Event<Intv> {
     /// Creates a new event with the given id.
     pub fn new(id: Id<Self>, name: Name<Self>, interval: Intv) -> Self {
         Self { id, name, interval }
+    }
+
+    pub fn with_id(mut self, id: Id<Self>) -> Self {
+        self.id = id;
+        self
+    }
+
+    pub fn with_name(mut self, name: Name<Self>) -> Self {
+        self.name = name;
+        self
     }
 }
 
