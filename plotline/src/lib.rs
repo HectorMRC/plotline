@@ -6,14 +6,10 @@ pub mod id;
 pub mod interval;
 pub mod name;
 pub mod period;
-#[cfg(feature = "in_memory")]
-pub mod snapshot;
 
 mod macros;
 #[cfg(feature = "in_memory")]
 mod resource;
-#[cfg(feature = "in_memory")]
-mod serde;
 mod transaction;
 
 /// Given a mutable reference of T, and an [Option] of the same type, updates

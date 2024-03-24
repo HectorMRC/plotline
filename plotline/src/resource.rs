@@ -10,6 +10,26 @@ use std::{
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
+/// Serializes the serializable content from a [RwLock].
+pub fn from_rwlock<S, T>(rwlock: &RwLock<T>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+    T: Serialize,
+{
+    use serde::ser::Error;
+
+    rwlock.read().map_err(Error::custom)?.serialize(serializer)
+}
+
+/// Deserializes the deserializable content into a [RwLock].
+pub fn into_rwlock<'de, D, T>(deserializer: D) -> Result<RwLock<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Ok(RwLock::new(T::deserialize(deserializer)?))
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("there cannot be two or more resources with the same id")]
@@ -150,15 +170,6 @@ where
     }
 }
 
-impl<T> ResourceMap<T>
-where
-    T: Identifiable,
-{
-    pub fn new(resources: HashMap<T::Id, Resource<T>>) -> Self {
-        Self { resources }
-    }
-}
-
 impl<T> Serialize for ResourceMap<T>
 where
     T: Identifiable + Serialize,
@@ -191,5 +202,14 @@ where
             })
             .map(Self::new)
             .map_err(serde::de::Error::custom)
+    }
+}
+
+impl<T> ResourceMap<T>
+where
+    T: Identifiable,
+{
+    pub fn new(resources: HashMap<T::Id, Resource<T>>) -> Self {
+        Self { resources }
     }
 }

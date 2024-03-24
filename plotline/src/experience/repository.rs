@@ -8,15 +8,16 @@ use crate::{
     id::{Id, Identifiable},
     interval::Interval,
     macros::equals_or_return,
-    resource::{Resource, ResourceMap, ResourceReadGuard, ResourceWriteGuard},
-    serde::{from_rwlock, into_rwlock},
+    resource::{
+        from_rwlock, into_rwlock, Resource, ResourceMap, ResourceReadGuard, ResourceWriteGuard,
+    },
     transaction::{Tx, TxReadGuard, TxWriteGuard},
 };
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
     ops::{Deref, DerefMut},
-    sync::RwLock,
+    sync::{Arc, RwLock},
 };
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -73,12 +74,12 @@ impl<Intv> From<&Experience<Intv>> for RawExperience<Intv> {
 #[serde(default)]
 pub struct InMemoryExperienceRepository<Intv>
 where
-    Intv: Interval + Serialize + for<'a> Deserialize<'a>,
+    Intv: Serialize + for<'a> Deserialize<'a>,
 {
     #[serde(skip)]
-    entity_repo: InMemoryEntityRepository,
+    entity_repo: Arc<InMemoryEntityRepository>,
     #[serde(skip)]
-    event_repo: InMemoryEventRepository<Intv>,
+    event_repo: Arc<InMemoryEventRepository<Intv>>,
     #[serde(
         serialize_with = "from_rwlock",
         deserialize_with = "into_rwlock",
@@ -142,6 +143,16 @@ impl<Intv> InMemoryExperienceRepository<Intv>
 where
     Intv: Interval + Serialize + for<'a> Deserialize<'a>,
 {
+    pub fn with_entity_repo(mut self, entity_repo: Arc<InMemoryEntityRepository>) -> Self {
+        self.entity_repo = entity_repo;
+        self
+    }
+
+    pub fn with_event_repo(mut self, event_repo: Arc<InMemoryEventRepository<Intv>>) -> Self {
+        self.event_repo = event_repo;
+        self
+    }
+
     fn aggregate(
         &self,
         raw_experience: Resource<RawExperience<Intv>>,

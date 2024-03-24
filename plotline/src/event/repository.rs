@@ -4,8 +4,7 @@ use super::{application::EventRepository, Error, Event, Result};
 use crate::{
     id::Id,
     interval::Interval,
-    resource::{Resource, ResourceMap},
-    serde::{from_rwlock, into_rwlock},
+    resource::{from_rwlock, into_rwlock, Resource, ResourceMap},
 };
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +12,7 @@ use serde::{Deserialize, Serialize};
 #[serde(default)]
 pub struct InMemoryEventRepository<Intv>
 where
-    Intv: Interval + Serialize + for<'a> Deserialize<'a>,
+    Intv: Serialize + for<'a> Deserialize<'a>,
 {
     #[serde(
         serialize_with = "from_rwlock",

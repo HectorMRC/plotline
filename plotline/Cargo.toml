@@ -12,11 +12,10 @@ version     = "0.1.0"
 futures = "0.3.30"
 serde = {version = "1.0.195", features = ["derive", "rc"]} # data parser
 thiserror = "1.0.56"
-uuid = {version = "1.7.0", features = ["v4"]}
+uuid = {version = "1.8.0", features = ["v4"]}
 
 [features]
 in_memory = []
-default = ["in_memory"]
 
 [lib]
 name = "plotline"

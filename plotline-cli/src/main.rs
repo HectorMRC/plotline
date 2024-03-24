@@ -1,15 +1,18 @@
 use clap::{error::ErrorKind, Parser};
 use once_cell::sync::Lazy;
 use plotline::{
-    entity::application::EntityApplication, event::application::EventApplication,
-    experience::application::ExperienceApplication, period::Period, snapshot::Snapshot,
+    entity::{application::EntityApplication, repository::InMemoryEntityRepository},
+    event::{application::EventApplication, repository::InMemoryEventRepository},
+    experience::{application::ExperienceApplication, repository::InMemoryExperienceRepository},
+    period::Period,
 };
 use plotline_cli::{entity::EntityCli, event::EventCli, experience::ExperienceCli, CliCommand};
 use plugin::PluginStore;
+use serde::{Deserialize, Serialize};
 use std::{
     ffi::OsString,
     fmt::Display,
-    fs::{self, OpenOptions},
+    fs,
     io::{BufReader, BufWriter, Write},
     path::Path,
     sync::Arc,
@@ -24,6 +27,18 @@ static DEFAULT_PLOTFILE: Lazy<OsString> = Lazy::new(|| {
         .join("plotfile.yaml")
         .into_os_string()
 });
+
+/// Implements the [Serialize] and [Deserialize] traits to persist and recover
+/// the state of the repositories.
+#[derive(Default, Serialize, Deserialize)]
+pub struct Snapshot {
+    #[serde(flatten)]
+    entity_repo: Arc<InMemoryEntityRepository>,
+    #[serde(flatten)]
+    event_repo: Arc<InMemoryEventRepository<Period<usize>>>,
+    #[serde(flatten)]
+    experience_repo: Arc<InMemoryExperienceRepository<Period<usize>>>,
+}
 
 /// A plotline manager.
 #[derive(Parser)]
@@ -61,38 +76,45 @@ fn main() {
 
     // Load data from YAML file
     let filepath = Path::new(&args.file);
-    let snapshot = if filepath.exists() {
-        Snapshot::parse(|| {
-            let f = unwrap_or_exit(fs::File::open(filepath));
-            let reader = BufReader::new(f);
-            unwrap_or_exit(serde_yaml::from_reader(reader))
-        })
+    let mut snapshot = if filepath.exists() {
+        let f = unwrap_or_exit(fs::File::open(filepath));
+        let reader = BufReader::new(f);
+        unwrap_or_exit(serde_yaml::from_reader(reader))
     } else {
         Snapshot::default()
     };
 
-    // Load plugins
-    let plugin_store = Arc::new(PluginStore::<Period<usize>>::default());
+    // Ensure proper binding between repositories
+    snapshot.experience_repo = Arc::new(
+        unwrap_or_exit(
+            Arc::into_inner(snapshot.experience_repo).ok_or("could not bind experience repository"),
+        )
+        .with_entity_repo(snapshot.entity_repo.clone())
+        .with_event_repo(snapshot.event_repo.clone()),
+    );
 
-    // Build dependencies
+    // Load plugins
+    let plugin_factory = Arc::new(PluginStore::<Period<usize>>::default());
+
+    // Inject dependencies
     let entity_cli = EntityCli {
         entity_app: EntityApplication {
-            entity_repo: snapshot.entities.clone(),
+            entity_repo: snapshot.entity_repo.clone(),
         },
     };
 
     let event_cli = EventCli {
         event_app: EventApplication {
-            event_repo: snapshot.events.clone(),
+            event_repo: snapshot.event_repo.clone(),
         },
     };
 
     let experience_cli = ExperienceCli {
         experience_app: ExperienceApplication {
-            experience_repo: snapshot.experiences.clone(),
-            entity_repo: snapshot.entities.clone(),
-            event_repo: snapshot.events.clone(),
-            plugin_factory: plugin_store.clone(),
+            experience_repo: snapshot.experience_repo.clone(),
+            entity_repo: snapshot.entity_repo.clone(),
+            event_repo: snapshot.event_repo.clone(),
+            plugin_factory,
         },
     };
 
@@ -105,7 +127,7 @@ fn main() {
 
     // Persist data into YAML file
     let f = unwrap_or_exit(
-        OpenOptions::new()
+        fs::OpenOptions::new()
             .write(true)
             .create(true)
             .truncate(true)

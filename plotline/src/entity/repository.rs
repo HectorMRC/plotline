@@ -6,8 +6,7 @@ use super::{
 use crate::{
     id::Id,
     macros::equals_or_return,
-    resource::{Resource, ResourceMap},
-    serde::{from_rwlock, into_rwlock},
+    resource::{from_rwlock, into_rwlock, Resource, ResourceMap},
     transaction::Tx,
 };
 use serde::{Deserialize, Serialize};
