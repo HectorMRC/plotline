@@ -13,6 +13,7 @@ use crate::{
     },
     transaction::{Tx, TxReadGuard, TxWriteGuard},
 };
+use futures::future;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
@@ -90,34 +91,40 @@ where
 
 impl<Intv> ExperienceRepository for InMemoryExperienceRepository<Intv>
 where
-    Intv: Interval + Serialize + for<'a> Deserialize<'a>,
+    Intv: Interval + Serialize + for<'a> Deserialize<'a> + Sync + Send,
 {
     type Intv = Intv;
     type Tx = ExperienceAggregate<Intv>;
 
-    fn find(&self, id: Id<Experience<Intv>>) -> Result<Self::Tx> {
-        self.aggregate(
+    async fn find(&self, id: Id<Experience<Intv>>) -> Result<Self::Tx> {
+        Ok(self.aggregate(
             self.experiences
                 .read()
                 .map_err(Error::from)?
                 .get(&id)
                 .cloned()
                 .ok_or(Error::NotFound)?,
-        )
+        ))
     }
 
-    fn filter(&self, filter: &ExperienceFilter<Intv>) -> Result<Vec<Self::Tx>> {
-        self.experiences
+    async fn filter(&self, filter: &ExperienceFilter<Intv>) -> Result<Vec<Self::Tx>> {
+        let experiences: Vec<_> = self
+            .experiences
             .read()
-            .map_err(Error::from)?
-            .values()
-            .filter(|&entity| filter.matches(&entity.clone().read()))
-            .cloned()
-            .map(|experience| self.aggregate(experience))
-            .collect()
+            .map(|experiences| experiences.values().cloned().collect())?;
+
+        let mut matches = Vec::new();
+        for experience_tx in experiences {
+            let experience = experience_tx.read().await;
+            if filter.matches(&experience) {
+                matches.push(self.aggregate(experience_tx.clone()));
+            }
+        }
+
+        Ok(matches)
     }
 
-    fn create(&self, experience: &Experience<Intv>) -> Result<()> {
+    async fn create(&self, experience: &Experience<Intv>) -> Result<()> {
         let mut experiences = self.experiences.write().map_err(Error::from)?;
 
         if experiences.contains_key(&experience.id) {
@@ -128,7 +135,7 @@ where
         Ok(())
     }
 
-    fn delete(&self, id: Id<Experience<Intv>>) -> Result<()> {
+    async fn delete(&self, id: Id<Experience<Intv>>) -> Result<()> {
         let mut experiences = self.experiences.write().map_err(Error::from)?;
 
         if experiences.remove(&id).is_none() {
@@ -156,12 +163,12 @@ where
     fn aggregate(
         &self,
         raw_experience: Resource<RawExperience<Intv>>,
-    ) -> Result<ExperienceAggregate<Intv>> {
-        Ok(ExperienceAggregate {
+    ) -> ExperienceAggregate<Intv> {
+        ExperienceAggregate {
             experience: raw_experience,
             entity_repo: self.entity_repo.clone(),
             event_repo: self.event_repo.clone(),
-        })
+        }
     }
 }
 
@@ -176,15 +183,15 @@ where
 
 impl<Intv> Tx<Experience<Intv>> for ExperienceAggregate<Intv>
 where
-    Intv: Interval + Serialize + for<'a> Deserialize<'a>,
+    Intv: Interval + Serialize + for<'a> Deserialize<'a> + Sync + Send,
 {
     type ReadGuard<'a> = ExperienceAggregateReadGuard<'a, Intv> where Intv: 'a;
     type WriteGuard<'a> = ExperienceAggregateWriteGuard<'a, Intv> where Intv: 'a;
 
-    fn read(&self) -> Self::ReadGuard<'_> {
-        let experience = self.experience.read();
-        let entities = self.entities(&experience);
-        let event = self.event(&experience);
+    async fn read(&self) -> Self::ReadGuard<'_> {
+        let experience = self.experience.read().await;
+        let (entities, event) =
+            future::join(self.entities(&experience), self.event(&experience)).await;
 
         let data = Self::experience(&experience, &event, &entities);
 
@@ -194,10 +201,10 @@ where
         }
     }
 
-    fn write(&self) -> Self::WriteGuard<'_> {
-        let experience = self.experience.write();
-        let entities = self.entities(&experience);
-        let event = self.event(&experience);
+    async fn write(&self) -> Self::WriteGuard<'_> {
+        let experience = self.experience.write().await;
+        let (entities, event) =
+            future::join(self.entities(&experience), self.event(&experience)).await;
 
         let data = Self::experience(&experience, &event, &entities);
 
@@ -207,9 +214,9 @@ where
 
 impl<Intv> ExperienceAggregate<Intv>
 where
-    Intv: Interval + Serialize + for<'a> Deserialize<'a>,
+    Intv: Interval + Serialize + for<'a> Deserialize<'a> + Sync + Send,
 {
-    fn entities(&self, experience: &RawExperience<Intv>) -> Vec<Entity> {
+    async fn entities(&self, experience: &RawExperience<Intv>) -> Vec<Entity> {
         let mut entities =
             HashSet::<Id<Entity>>::from_iter(experience.profiles.iter().map(Identifiable::id));
 
@@ -219,22 +226,22 @@ where
         let mut entities: Vec<_> = entities.into_iter().collect();
         entities.sort();
 
-        entities
-            .into_iter()
-            .map(|id| {
-                self.entity_repo
-                    .find(id)
-                    .map(|entity_tx| entity_tx.read().clone())
-                    .unwrap_or_else(|_| Entity::default().with_id(id))
-            })
-            .collect()
+        future::join_all(entities.into_iter().map(|id| async move {
+            if let Ok(entity_tx) = self.entity_repo.find(experience.entity).await {
+                return entity_tx.read().await.clone();
+            };
+
+            Entity::default().with_id(id)
+        }))
+        .await
     }
 
-    fn event(&self, experience: &RawExperience<Intv>) -> Event<Intv> {
-        self.event_repo
-            .find(experience.event)
-            .map(|event_tx| event_tx.read().clone())
-            .unwrap_or_else(|_| Event::default().with_id(experience.event))
+    async fn event(&self, experience: &RawExperience<Intv>) -> Event<Intv> {
+        if let Ok(event_tx) = self.event_repo.find(experience.event).await {
+            return event_tx.read().await.clone();
+        };
+
+        Event::default().with_id(experience.event)
     }
 
     fn experience(

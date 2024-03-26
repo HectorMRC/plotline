@@ -1,5 +1,6 @@
-use crate::{display_each_result, display_result, Result};
+use crate::{display_result, Result};
 use clap::{Args, Subcommand};
+use futures::future;
 use plotline::{
     entity::{
         application::{EntityApplication, EntityRepository},
@@ -55,23 +56,23 @@ where
     EntityRepo: 'static + EntityRepository + Sync + Send,
 {
     /// Given an [EntityCommand], executes the corresponding logic.
-    pub fn execute(&self, entity_cmd: EntityCommand) -> Result {
+    pub async fn execute(&self, entity_cmd: EntityCommand) -> Result {
         let entity_id = entity_cmd.entity.map(TryInto::try_into).transpose()?;
         if let Some(command) = entity_cmd.command {
-            return self.execute_subcommand(command, entity_id);
+            return self.execute_subcommand(command, entity_id).await;
         }
 
         let Some(entity_id) = entity_id else {
-            return self.execute_subcommand(EntitySubCommand::List, None);
+            return self.execute_subcommand(EntitySubCommand::List, None).await;
         };
 
-        let entity = self.entity_app.find_entity(entity_id).execute()?;
+        let entity = self.entity_app.find_entity(entity_id).execute().await?;
         print!("{}", SingleEntityFmt::new(&entity));
 
         Ok(())
     }
 
-    fn execute_subcommand(
+    async fn execute_subcommand(
         &self,
         subcommand: EntitySubCommand,
         entity_id: Option<Id<Entity>>,
@@ -82,13 +83,14 @@ where
                 self.entity_app
                     .save_entity(entity_id)
                     .with_name(args.name.map(TryInto::try_into).transpose()?)
-                    .execute()?;
+                    .execute()
+                    .await?;
 
                 println!("{}", entity_id);
             }
 
             EntitySubCommand::List => {
-                let entities = self.entity_app.filter_entities().execute()?;
+                let entities = self.entity_app.filter_entities().execute().await?;
                 print!("{}", ManyEntitiesFmt::new(&entities));
             }
 
@@ -98,16 +100,24 @@ where
                         self.entity_app
                             .remove_entity(entity_id)
                             .execute()
+                            .await
                             .map(|_| entity_id),
                     );
                 } else {
-                    display_each_result(args.ids.into_iter(), |id| {
-                        let entity_id = id.try_into()?;
-                        self.entity_app
-                            .remove_entity(entity_id)
-                            .execute()
-                            .map(|_| entity_id)
-                    })?;
+                    future::join_all(args.ids.into_iter().map(|id| async {
+                        display_result(
+                            async {
+                                let entity_id = id.try_into()?;
+                                self.entity_app
+                                    .remove_entity(entity_id)
+                                    .execute()
+                                    .await
+                                    .map(|_| entity_id)
+                            }
+                            .await,
+                        );
+                    }))
+                    .await;
                 }
             }
         }

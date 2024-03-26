@@ -24,12 +24,12 @@ where
 
 impl<Intv> EventRepository for InMemoryEventRepository<Intv>
 where
-    Intv: Interval + Serialize + for<'a> Deserialize<'a>,
+    Intv: Interval + Serialize + for<'a> Deserialize<'a> + Sync + Send,
 {
     type Intv = Intv;
     type Tx = Resource<Event<Intv>>;
 
-    fn create(&self, event: &Event<Intv>) -> Result<()> {
+    async fn create(&self, event: &Event<Intv>) -> Result<()> {
         let mut events = self
             .events
             .write()
@@ -43,7 +43,7 @@ where
         Ok(())
     }
 
-    fn find(&self, id: Id<Event<Intv>>) -> Result<Self::Tx> {
+    async fn find(&self, id: Id<Event<Intv>>) -> Result<Self::Tx> {
         let events = self
             .events
             .read()

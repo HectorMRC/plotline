@@ -16,8 +16,8 @@ where
     EntityRepo: EntityRepository,
 {
     /// Executes the remove entity transaction.
-    pub fn execute(self) -> Result<()> {
-        self.entity_repo.delete(self.id)
+    pub async fn execute(self) -> Result<()> {
+        self.entity_repo.delete(self.id).await
     }
 }
 

@@ -1,3 +1,5 @@
+use futures::future;
+
 use super::{EntityApplication, EntityRepository};
 use crate::{
     entity::{Entity, Result},
@@ -39,13 +41,17 @@ where
 {
     /// Executes the filter query, through which zero o more entities may be
     /// retrived.
-    pub fn execute(self) -> Result<Vec<Entity>> {
-        Ok(self
+    pub async fn execute(self) -> Result<Vec<Entity>> {
+        Ok(future::join_all(
+            self
             .entity_repo
-            .filter(&self.filter)?
+            .filter(&self.filter)
+            .await?
             .into_iter()
-            .map(|entity_tx| entity_tx.read().clone())
-            .collect())
+            .map(|entity_tx| async move {
+                entity_tx.read().await.clone()
+            })
+        ).await)
     }
 }
 

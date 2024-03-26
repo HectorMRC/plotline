@@ -26,28 +26,33 @@ pub struct InMemoryEntityRepository {
 impl EntityRepository for InMemoryEntityRepository {
     type Tx = Resource<Entity>;
 
-    fn find(&self, id: Id<Entity>) -> Result<Self::Tx> {
+    async fn find(&self, id: Id<Entity>) -> Result<Self::Tx> {
         self.entities
-            .read()
-            .map_err(Error::from)?
+            .read()?
             .get(&id)
             .cloned()
             .map(Resource::from)
             .ok_or(Error::NotFound)
     }
 
-    fn filter(&self, filter: &EntityFilter) -> Result<Vec<Self::Tx>> {
-        Ok(self
+    async fn filter(&self, filter: &EntityFilter) -> Result<Vec<Self::Tx>> {
+        let entities: Vec<_> = self
             .entities
             .read()
-            .map_err(Error::from)?
-            .values()
-            .filter(|&entity| filter.matches(&entity.clone().read()))
-            .cloned()
-            .collect())
+            .map(|entities| entities.values().cloned().collect())?;
+
+        let mut matches = Vec::new();
+        for entity_tx in entities {
+            let experience = entity_tx.read().await;
+            if filter.matches(&experience) {
+                matches.push(entity_tx.clone());
+            }
+        }
+
+        Ok(matches)
     }
 
-    fn create(&self, entity: &Entity) -> Result<()> {
+    async fn create(&self, entity: &Entity) -> Result<()> {
         let mut entities = self.entities.write().map_err(Error::from)?;
 
         if entities.contains_key(&entity.id) {
@@ -58,7 +63,7 @@ impl EntityRepository for InMemoryEntityRepository {
         Ok(())
     }
 
-    fn delete(&self, id: Id<Entity>) -> Result<()> {
+    async fn delete(&self, id: Id<Entity>) -> Result<()> {
         let mut entities = self.entities.write().map_err(Error::from)?;
 
         if entities.remove(&id).is_none() {

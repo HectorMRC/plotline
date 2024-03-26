@@ -12,11 +12,11 @@ pub trait Tx<T> {
 
     /// Acquires the resource, blocking the current thread until it is available
     /// to do so.
-    fn read(&self) -> Self::ReadGuard<'_>;
+    async fn read(&self) -> Self::ReadGuard<'_>;
 
     /// Acquires the resource, blocking the current thread until it is available
     /// to do so.
-    fn write(&self) -> Self::WriteGuard<'_>;
+    async fn write(&self) -> Self::WriteGuard<'_>;
 }
 
 /// A TxReadGuard holds T ensuring its consistency between transactions.

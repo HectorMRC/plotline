@@ -16,13 +16,14 @@ use super::{error::Result, Entity};
 use crate::{id::Identifiable, transaction::Tx};
 use std::sync::Arc;
 
+#[trait_variant::make]
 pub trait EntityRepository {
     type Tx: Tx<Entity>;
 
-    fn find(&self, id: <Entity as Identifiable>::Id) -> Result<Self::Tx>;
-    fn filter(&self, filter: &EntityFilter) -> Result<Vec<Self::Tx>>;
-    fn create(&self, entity: &Entity) -> Result<()>;
-    fn delete(&self, id: <Entity as Identifiable>::Id) -> Result<()>;
+    async fn find(&self, id: <Entity as Identifiable>::Id) -> Result<Self::Tx>;
+    async fn filter(&self, filter: &EntityFilter) -> Result<Vec<Self::Tx>>;
+    async fn create(&self, entity: &Entity) -> Result<()>;
+    async fn delete(&self, id: <Entity as Identifiable>::Id) -> Result<()>;
 }
 
 pub struct EntityApplication<EntityRepo> {

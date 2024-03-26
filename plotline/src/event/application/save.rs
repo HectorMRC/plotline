@@ -35,15 +35,15 @@ where
     }
 
     /// Executes the create event transaction.
-    pub fn execute(self) -> Result<()> {
-        match self.event_repo.find(self.id) {
-            Ok(event_tx) => self.update(event_tx),
-            Err(Error::NotFound) => self.create(),
+    pub async fn execute(self) -> Result<()> {
+        match self.event_repo.find(self.id).await {
+            Ok(event_tx) => self.update(event_tx).await,
+            Err(Error::NotFound) => self.create().await,
             Err(err) => Err(err),
         }
     }
 
-    fn create(self) -> Result<()> {
+    async fn create(self) -> Result<()> {
         let Some(name) = self.name else {
             return Err(NameError::NotAName.into());
         };
@@ -53,11 +53,11 @@ where
         };
 
         let event = Event::new(self.id, name, interval);
-        self.event_repo.create(&event)
+        self.event_repo.create(&event).await
     }
 
-    fn update(self, event_tx: EventRepo::Tx) -> Result<()> {
-        let mut event = event_tx.write();
+    async fn update(self, event_tx: EventRepo::Tx) -> Result<()> {
+        let mut event = event_tx.write().await;
 
         update_if_some(&mut event.name, self.name);
         update_if_some(&mut event.interval, self.interval);

@@ -71,7 +71,8 @@ where
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Cli::parse();
 
     // Load data from YAML file
@@ -119,9 +120,9 @@ fn main() {
 
     // Execute command
     unwrap_or_exit(match args.command {
-        CliCommand::Entity(command) => entity_cli.execute(command),
-        CliCommand::Event(command) => event_cli.execute(command),
-        CliCommand::Experience(command) => experience_cli.execute(command),
+        CliCommand::Entity(command) => entity_cli.execute(command).await,
+        CliCommand::Event(command) => event_cli.execute(command).await,
+        CliCommand::Experience(command) => experience_cli.execute(command).await,
     });
 
     // Persist data into YAML file

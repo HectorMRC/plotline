@@ -1,3 +1,5 @@
+use futures::future;
+
 use super::{
     BeforeSaveExperience, ExperienceApplication, ExperienceFilter, ExperienceRepository,
     PluginFactory,
@@ -57,37 +59,42 @@ where
     PluginFcty: PluginFactory<Intv = EventRepo::Intv>,
 {
     /// Executes the save experience transaction.
-    pub fn execute(self) -> Result<()> {
-        match self.experience_repo.find(self.id) {
+    pub async fn execute(self) -> Result<()> {
+        match self.experience_repo.find(self.id).await {
             Ok(experience_tx) => self.update(experience_tx),
-            Err(Error::NotFound) => self.create(),
+            Err(Error::NotFound) => self.create().await,
             Err(err) => Err(err),
         }
     }
 
-    fn create(self) -> Result<()> {
+    async fn create(self) -> Result<()> {
         let entity_tx = self
             .entity_repo
-            .find(self.entity.ok_or(Error::MandatoryField("entity"))?)?;
+            .find(self.entity.ok_or(Error::MandatoryField("entity"))?)
+            .await?;
 
-        let entity = entity_tx.read();
+        let entity = entity_tx.read().await;
 
         let event_tx = self
             .event_repo
-            .find(self.event.ok_or(Error::MandatoryField("event"))?)?;
+            .find(self.event.ok_or(Error::MandatoryField("event"))?)
+            .await?;
 
-        let event = event_tx.read();
+        let event = event_tx.read().await;
 
         let experiences_txs = self
             .experience_repo
-            .filter(&ExperienceFilter::default().with_entity(self.entity))?
+            .filter(&ExperienceFilter::default().with_entity(self.entity))
+            .await?
             .into_iter()
             .collect::<Vec<_>>();
 
-        let mut experiences = Vec::with_capacity(experiences_txs.len());
-        for experience_tx in &experiences_txs {
-            experiences.push(experience_tx.read())
-        }
+        let experiences = future::join_all(
+            experiences_txs
+                .iter()
+                .map(|experience_tx| async move { experience_tx.read().await }),
+        )
+        .await;
 
         let experience = ExperienceBuilder::new(&entity, &event)
             .with_id(self.id)
@@ -109,7 +116,7 @@ where
                     .map_err(Error::Plugin)
             })?;
 
-        self.experience_repo.create(&experience)?;
+        self.experience_repo.create(&experience).await?;
         Ok(())
     }
 

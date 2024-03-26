@@ -13,14 +13,15 @@ use super::error::Result;
 use crate::{experience::Experience, id::Id, interval::Interval, transaction::Tx};
 use std::sync::Arc;
 
+#[trait_variant::make]
 pub trait ExperienceRepository {
     type Intv: Interval;
     type Tx: Tx<Experience<Self::Intv>>;
 
-    fn find(&self, id: Id<Experience<Self::Intv>>) -> Result<Self::Tx>;
-    fn filter(&self, filter: &ExperienceFilter<Self::Intv>) -> Result<Vec<Self::Tx>>;
-    fn create(&self, experience: &Experience<Self::Intv>) -> Result<()>;
-    fn delete(&self, id: Id<Experience<Self::Intv>>) -> Result<()>;
+    async fn find(&self, id: Id<Experience<Self::Intv>>) -> Result<Self::Tx>;
+    async fn filter(&self, filter: &ExperienceFilter<Self::Intv>) -> Result<Vec<Self::Tx>>;
+    async fn create(&self, experience: &Experience<Self::Intv>) -> Result<()>;
+    async fn delete(&self, id: Id<Experience<Self::Intv>>) -> Result<()>;
 }
 
 pub trait BeforeSaveExperience<'a, Intv> {

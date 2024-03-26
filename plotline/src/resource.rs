@@ -58,7 +58,7 @@ where
     type ReadGuard<'a> = ResourceReadGuard<'a, T> where T: 'a;
     type WriteGuard<'a> = ResourceWriteGuard<'a, T> where T: 'a;
 
-    fn read(&self) -> Self::ReadGuard<'_> {
+    async fn read(&self) -> Self::ReadGuard<'_> {
         ResourceReadGuard {
             guard: match self.lock.read() {
                 Ok(reader) => reader,
@@ -67,7 +67,7 @@ where
         }
     }
 
-    fn write(&self) -> Self::WriteGuard<'_> {
+    async fn write(&self) -> Self::WriteGuard<'_> {
         let guard = match self.lock.write() {
             Ok(writer) => writer,
             Err(err) => err.into_inner(),

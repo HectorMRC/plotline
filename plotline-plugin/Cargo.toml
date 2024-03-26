@@ -4,16 +4,16 @@ name    = "plotline-plugin"
 version = "0.1.0"
 
 [dependencies]
-plotline     = {path = "../plotline"}
-plotline-proto     = {path = "../plotline-proto"}
-protobuf     = "3.4.0"
-strum        = "0.26.1"
-strum_macros = "0.26.1"
-thiserror    = "1.0.56"
-wasmer       = {version = "4.2.5", optional = true}
+plotline       = {path = "../plotline"}
+plotline-proto = {path = "../plotline-proto"}
+protobuf       = "3.4.0"
+strum          = "0.26.1"
+strum_macros   = "0.26.1"
+thiserror      = "1.0.56"
+wasmer         = {version = "4.2.5", optional = true}
 
 [features]
-wasm    = ["wasmer"]
+wasm = ["wasmer"]
 
 [lib]
 name = "plugin"

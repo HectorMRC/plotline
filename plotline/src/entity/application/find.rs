@@ -20,8 +20,8 @@ where
 {
     /// Executes the find query, through which one, and exactly one, entity must
     /// be retrived.
-    pub fn execute(self) -> Result<Entity> {
-        Ok(self.entity_repo.find(self.id)?.read().clone())
+    pub async fn execute(self) -> Result<Entity> {
+        Ok(self.entity_repo.find(self.id).await?.read().await.clone())
     }
 }
 

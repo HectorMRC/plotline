@@ -1,3 +1,5 @@
+use futures::future;
+
 use super::{ExperienceApplication, ExperienceRepository};
 use crate::{
     entity::Entity,
@@ -54,13 +56,15 @@ impl<ExperienceRepo> FilterExperiences<ExperienceRepo>
 where
     ExperienceRepo: ExperienceRepository,
 {
-    pub fn execute(self) -> Result<Vec<Experience<ExperienceRepo::Intv>>> {
-        Ok(self
-            .experience_repo
-            .filter(&self.filter)?
-            .into_iter()
-            .map(|entity_tx| entity_tx.read().clone())
-            .collect())
+    pub async fn execute(self) -> Result<Vec<Experience<ExperienceRepo::Intv>>> {
+        Ok(future::join_all(
+            self.experience_repo
+                .filter(&self.filter)
+                .await?
+                .into_iter()
+                .map(|entity_tx| async move { entity_tx.read().await.clone() }),
+        )
+        .await)
     }
 }
 
