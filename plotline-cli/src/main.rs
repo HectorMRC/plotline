@@ -1,4 +1,5 @@
 use clap::{error::ErrorKind, Parser};
+use futures::executor::block_on;
 use once_cell::sync::Lazy;
 use plotline::{
     entity::{application::EntityApplication, repository::InMemoryEntityRepository},
@@ -71,8 +72,7 @@ where
     }
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let args = Cli::parse();
 
     // Load data from YAML file
@@ -119,10 +119,12 @@ async fn main() {
     };
 
     // Execute command
-    unwrap_or_exit(match args.command {
-        CliCommand::Entity(command) => entity_cli.execute(command).await,
-        CliCommand::Event(command) => event_cli.execute(command).await,
-        CliCommand::Experience(command) => experience_cli.execute(command).await,
+    block_on(async {
+        unwrap_or_exit(match args.command {
+            CliCommand::Entity(command) => entity_cli.execute(command).await,
+            CliCommand::Event(command) => event_cli.execute(command).await,
+            CliCommand::Experience(command) => experience_cli.execute(command).await,
+        })
     });
 
     // Persist data into YAML file
