@@ -1,4 +1,4 @@
-use crate::{display::{DisplayMany, DisplaySingle}, Error, Result};
+use crate::{display::DisplayTable, Error, Result};
 use clap::{Args, Subcommand};
 use plotline::{
     event::{
@@ -64,13 +64,12 @@ where
         };
 
         let event = self.event_app.find_event(event_id).execute().await?;
-        DisplaySingle::new(&event, |table, event| {
+        DisplayTable::new(&event).show(|table, event| {
             table.add_row(row!["ID", event.id]);
             table.add_row(row!["NAME", event.name]);
             table.add_row(row!["START", event.interval.lo()]);
             table.add_row(row!["END", event.interval.hi()]);
-        })
-        .show();
+        });
 
         Ok(())
     }
@@ -99,16 +98,17 @@ where
             }
             EventSubCommand::List => {
                 let events = self.event_app.filter_events().execute().await?;
-                DisplayMany::new(&events, |table, event| {
-                    table.add_row(row![
-                        &event.id,
-                        &event.name,
-                        &event.interval.lo(),
-                        &event.interval.hi()
-                    ]);
-                })
-                .with_headers(vec!["ID", "NAME", "START", "END"])
-                .show();
+                DisplayTable::new(&events).show(|table, events| {
+                    table.add_row(row!["ID", "NAME", "START", "END"]);
+                    events.iter().for_each(|event| {
+                        table.add_row(row![
+                            &event.id,
+                            &event.name,
+                            &event.interval.lo(),
+                            &event.interval.hi()
+                        ]);
+                    })
+                });
             }
         }
 

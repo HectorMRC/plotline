@@ -1,5 +1,5 @@
 use crate::{
-    display::{display_each_result, display_result, DisplayMany, DisplaySingle},
+    display::{display_each_result, display_result, DisplayTable},
     Result,
 };
 use clap::{Args, Subcommand};
@@ -68,11 +68,10 @@ where
         };
 
         let entity = self.entity_app.find_entity(entity_id).execute().await?;
-        DisplaySingle::new(&entity, |table, entity| {
+        DisplayTable::new(&entity).show(|table, entity| {
             table.add_row(row!["ID", entity.id]);
             table.add_row(row!["NAME", entity.name]);
-        })
-        .show();
+        });
 
         Ok(())
     }
@@ -96,11 +95,12 @@ where
 
             EntitySubCommand::List => {
                 let entities = self.entity_app.filter_entities().execute().await?;
-                DisplayMany::new(&entities, |table, entity| {
-                    table.add_row(row![&entity.id, &entity.name]);
-                })
-                .with_headers(vec!["ID", "NAME"])
-                .show();
+                DisplayTable::new(&entities).show(|table, entities| {
+                    table.add_row(row!["ID", "NAME"]);
+                    entities.iter().for_each(|entity| {
+                        table.add_row(row![&entity.id, &entity.name]);
+                    });
+                });
             }
 
             EntitySubCommand::Remove(args) => {

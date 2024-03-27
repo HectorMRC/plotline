@@ -1,7 +1,4 @@
-use crate::{
-    display::{DisplayMany, DisplaySingle},
-    Error, Result,
-};
+use crate::{display::DisplayTable, Error, Result};
 use clap::{Args, Subcommand};
 use plotline::{
     entity::{application::EntityRepository, Entity},
@@ -122,15 +119,16 @@ where
             }
             ExperienceSubCommand::List => {
                 let experiences = self.experience_app.filter_experiences().execute().await?;
-                DisplayMany::new(&experiences, |table, experience| {
-                    table.add_row(row![
-                        &experience.id,
-                        &experience.entity.id(),
-                        &experience.event.id()
-                    ]);
-                })
-                .with_headers(vec!["ID", "ENTITY ID", "EVENT ID"])
-                .show();
+                DisplayTable::new(&experiences).show(|table, experiences| {
+                    table.add_row(row!["ID", "ENTITY ID", "EVENT ID"]);
+                    experiences.iter().for_each(|experience| {
+                        table.add_row(row![
+                            &experience.id,
+                            &experience.entity.id(),
+                            &experience.event.id()
+                        ]);
+                    });
+                });
             }
             ExperienceSubCommand::Profile(args) => {
                 self.execute_profile_command(
@@ -185,21 +183,21 @@ where
         });
 
         if let Some(profile) = profile {
-            DisplaySingle::new(profile, |table, profile| {
+            DisplayTable::new(profile).show(|table, profile| {
                 table.add_row(row!["ENTITY", profile.id()]);
                 table.add_empty_row();
 
                 profile.values().for_each(|(key, value)| {
                     table.add_row(row![key, value]);
                 });
-            })
-            .show();
+            });
         } else {
-            DisplayMany::new(experience.profiles(), |table, profile| {
-                table.add_row(row![profile.id()]);
-            })
-            .with_headers(vec!["ID"])
-            .show();
+            DisplayTable::new(&experience.profiles()).show(|table, profiles| {
+                table.add_row(row!["ID"]);
+                profiles.iter().for_each(|profile| {
+                    table.add_row(row![profile.id()]);
+                });
+            });
         };
 
         Ok(())
