@@ -47,7 +47,7 @@ jobs:
           components: clippy
 
       - name: Install protoc
-        uses: arduino/setup-protoc@v3
+        uses: arduino/setup-protoc@latest
         with:
           version: "3.x"
 
