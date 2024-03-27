@@ -43,8 +43,8 @@ impl EntityRepository for InMemoryEntityRepository {
 
         let mut matches = Vec::new();
         for entity_tx in entities {
-            let experience = entity_tx.read().await;
-            if filter.matches(&experience) {
+            let entity = entity_tx.read().await;
+            if filter.matches(&entity) {
                 matches.push(entity_tx.clone());
             }
         }

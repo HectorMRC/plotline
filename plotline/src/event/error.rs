@@ -1,3 +1,5 @@
+use std::sync::PoisonError;
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, PartialEq, thiserror::Error)]
@@ -19,4 +21,10 @@ pub enum Error {
     Name(#[from] crate::name::Error),
     #[error("{0}")]
     Lock(String),
+}
+
+impl<T> From<PoisonError<T>> for Error {
+    fn from(value: PoisonError<T>) -> Self {
+        Self::Lock(value.to_string())
+    }
 }
