@@ -1,6 +1,6 @@
 use crate::{
-    display::{DisplayMany, DisplaySingle},
-    display_each_result, display_result, Result,
+    display::{display_each_result, display_result, DisplayMany, DisplaySingle},
+    Result,
 };
 use clap::{Args, Subcommand};
 use plotline::{
