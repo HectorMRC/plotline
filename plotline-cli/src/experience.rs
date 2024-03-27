@@ -1,4 +1,7 @@
-use crate::{Error, Result};
+use crate::{
+    display::{DisplayMany, DisplaySingle},
+    Error, Result,
+};
 use clap::{Args, Subcommand};
 use plotline::{
     entity::{application::EntityRepository, Entity},
@@ -9,8 +12,7 @@ use plotline::{
     },
     id::{Id, Identifiable},
 };
-use prettytable::Table;
-use std::fmt::Display;
+use prettytable::row;
 
 // const KEY_VALUE_SEPARATOR: char = '=';
 
@@ -120,13 +122,24 @@ where
             }
             ExperienceSubCommand::List => {
                 let experiences = self.experience_app.filter_experiences().execute().await?;
-                print!("{}", ManyExperiencesFmt::new(&experiences));
+                DisplayMany::new(&experiences, |table, experience| {
+                    table.add_row(row![
+                        &experience.id,
+                        &experience.entity.id(),
+                        &experience.event.id()
+                    ]);
+                })
+                .with_headers(vec!["ID", "ENTITY ID", "EVENT ID"])
+                .show();
             }
-            ExperienceSubCommand::Profile(args) => self.execute_profile_command(
-                experience.ok_or(Error::MissingArgument("experience id"))?,
-                args.entity.map(TryInto::try_into).transpose()?,
-                args.command,
-            ).await?,
+            ExperienceSubCommand::Profile(args) => {
+                self.execute_profile_command(
+                    experience.ok_or(Error::MissingArgument("experience id"))?,
+                    args.entity.map(TryInto::try_into).transpose()?,
+                    args.command,
+                )
+                .await?
+            }
         }
 
         Ok(())
@@ -150,12 +163,21 @@ where
             ProfileCommand::Remove => {
                 todo!()
             }
-        }.await
+        }
+        .await
     }
 
-    async fn list(&self, experience: Id<Experience<EventRepo::Intv>>, entity: Option<Id<Entity>>) -> Result  {
-        let experience = self.experience_app.find_experience(experience).execute().await?;
-        let profile = entity.and_then(|entity| {
+    async fn list(
+        &self,
+        experience: Id<Experience<EventRepo::Intv>>,
+        entity: Option<Id<Entity>>,
+    ) -> Result {
+        let experience = self
+            .experience_app
+            .find_experience(experience)
+            .execute()
+            .await?;
+        let profile: Option<&Profile> = entity.and_then(|entity| {
             experience
                 .profiles()
                 .iter()
@@ -163,83 +185,23 @@ where
         });
 
         if let Some(profile) = profile {
-            print!("{}", SingleProfileFmt::new(profile));
+            DisplaySingle::new(profile, |table, profile| {
+                table.add_row(row!["ENTITY", profile.id()]);
+                table.add_empty_row();
+
+                profile.values().for_each(|(key, value)| {
+                    table.add_row(row![key, value]);
+                });
+            })
+            .show();
         } else {
-            print!("{}", ManyProfilesFmt::new(experience.profiles()));
+            DisplayMany::new(experience.profiles(), |table, profile| {
+                table.add_row(row![profile.id()]);
+            })
+            .with_headers(vec!["ID"])
+            .show();
         };
 
         Ok(())
-    }
-}
-
-struct ManyExperiencesFmt<'a, Intv> {
-    experiences: &'a [Experience<Intv>],
-}
-
-impl<'a, Intv> Display for ManyExperiencesFmt<'a, Intv> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut table = Table::new();
-        table.add_row(row!["ID", "ENTITY ID", "EVENT ID"]);
-        self.experiences.iter().for_each(|experience| {
-            table.add_row(row![
-                &experience.id,
-                &experience.entity.id(),
-                &experience.event.id()
-            ]);
-        });
-
-        table.fmt(f)
-    }
-}
-
-impl<'a, Intv> ManyExperiencesFmt<'a, Intv> {
-    pub fn new(experiences: &'a [Experience<Intv>]) -> Self {
-        Self { experiences }
-    }
-}
-
-struct SingleProfileFmt<'a> {
-    profile: &'a Profile,
-}
-
-impl<'a> Display for SingleProfileFmt<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut table = Table::new();
-        table.add_row(row!["ENTITY", self.profile.id()]);
-        table.add_empty_row();
-
-        self.profile.values().for_each(|(key, value)| {
-            table.add_row(row![key, value]);
-        });
-
-        table.fmt(f)
-    }
-}
-
-impl<'a> SingleProfileFmt<'a> {
-    pub fn new(profile: &'a Profile) -> Self {
-        Self { profile }
-    }
-}
-
-struct ManyProfilesFmt<'a> {
-    profiles: &'a [Profile],
-}
-
-impl<'a> Display for ManyProfilesFmt<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut table = Table::new();
-        table.add_row(row!["ID"]);
-        self.profiles.iter().for_each(|profile| {
-            table.add_row(row![profile.id()]);
-        });
-
-        table.fmt(f)
-    }
-}
-
-impl<'a> ManyProfilesFmt<'a> {
-    pub fn new(profiles: &'a [Profile]) -> Self {
-        Self { profiles }
     }
 }

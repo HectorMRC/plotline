@@ -1,4 +1,4 @@
-use crate::{Error, Result};
+use crate::{display::{DisplayMany, DisplaySingle}, Error, Result};
 use clap::{Args, Subcommand};
 use plotline::{
     event::{
@@ -8,7 +8,7 @@ use plotline::{
     id::Id,
     interval::Interval,
 };
-use prettytable::Table;
+use prettytable::row;
 use std::fmt::Display;
 
 #[derive(Args)]
@@ -64,7 +64,13 @@ where
         };
 
         let event = self.event_app.find_event(event_id).execute().await?;
-        print!("{}", SingleEventFmt::new(&event));
+        DisplaySingle::new(&event, |table, event| {
+            table.add_row(row!["ID", event.id]);
+            table.add_row(row!["NAME", event.name]);
+            table.add_row(row!["START", event.interval.lo()]);
+            table.add_row(row!["END", event.interval.hi()]);
+        })
+        .show();
 
         Ok(())
     }
@@ -93,66 +99,19 @@ where
             }
             EventSubCommand::List => {
                 let events = self.event_app.filter_events().execute().await?;
-                print!("{}", ManyEventsFmt::new(&events));
+                DisplayMany::new(&events, |table, event| {
+                    table.add_row(row![
+                        &event.id,
+                        &event.name,
+                        &event.interval.lo(),
+                        &event.interval.hi()
+                    ]);
+                })
+                .with_headers(vec!["ID", "NAME", "START", "END"])
+                .show();
             }
         }
 
         Ok(())
-    }
-}
-
-struct SingleEventFmt<'a, Intv> {
-    event: &'a Event<Intv>,
-}
-
-impl<'a, Intv> Display for SingleEventFmt<'a, Intv>
-where
-    Intv: Interval,
-    Intv::Bound: Display,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut table = Table::new();
-        table.add_row(row!["ID", self.event.id]);
-        table.add_row(row!["NAME", self.event.name]);
-        table.add_row(row!["START", self.event.interval.lo()]);
-        table.add_row(row!["END", self.event.interval.hi()]);
-        table.fmt(f)
-    }
-}
-
-impl<'a, Intv> SingleEventFmt<'a, Intv> {
-    pub fn new(event: &'a Event<Intv>) -> Self {
-        Self { event }
-    }
-}
-
-struct ManyEventsFmt<'a, Intv> {
-    events: &'a [Event<Intv>],
-}
-
-impl<'a, Intv> Display for ManyEventsFmt<'a, Intv>
-where
-    Intv: Interval,
-    Intv::Bound: Display,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut table = Table::new();
-        table.add_row(row!["ID", "NAME", "START", "END"]);
-        self.events.iter().for_each(|event| {
-            table.add_row(row![
-                &event.id,
-                &event.name,
-                &event.interval.lo(),
-                &event.interval.hi()
-            ]);
-        });
-
-        table.fmt(f)
-    }
-}
-
-impl<'a, Intv> ManyEventsFmt<'a, Intv> {
-    pub fn new(events: &'a [Event<Intv>]) -> Self {
-        Self { events }
     }
 }

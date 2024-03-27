@@ -1,6 +1,8 @@
-use crate::{display_result, Result};
+use crate::{
+    display::{DisplayMany, DisplaySingle},
+    display_each_result, display_result, Result,
+};
 use clap::{Args, Subcommand};
-use futures::future;
 use plotline::{
     entity::{
         application::{EntityApplication, EntityRepository},
@@ -8,8 +10,7 @@ use plotline::{
     },
     id::Id,
 };
-use prettytable::Table;
-use std::fmt::Display;
+use prettytable::row;
 
 #[derive(Args)]
 struct EntitySaveArgs {
@@ -67,7 +68,11 @@ where
         };
 
         let entity = self.entity_app.find_entity(entity_id).execute().await?;
-        print!("{}", SingleEntityFmt::new(&entity));
+        DisplaySingle::new(&entity, |table, entity| {
+            table.add_row(row!["ID", entity.id]);
+            table.add_row(row!["NAME", entity.name]);
+        })
+        .show();
 
         Ok(())
     }
@@ -91,7 +96,11 @@ where
 
             EntitySubCommand::List => {
                 let entities = self.entity_app.filter_entities().execute().await?;
-                print!("{}", ManyEntitiesFmt::new(&entities));
+                DisplayMany::new(&entities, |table, entity| {
+                    table.add_row(row![&entity.id, &entity.name]);
+                })
+                .with_headers(vec!["ID", "NAME"])
+                .show();
             }
 
             EntitySubCommand::Remove(args) => {
@@ -104,65 +113,19 @@ where
                             .map(|_| entity_id),
                     );
                 } else {
-                    future::join_all(args.ids.into_iter().map(|id| async {
-                        display_result(
-                            async {
-                                let entity_id = id.try_into()?;
-                                self.entity_app
-                                    .remove_entity(entity_id)
-                                    .execute()
-                                    .await
-                                    .map(|_| entity_id)
-                            }
-                            .await,
-                        );
-                    }))
+                    display_each_result(args.ids.into_iter(), |id| async {
+                        let entity_id = id.try_into()?;
+                        self.entity_app
+                            .remove_entity(entity_id)
+                            .execute()
+                            .await
+                            .map(|_| entity_id)
+                    })
                     .await;
                 }
             }
         }
 
         Ok(())
-    }
-}
-
-struct SingleEntityFmt<'a> {
-    entity: &'a Entity,
-}
-
-impl<'a> Display for SingleEntityFmt<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut table = Table::new();
-        table.add_row(row!["ID", self.entity.id]);
-        table.add_row(row!["NAME", self.entity.name]);
-        table.fmt(f)
-    }
-}
-
-impl<'a> SingleEntityFmt<'a> {
-    pub fn new(entity: &'a Entity) -> Self {
-        Self { entity }
-    }
-}
-
-struct ManyEntitiesFmt<'a> {
-    entities: &'a [Entity],
-}
-
-impl<'a> Display for ManyEntitiesFmt<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut table = Table::new();
-        table.add_row(row!["ID", "NAME"]);
-        self.entities.iter().for_each(|entity| {
-            table.add_row(row![&entity.id, &entity.name]);
-        });
-
-        table.fmt(f)
-    }
-}
-
-impl<'a> ManyEntitiesFmt<'a> {
-    pub fn new(entities: &'a [Entity]) -> Self {
-        Self { entities }
     }
 }
