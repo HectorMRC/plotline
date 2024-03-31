@@ -4,7 +4,7 @@ use plotline::{
     entity::{application::EntityRepository, Entity},
     event::application::EventRepository,
     experience::{
-        application::{ExperienceApplication, ExperienceRepository},
+        application::{ExperienceApplication, ExperienceRepository, PluginFactory},
         Experience, Profile,
     },
     id::{Id, Identifiable},
@@ -44,7 +44,7 @@ struct ProfileArgs {
 #[derive(Args)]
 struct ExperienceSaveArgs {
     /// The id of the entity involved in the experience.
-    #[arg(long, short)]
+    #[arg(long, short = 'n')]
     entity: Option<String>,
     /// The id of the event causing the experience.
     #[arg(long, short)]
@@ -83,9 +83,10 @@ pub struct ExperienceCli<ExperienceRepo, EntityRepo, EventRepo, PluginFcty> {
 impl<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
     ExperienceCli<ExperienceRepo, EntityRepo, EventRepo, PluginFcty>
 where
-    ExperienceRepo: 'static + ExperienceRepository<Intv = EventRepo::Intv> + Sync + Send,
     EntityRepo: 'static + EntityRepository + Sync + Send,
     EventRepo: 'static + EventRepository + Sync + Send,
+    ExperienceRepo: 'static + ExperienceRepository<Intv = EventRepo::Intv> + Sync + Send,
+    PluginFcty: 'static + PluginFactory<Intv = EventRepo::Intv> + Sync + Send,
 {
     /// Given an [ExperienceCommand], executes the corresponding logic.
     pub async fn execute(&self, experience_cmd: ExperienceCommand) -> Result {
@@ -113,7 +114,9 @@ where
                     .save_experience(experience_id)
                     .with_entity(args.entity.map(TryInto::try_into).transpose()?)
                     .with_event(args.event.map(TryInto::try_into).transpose()?)
-                    .with_profiles(args.terminal.then_some(Vec::default()));
+                    .with_profiles(args.terminal.then_some(Vec::default()))
+                    .execute()
+                    .await?;
 
                 println!("{}", experience_id);
             }
@@ -150,11 +153,11 @@ where
         command: Option<ProfileCommand>,
     ) -> Result {
         let Some(command) = command else {
-            return self.list(experience, entity).await;
+            return self.list_profiles(experience, entity).await;
         };
 
         match command {
-            ProfileCommand::List => self.list(experience, entity),
+            ProfileCommand::List => self.list_profiles(experience, entity),
             ProfileCommand::Save(_args) => {
                 todo!()
             }
@@ -165,7 +168,7 @@ where
         .await
     }
 
-    async fn list(
+    async fn list_profiles(
         &self,
         experience: Id<Experience<EventRepo::Intv>>,
         entity: Option<Id<Entity>>,

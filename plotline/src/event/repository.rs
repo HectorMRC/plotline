@@ -6,7 +6,7 @@ use crate::{
     id::Id,
     interval::Interval,
     macros::equals_or_return,
-    resource::{from_rwlock, into_rwlock, Resource, ResourceMap},
+    resource::{from_rwlock, infallible_lock, into_rwlock, Resource, ResourceMap},
     transaction::Tx,
 };
 use serde::{Deserialize, Serialize};
@@ -34,19 +34,17 @@ where
     type Tx = Resource<Event<Intv>>;
 
     async fn find(&self, id: Id<Event<Intv>>) -> Result<Self::Tx> {
-        let events = self
-            .events
-            .read()
-            .map_err(|err| Error::Lock(err.to_string()))?;
-
-        events.get(&id).cloned().ok_or(Error::NotFound)
+        infallible_lock(self.events.read())
+            .get(&id)
+            .cloned()
+            .ok_or(Error::NotFound)
     }
 
     async fn filter(&self, filter: &EventFilter<Self::Intv>) -> Result<Vec<Self::Tx>> {
-        let events: Vec<_> = self
-            .events
-            .read()
-            .map(|events| events.values().cloned().collect())?;
+        let events: Vec<_> = infallible_lock(self.events.read())
+            .values()
+            .cloned()
+            .collect();
 
         let mut matches = Vec::new();
         for event_tx in events {
@@ -60,10 +58,7 @@ where
     }
 
     async fn create(&self, event: &Event<Intv>) -> Result<()> {
-        let mut events = self
-            .events
-            .write()
-            .map_err(|err| Error::Lock(err.to_string()))?;
+        let mut events = infallible_lock(self.events.write());
 
         if events.contains_key(&event.id) {
             return Err(Error::AlreadyExists);

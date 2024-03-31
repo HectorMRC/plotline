@@ -9,7 +9,8 @@ use crate::{
     interval::Interval,
     macros::equals_or_return,
     resource::{
-        from_rwlock, into_rwlock, Resource, ResourceMap, ResourceReadGuard, ResourceWriteGuard,
+        from_rwlock, infallible_lock, into_rwlock, Resource, ResourceMap, ResourceReadGuard,
+        ResourceWriteGuard,
     },
     transaction::{Tx, TxReadGuard, TxWriteGuard},
 };
@@ -98,9 +99,7 @@ where
 
     async fn find(&self, id: Id<Experience<Intv>>) -> Result<Self::Tx> {
         Ok(self.aggregate(
-            self.experiences
-                .read()
-                .map_err(Error::from)?
+            infallible_lock(self.experiences.read())
                 .get(&id)
                 .cloned()
                 .ok_or(Error::NotFound)?,
@@ -108,10 +107,10 @@ where
     }
 
     async fn filter(&self, filter: &ExperienceFilter<Intv>) -> Result<Vec<Self::Tx>> {
-        let experiences: Vec<_> = self
-            .experiences
-            .read()
-            .map(|experiences| experiences.values().cloned().collect())?;
+        let experiences: Vec<_> = infallible_lock(self.experiences.read())
+            .values()
+            .cloned()
+            .collect();
 
         let mut matches = Vec::new();
         for experience_tx in experiences {
@@ -125,7 +124,7 @@ where
     }
 
     async fn create(&self, experience: &Experience<Intv>) -> Result<()> {
-        let mut experiences = self.experiences.write().map_err(Error::from)?;
+        let mut experiences = infallible_lock(self.experiences.write());
 
         if experiences.contains_key(&experience.id) {
             return Err(Error::AlreadyExists);
@@ -136,7 +135,7 @@ where
     }
 
     async fn delete(&self, id: Id<Experience<Intv>>) -> Result<()> {
-        let mut experiences = self.experiences.write().map_err(Error::from)?;
+        let mut experiences = infallible_lock(self.experiences.write());
 
         if experiences.remove(&id).is_none() {
             return Err(Error::NotFound);

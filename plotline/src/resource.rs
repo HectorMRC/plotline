@@ -7,8 +7,18 @@ use std::{
     collections::HashMap,
     hash::Hash,
     ops::{Deref, DerefMut},
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, LockResult},
 };
+
+/// Given a [LockResult] return the inner value no matter it has been poisoned
+/// or not.
+#[inline]
+pub fn infallible_lock<T>(result: LockResult<T>) -> T {
+    match result {
+        Ok(inner) => inner,
+        Err(error) => error.into_inner(),
+    }
+}
 
 /// Serializes the serializable content from a [RwLock].
 pub fn from_rwlock<S, T>(rwlock: &RwLock<T>, serializer: S) -> Result<S::Ok, S::Error>

@@ -6,7 +6,7 @@ use super::{
 use crate::{
     id::Id,
     macros::equals_or_return,
-    resource::{from_rwlock, into_rwlock, Resource, ResourceMap},
+    resource::{from_rwlock, infallible_lock, into_rwlock, Resource, ResourceMap},
     transaction::Tx,
 };
 use serde::{Deserialize, Serialize};
@@ -27,8 +27,7 @@ impl EntityRepository for InMemoryEntityRepository {
     type Tx = Resource<Entity>;
 
     async fn find(&self, id: Id<Entity>) -> Result<Self::Tx> {
-        self.entities
-            .read()?
+        infallible_lock(self.entities.read())
             .get(&id)
             .cloned()
             .map(Resource::from)
@@ -36,10 +35,10 @@ impl EntityRepository for InMemoryEntityRepository {
     }
 
     async fn filter(&self, filter: &EntityFilter) -> Result<Vec<Self::Tx>> {
-        let entities: Vec<_> = self
-            .entities
-            .read()
-            .map(|entities| entities.values().cloned().collect())?;
+        let entities: Vec<_> = infallible_lock(self.entities.read())
+            .values()
+            .cloned()
+            .collect();
 
         let mut matches = Vec::new();
         for entity_tx in entities {
@@ -53,7 +52,7 @@ impl EntityRepository for InMemoryEntityRepository {
     }
 
     async fn create(&self, entity: &Entity) -> Result<()> {
-        let mut entities = self.entities.write().map_err(Error::from)?;
+        let mut entities = infallible_lock(self.entities.write());
 
         if entities.contains_key(&entity.id) {
             return Err(Error::AlreadyExists);
@@ -64,7 +63,7 @@ impl EntityRepository for InMemoryEntityRepository {
     }
 
     async fn delete(&self, id: Id<Entity>) -> Result<()> {
-        let mut entities = self.entities.write().map_err(Error::from)?;
+        let mut entities = infallible_lock(self.entities.write());
 
         if entities.remove(&id).is_none() {
             return Err(Error::NotFound);

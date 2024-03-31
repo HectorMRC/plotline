@@ -1,5 +1,4 @@
 pub mod entity;
-pub mod error;
 pub mod event;
 pub mod experience;
 pub mod id;
