@@ -1,5 +1,5 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::{fmt::Display, marker::PhantomData};
+use std::{fmt::Display, marker::PhantomData, str::FromStr};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -7,12 +7,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("invalid name")]
     NotAName,
-}
-
-/// Returns true if, and only if, the given char c is an invalid character inside a name.
-fn is_invalid_char(c: char) -> bool {
-    const INVALID_CHARS: [char; 2] = ['\n', '\r'];
-    INVALID_CHARS.contains(&c)
 }
 
 /// A Name identifies one or more resources.
@@ -66,17 +60,22 @@ impl<T> Display for Name<T> {
     }
 }
 
-impl<T> TryFrom<String> for Name<T> {
-    type Error = Error;
+impl<T> FromStr for Name<T> {
+    type Err = Error;
 
     /// A name must consist of a single word string.
-    fn try_from(value: String) -> Result<Self> {
+    fn from_str(value: &str) -> Result<Self> {
+        let is_invalid_char = |c: char| -> bool {
+            const INVALID_CHARS: [char; 2] = ['\n', '\r'];
+            INVALID_CHARS.contains(&c)
+        };
+
         if value.is_empty() || value.contains(is_invalid_char) {
             return Err(Error::NotAName);
         }
 
         Ok(Self {
-            name: value,
+            name: value.to_string(),
             _marker: PhantomData,
         })
     }
@@ -94,6 +93,8 @@ impl<T> Default for Name<T> {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::{Error, Name};
 
     #[test]
@@ -138,7 +139,7 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let result = Name::<()>::try_from(test.entity_name.to_string());
+            let result = Name::<()>::from_str(test.entity_name);
             assert_eq!(result.is_err(), test.must_fail, "{}", test.name);
 
             match result {

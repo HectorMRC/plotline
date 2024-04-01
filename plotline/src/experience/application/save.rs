@@ -104,17 +104,21 @@ where
 
         let timeline = experiences.iter().map(Deref::deref).collect::<Vec<_>>();
 
-        self.plugin_factory
-            .before_save_experience()
-            .into_iter()
-            .try_for_each(|plugin| {
-                plugin
-                    .with_subject(&experience)
-                    .with_timeline(&timeline)
-                    .execute()
-                    .result()
-                    .map_err(Error::Plugin)
-            })?;
+        future::try_join_all(
+            self.plugin_factory
+                .before_save_experience()
+                .into_iter()
+                .map(|plugin| async {
+                    plugin
+                        .with_subject(&experience)
+                        .with_timeline(&timeline)
+                        .execute()
+                        .await
+                        .result()
+                        .map_err(Error::Plugin)
+                }),
+        )
+        .await?;
 
         self.experience_repo.create(&experience).await?;
         Ok(())

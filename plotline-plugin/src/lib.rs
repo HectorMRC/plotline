@@ -1,5 +1,5 @@
 #[cfg(feature = "wasm")]
-mod wasm;
+pub mod wasm;
 
 mod entity;
 mod event;
@@ -8,7 +8,8 @@ mod experience;
 pub use experience::*;
 
 use plotline::id::Identifiable;
-use std::{collections::HashMap, marker::PhantomData, ops::Deref};
+use plotline_proto::plugin as proto;
+use std::{collections::HashMap, marker::PhantomData, ops::Deref, str::FromStr};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -20,10 +21,14 @@ pub enum Error {
     AlreadyExists,
     #[error("plugin is not of the expected kind")]
     WrongKind,
+    #[error("invalid id")]
+    NotAnId,
+    #[error("invalid kind")]
+    NotAKind,
 }
 
 /// PluginKind determines the kind of a plugin.
-#[derive(PartialEq, Eq, strum_macros::EnumString)]
+#[derive(PartialEq, Eq, Clone, strum_macros::EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum PluginKind {
     /// Plugins of this kind will be executed before saving an experience. Its
@@ -32,9 +37,34 @@ pub enum PluginKind {
     BeforeSaveExperience,
 }
 
+impl From<proto::PluginKind> for PluginKind {
+    fn from(value: proto::PluginKind) -> Self {
+        match value {
+            proto::PluginKind::BEFORE_SAVE_EXPERIENCE => PluginKind::BeforeSaveExperience,
+        }
+    }
+}
+
 /// A PluginId uniquely identifies a plugin.
-#[derive(Hash, PartialEq, Eq)]
+#[derive(Hash, PartialEq, Eq, Clone)]
 pub struct PluginId(String);
+
+impl FromStr for PluginId {
+    type Err = Error;
+
+    fn from_str(value: &str) -> Result<Self> {
+        let is_invalid_char = |c: char| -> bool {
+            const INVALID_CHARS: [char; 3] = ['\n', '\r', ' '];
+            INVALID_CHARS.contains(&c)
+        };
+
+        if value.is_empty() || value.contains(is_invalid_char) {
+            return Err(Error::NotAnId);
+        }
+
+        Ok(PluginId(value.to_string()))
+    }
+}
 
 /// PluginResult represents the output or crashing cause of a plugin.
 pub type PluginResult = std::result::Result<Vec<u8>, String>;

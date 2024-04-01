@@ -4,6 +4,18 @@ package plugin;
 
 import "model.proto";
 
+enum PluginKind {
+    BEFORE_SAVE_EXPERIENCE = 0;
+}
+
+message GetPluginKind {
+    PluginKind kind = 1;
+}
+
+message GetPluginId {
+    string id = 1;
+}
+
 message BeforeSaveExperienceInput {
     model.Experience subject = 1;
     repeated model.Experience timeline = 2;

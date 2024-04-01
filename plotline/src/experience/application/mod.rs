@@ -24,10 +24,11 @@ pub trait ExperienceRepository {
     async fn delete(&self, id: Id<Experience<Self::Intv>>) -> Result<()>;
 }
 
+#[trait_variant::make]
 pub trait BeforeSaveExperience<'a, Intv> {
     fn with_subject(self, subject: &'a Experience<Intv>) -> Self;
     fn with_timeline(self, timeline: &'a [&Experience<Intv>]) -> Self;
-    fn execute(self) -> Self;
+    async fn execute(self) -> Self;
     fn result(self) -> std::result::Result<(), String>;
 }
 

@@ -9,7 +9,7 @@ use plotline::{
     interval::Interval,
 };
 use prettytable::row;
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 #[derive(Args)]
 struct EventSaveArgs {
@@ -84,7 +84,7 @@ where
                 let event_id = event_id.unwrap_or_default();
                 self.event_app
                     .save_event(event_id)
-                    .with_name(args.name.map(TryInto::try_into).transpose()?)
+                    .with_name(args.name.as_deref().map(FromStr::from_str).transpose()?)
                     .with_interval(
                         args.interval
                             .map(TryInto::try_into)

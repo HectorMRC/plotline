@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::{
     display::{display_each_result, display_result, DisplayTable},
     Result,
@@ -86,7 +88,7 @@ where
                 let entity_id = entity_id.unwrap_or_default();
                 self.entity_app
                     .save_entity(entity_id)
-                    .with_name(args.name.map(TryInto::try_into).transpose()?)
+                    .with_name(args.name.as_deref().map(FromStr::from_str).transpose()?)
                     .execute()
                     .await?;
 

@@ -86,7 +86,7 @@ impl<'a, Intv> BeforeSaveExperience<'a, Intv> for BeforeSaveExperiencePlugin<'a,
         self
     }
 
-    fn execute(mut self) -> Self {
+    async fn execute(mut self) -> Self {
         self.result = self.run();
         self
     }

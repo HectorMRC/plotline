@@ -70,18 +70,12 @@ where
 
     async fn read(&self) -> Self::ReadGuard<'_> {
         ResourceReadGuard {
-            guard: match self.lock.read() {
-                Ok(reader) => reader,
-                Err(err) => err.into_inner(),
-            },
+            guard: infallible_lock(self.lock.read()),
         }
     }
 
     async fn write(&self) -> Self::WriteGuard<'_> {
-        let guard = match self.lock.write() {
-            Ok(writer) => writer,
-            Err(err) => err.into_inner(),
-        };
+        let guard = infallible_lock(self.lock.write());
 
         ResourceWriteGuard {
             data: guard.clone(),

@@ -51,13 +51,15 @@ impl Entity {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use std::str::FromStr;
+    use crate::name::Name;
     use super::Entity;
 
     impl Entity {
         pub fn fixture() -> Self {
             Entity {
                 id: Default::default(),
-                name: "fixture".to_string().try_into().unwrap(),
+                name: Name::from_str("fixture").unwrap(),
             }
         }
     }

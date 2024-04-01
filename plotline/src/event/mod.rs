@@ -74,14 +74,15 @@ macros::impl_interval_based_ord_for!(Event<Intv> where Intv: Interval);
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use std::str::FromStr;
     use super::Event;
-    use crate::id::Id;
+    use crate::{id::Id, name::Name};
 
     impl<Intv> Event<Intv> {
         pub fn fixture(interval: impl Into<Intv>) -> Self {
             Event {
                 id: Id::default(),
-                name: "test".to_string().try_into().unwrap(),
+                name: Name::from_str("test").unwrap(),
                 interval: interval.into(),
             }
         }
