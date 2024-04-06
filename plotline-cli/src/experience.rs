@@ -7,7 +7,7 @@ use plotline::{
         application::{ExperienceApplication, ExperienceRepository, PluginFactory},
         Experience, Profile,
     },
-    id::{Id, Identifiable},
+    id::{Id, Indentify},
 };
 use prettytable::row;
 

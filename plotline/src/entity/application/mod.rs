@@ -13,17 +13,17 @@ mod remove;
 pub use remove::*;
 
 use super::{error::Result, Entity};
-use crate::{id::Identifiable, transaction::Tx};
+use crate::{id::Indentify, transaction::Tx};
 use std::sync::Arc;
 
 #[trait_variant::make]
 pub trait EntityRepository {
     type Tx: Tx<Entity>;
 
-    async fn find(&self, id: <Entity as Identifiable>::Id) -> Result<Self::Tx>;
+    async fn find(&self, id: <Entity as Indentify>::Id) -> Result<Self::Tx>;
     async fn filter(&self, filter: &EntityFilter) -> Result<Vec<Self::Tx>>;
     async fn create(&self, entity: &Entity) -> Result<()>;
-    async fn delete(&self, id: <Entity as Identifiable>::Id) -> Result<()>;
+    async fn delete(&self, id: <Entity as Indentify>::Id) -> Result<()>;
 }
 
 pub struct EntityApplication<EntityRepo> {

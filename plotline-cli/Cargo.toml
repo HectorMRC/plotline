@@ -15,6 +15,7 @@ serde           = "1.0.197"
 serde_yaml      = "0.9.30"
 strum_macros    = "0.26.1"
 thiserror       = "1.0.56"
+tokio           = "1.37.0"
 
 [[bin]]
 name = "plot"

@@ -8,7 +8,7 @@ use crate::{
     entity::{application::EntityRepository, Entity},
     event::{application::EventRepository, Event},
     experience::{query, Error, Experience, ExperienceBuilder, Profile, Result},
-    id::{Id, Identifiable},
+    id::{Id, Indentify},
     interval::Interval,
     transaction::Tx,
 };

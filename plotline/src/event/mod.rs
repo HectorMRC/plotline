@@ -6,7 +6,7 @@ mod error;
 pub use error::*;
 
 use crate::{
-    id::{Id, Identifiable},
+    id::{Id, Indentify},
     interval::Interval,
     macros,
     name::Name,
@@ -24,7 +24,7 @@ pub struct Event<Intv> {
     pub interval: Intv,
 }
 
-impl<Intv> Identifiable for Event<Intv> {
+impl<Intv> Indentify for Event<Intv> {
     type Id = Id<Self>;
 
     fn id(&self) -> Id<Self> {

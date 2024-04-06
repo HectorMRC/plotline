@@ -5,7 +5,7 @@ pub mod repository;
 mod error;
 pub use error::*;
 
-use crate::id::{Id, Identifiable};
+use crate::id::{Id, Indentify};
 use crate::name::Name;
 use serde::{Deserialize, Serialize};
 
@@ -24,7 +24,7 @@ impl PartialEq for Entity {
     }
 }
 
-impl Identifiable for Entity {
+impl Indentify for Entity {
     type Id = Id<Self>;
 
     fn id(&self) -> Self::Id {

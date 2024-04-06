@@ -7,7 +7,7 @@ mod event;
 mod experience;
 pub use experience::*;
 
-use plotline::id::Identifiable;
+use plotline::id::Indentify;
 use plotline_proto::plugin as proto;
 use std::{collections::HashMap, marker::PhantomData, ops::Deref, str::FromStr};
 
@@ -71,11 +71,11 @@ pub type PluginResult = std::result::Result<Vec<u8>, String>;
 
 /// A Plugin is a set of methods loaded at runtime that extends the default
 /// behavior based on its [PluginKind].
-pub trait Plugin: Identifiable<Id = PluginId> + Sync + Send {
+pub trait Plugin: Indentify<Id = PluginId> + Sync + Send {
     /// Identifies the kind of the plugin.
     fn kind(&self) -> PluginKind;
     /// Executes the corresponding action passing its input encoded in bytes.
-    fn run(&self, action: &str, input: &[u8]) -> PluginResult;
+    fn run(&self, input: &[u8]) -> PluginResult;
 }
 
 /// A FlavoredPlugin represents a layer of abstraction between the generic form

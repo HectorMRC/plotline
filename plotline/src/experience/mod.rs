@@ -9,7 +9,7 @@ pub use error::*;
 use crate::{
     entity::Entity,
     event::Event,
-    id::{Id, Identifiable},
+    id::{Id, Indentify},
     interval::Interval,
 };
 use serde::{Deserialize, Serialize};
@@ -23,8 +23,8 @@ pub struct Profile {
     pub values: HashMap<String, String>,
 }
 
-impl Identifiable for Profile {
-    type Id = <Entity as Identifiable>::Id;
+impl Indentify for Profile {
+    type Id = <Entity as Indentify>::Id;
 
     fn id(&self) -> Self::Id {
         self.entity.id()
@@ -58,7 +58,7 @@ pub struct Experience<Intv> {
     pub profiles: Vec<Profile>,
 }
 
-impl<Intv> Identifiable for Experience<Intv> {
+impl<Intv> Indentify for Experience<Intv> {
     type Id = Id<Self>;
 
     fn id(&self) -> Self::Id {

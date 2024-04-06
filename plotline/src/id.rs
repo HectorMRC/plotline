@@ -10,8 +10,8 @@ pub enum Error {
     Uuid(#[from] uuid::Error),
 }
 
-/// Identifiable qualifies a resource of being uniquely identifiable.
-pub trait Identifiable {
+/// Indentify qualifies a resource of being uniquely identifiable.
+pub trait Indentify {
     type Id: Eq + Hash;
 
     fn id(&self) -> Self::Id;

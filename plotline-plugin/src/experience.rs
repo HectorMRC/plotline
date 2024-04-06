@@ -7,7 +7,7 @@ use plotline::{
         application::{BeforeSaveExperience, PluginFactory},
         Experience, Profile,
     },
-    id::Identifiable,
+    id::Indentify,
     interval::Interval,
 };
 use plotline_proto::{
@@ -116,7 +116,7 @@ impl<'a, Intv> BeforeSaveExperiencePlugin<'a, Intv> {
         .map_err(|err| err.to_string())?;
 
         let output =
-            BeforeSaveExperienceOutput::parse_from_bytes(&self.plugin.run("main", &input)?)
+            BeforeSaveExperienceOutput::parse_from_bytes(&self.plugin.run(&input)?)
                 .map_err(|err| err.to_string())?;
 
         if !output.error.is_empty() {

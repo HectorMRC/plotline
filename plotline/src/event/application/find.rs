@@ -1,7 +1,7 @@
 use super::{EventApplication, EventRepository};
 use crate::{
     event::{error::Result, Event},
-    id::Identifiable,
+    id::Indentify,
     transaction::Tx,
 };
 use std::sync::Arc;
@@ -14,7 +14,7 @@ where
     EventRepo: EventRepository,
 {
     event_repo: Arc<EventRepo>,
-    id: <Event<EventRepo::Intv> as Identifiable>::Id,
+    id: <Event<EventRepo::Intv> as Indentify>::Id,
 }
 
 impl<EventRepo> FindEvent<EventRepo>
@@ -34,7 +34,7 @@ where
 {
     pub fn find_event(
         &self,
-        id: <Event<EventRepo::Intv> as Identifiable>::Id,
+        id: <Event<EventRepo::Intv> as Indentify>::Id,
     ) -> FindEvent<EventRepo> {
         FindEvent {
             event_repo: self.event_repo.clone(),

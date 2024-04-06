@@ -1,5 +1,5 @@
 use crate::{
-    id::Identifiable,
+    id::Indentify,
     transaction::{Tx, TxReadGuard, TxWriteGuard},
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -135,17 +135,17 @@ impl<'a, T> TxWriteGuard<T> for ResourceWriteGuard<'a, T> {
     fn rollback(self) {}
 }
 
-/// A ResourceMap is a collection of [Identifiable] [Resource]s.
+/// A ResourceMap is a collection of [Identify] [Resource]s.
 pub struct ResourceMap<T>
 where
-    T: Identifiable,
+    T: Indentify,
 {
     resources: HashMap<T::Id, Resource<T>>,
 }
 
 impl<T> Deref for ResourceMap<T>
 where
-    T: Identifiable,
+    T: Indentify,
 {
     type Target = HashMap<T::Id, Resource<T>>;
 
@@ -156,7 +156,7 @@ where
 
 impl<T> DerefMut for ResourceMap<T>
 where
-    T: Identifiable,
+    T: Indentify,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.resources
@@ -165,7 +165,7 @@ where
 
 impl<T> Default for ResourceMap<T>
 where
-    T: Identifiable,
+    T: Indentify,
 {
     fn default() -> Self {
         Self {
@@ -176,7 +176,7 @@ where
 
 impl<T> Serialize for ResourceMap<T>
 where
-    T: Identifiable + Serialize,
+    T: Indentify + Serialize,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -188,7 +188,7 @@ where
 
 impl<'a, T> Deserialize<'a> for ResourceMap<T>
 where
-    T: Identifiable + Deserialize<'a>,
+    T: Indentify + Deserialize<'a>,
     T::Id: Hash,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -211,7 +211,7 @@ where
 
 impl<T> ResourceMap<T>
 where
-    T: Identifiable,
+    T: Indentify,
 {
     pub fn new(resources: HashMap<T::Id, Resource<T>>) -> Self {
         Self { resources }

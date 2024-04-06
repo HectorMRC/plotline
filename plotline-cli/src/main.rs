@@ -1,5 +1,4 @@
 use clap::{error::ErrorKind, Parser};
-use futures::executor::block_on;
 use once_cell::sync::Lazy;
 use plotline::{
     entity::{application::EntityApplication, repository::InMemoryEntityRepository},
@@ -8,26 +7,28 @@ use plotline::{
     period::Period,
 };
 use plotline_cli::{entity::EntityCli, event::EventCli, experience::ExperienceCli, CliCommand};
-use plugin::PluginStore;
+use plugin::{wasm::WasmPluginFactory, PluginStore};
 use serde::{Deserialize, Serialize};
 use std::{
     ffi::OsString,
     fmt::Display,
-    fs::{File, OpenOptions},
+    fs::{read_dir, File, OpenOptions},
     io::{BufReader, BufWriter, Write},
-    path::Path,
+    path::{Path, PathBuf},
     sync::Arc,
 };
 
 const ENV_PLOTFILE: &str = "PLOTFILE";
+const ENV_PLUGINS: &str = "PLUGINS";
 
-static DEFAULT_PLOTFILE: Lazy<OsString> = Lazy::new(|| {
-    dirs::home_dir()
-        .unwrap_or_default()
-        .join(".plotline")
-        .join("plotfile.yaml")
-        .into_os_string()
-});
+static BASE_PATH: Lazy<PathBuf> =
+    Lazy::new(|| dirs::home_dir().unwrap_or_default().join(".plotline"));
+
+static DEFAULT_PLOTFILE_PATH: Lazy<OsString> =
+    Lazy::new(|| BASE_PATH.join("plotfile.yaml").into_os_string());
+
+static DEFAULT_PLUGINS_DIR: Lazy<OsString> =
+    Lazy::new(|| BASE_PATH.join("plugins").into_os_string());
 
 /// Implements the [Serialize] and [Deserialize] traits to persist and recover
 /// the state of the repositories.
@@ -51,12 +52,22 @@ struct Cli {
     /// The data source file.
     #[arg(
         env = ENV_PLOTFILE,
-        default_value = &*DEFAULT_PLOTFILE,
+        default_value = &*DEFAULT_PLOTFILE_PATH,
         default_missing_value = "always",
         global = true,
         short, long
     )]
-    file: OsString,
+    file: PathBuf,
+
+    /// The plugins directory.
+    #[arg(
+        env = ENV_PLUGINS,
+        default_value = &*DEFAULT_PLUGINS_DIR,
+        default_missing_value = "always",
+        global = true,
+        short, long
+    )]
+    plugins: PathBuf,
 }
 
 /// Returns the value of the result if, and only if, the result is OK.
@@ -72,23 +83,62 @@ where
     }
 }
 
-fn main() {
-    let args = Cli::parse();
-
-    // Load data from YAML file
-    let filepath = Path::new(&args.file);
-    let mut snapshot = if filepath.exists() {
-        let f = unwrap_or_exit(File::open(filepath));
+fn snapshot_from_yaml(path: &Path) -> Snapshot {
+    if path.exists() {
+        let f = unwrap_or_exit(File::open(path));
         let reader = BufReader::new(f);
         unwrap_or_exit(serde_yaml::from_reader(reader))
     } else {
         Snapshot::default()
-    };
+    }
+}
 
-    // Load plugins
-    let plugin_factory = Arc::new(PluginStore::<Period<usize>>::default());
+fn snapshot_into_yaml(path: &Path, snapshot: &Snapshot) {
+    let f = unwrap_or_exit(
+        OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(path),
+    );
 
-    // Inject dependencies
+    let mut writer = BufWriter::new(f);
+    unwrap_or_exit(serde_yaml::to_writer(&mut writer, &snapshot));
+    unwrap_or_exit(writer.flush());
+}
+
+fn plugins_from_dir(path: &Path) -> PluginStore<Period<usize>> {
+    let mut plugin_store = PluginStore::<Period<usize>>::default();
+    let wasm_plugin_builder = unwrap_or_exit(WasmPluginFactory::new());
+
+    unwrap_or_exit(read_dir(path))
+        .filter_map(|path| path.ok())
+        .map(|path| path.path())
+        .filter(|path| path.is_file())
+        .for_each(|path| {
+            let Some(extension) = path.extension() else {
+                return;
+            };
+
+            if extension == "wasm" {
+                let wasm_plugin = unwrap_or_exit(wasm_plugin_builder.from_file(&path));
+                unwrap_or_exit(plugin_store.add(Box::new(wasm_plugin)));
+            }
+        });
+
+    plugin_store
+}
+
+#[tokio::main]
+async fn main() {
+    let args = Cli::parse();
+
+    let plugin_factory = Arc::new(
+        plugins_from_dir(&args.plugins)
+    );
+
+    let mut snapshot = snapshot_from_yaml(&args.file);
+
     snapshot.experience_repo = Arc::new(
         unwrap_or_exit(
             Arc::into_inner(snapshot.experience_repo).ok_or("could not bind experience repository"),
@@ -118,25 +168,12 @@ fn main() {
         },
     };
 
-    // Execute command
-    block_on(async {
-        unwrap_or_exit(match args.command {
-            CliCommand::Entity(command) => entity_cli.execute(command).await,
-            CliCommand::Event(command) => event_cli.execute(command).await,
-            CliCommand::Experience(command) => experience_cli.execute(command).await,
-        })
+    unwrap_or_exit(match args.command {
+        CliCommand::Entity(command) => entity_cli.execute(command).await,
+        CliCommand::Event(command) => event_cli.execute(command).await,
+        CliCommand::Experience(command) => experience_cli.execute(command).await,
     });
 
     // Persist data into YAML file
-    let f = unwrap_or_exit(
-        OpenOptions::new()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(filepath),
-    );
-
-    let mut writer = BufWriter::new(f);
-    unwrap_or_exit(serde_yaml::to_writer(&mut writer, &snapshot));
-    unwrap_or_exit(writer.flush());
+    snapshot_into_yaml(&args.file, &snapshot);
 }

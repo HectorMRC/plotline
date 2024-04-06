@@ -2,7 +2,7 @@ use super::{ExperienceApplication, ExperienceRepository};
 use crate::{
     event::application::EventRepository,
     experience::{Experience, Result},
-    id::Identifiable,
+    id::Indentify,
     interval::Interval,
     transaction::Tx,
 };
@@ -13,7 +13,7 @@ use std::sync::Arc;
 #[derive(Default)]
 pub struct FindExperience<ExperienceRepo, Intv> {
     experience_repo: Arc<ExperienceRepo>,
-    id: <Experience<Intv> as Identifiable>::Id,
+    id: <Experience<Intv> as Indentify>::Id,
 }
 
 impl<ExperienceRepo, Intv> FindExperience<ExperienceRepo, Intv>
@@ -36,7 +36,7 @@ where
 {
     pub fn find_experience(
         &self,
-        id: <Experience<EventRepo::Intv> as Identifiable>::Id,
+        id: <Experience<EventRepo::Intv> as Indentify>::Id,
     ) -> FindExperience<ExperienceRepo, EventRepo::Intv> {
         FindExperience {
             experience_repo: self.experience_repo.clone(),

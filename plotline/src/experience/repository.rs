@@ -5,7 +5,7 @@ use super::{
 use crate::{
     entity::{application::EntityRepository, repository::InMemoryEntityRepository, Entity},
     event::{application::EventRepository, repository::InMemoryEventRepository, Event},
-    id::{Id, Identifiable},
+    id::{Id, Indentify},
     interval::Interval,
     macros::equals_or_return,
     resource::{
@@ -28,7 +28,7 @@ struct RawProfile {
     values: HashMap<String, String>,
 }
 
-impl Identifiable for RawProfile {
+impl Indentify for RawProfile {
     type Id = Id<Entity>;
 
     fn id(&self) -> Self::Id {
@@ -53,7 +53,7 @@ struct RawExperience<Intv> {
     profiles: Vec<RawProfile>,
 }
 
-impl<Intv> Identifiable for RawExperience<Intv> {
+impl<Intv> Indentify for RawExperience<Intv> {
     type Id = Id<Experience<Intv>>;
 
     fn id(&self) -> Self::Id {
@@ -217,7 +217,7 @@ where
 {
     async fn entities(&self, experience: &RawExperience<Intv>) -> Vec<Entity> {
         let mut entities =
-            HashSet::<Id<Entity>>::from_iter(experience.profiles.iter().map(Identifiable::id));
+            HashSet::<Id<Entity>>::from_iter(experience.profiles.iter().map(Indentify::id));
 
         entities.insert(experience.entity);
 

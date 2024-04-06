@@ -1,5 +1,5 @@
 use plotline::entity::Entity;
-use plotline::id::Identifiable;
+use plotline::id::Indentify;
 use plotline_proto::model as proto;
 
 pub(crate) fn proto_entity(entity: &Entity) -> proto::Entity {

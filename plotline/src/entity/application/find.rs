@@ -1,7 +1,7 @@
 use super::{EntityApplication, EntityRepository};
 use crate::{
     entity::{error::Result, Entity},
-    id::Identifiable,
+    id::Indentify,
     transaction::Tx,
 };
 use std::sync::Arc;
@@ -11,7 +11,7 @@ use std::sync::Arc;
 #[derive(Default)]
 pub struct FindEntity<EntityRepo> {
     entity_repo: Arc<EntityRepo>,
-    id: <Entity as Identifiable>::Id,
+    id: <Entity as Indentify>::Id,
 }
 
 impl<EntityRepo> FindEntity<EntityRepo>
@@ -29,7 +29,7 @@ impl<EntityRepo> EntityApplication<EntityRepo>
 where
     EntityRepo: EntityRepository,
 {
-    pub fn find_entity(&self, id: <Entity as Identifiable>::Id) -> FindEntity<EntityRepo> {
+    pub fn find_entity(&self, id: <Entity as Indentify>::Id) -> FindEntity<EntityRepo> {
         FindEntity {
             entity_repo: self.entity_repo.clone(),
             id,
