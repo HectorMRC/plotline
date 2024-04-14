@@ -49,11 +49,11 @@ impl Entity {
     }
 }
 
-#[cfg(test)]
-pub(crate) mod tests {
-    use std::str::FromStr;
-    use crate::name::Name;
+#[cfg(any(test, feature = "fixtures"))]
+pub mod fixtures {
     use super::Entity;
+    use crate::name::Name;
+    use std::str::FromStr;
 
     impl Entity {
         pub fn fixture() -> Self {

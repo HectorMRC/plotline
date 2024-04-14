@@ -24,7 +24,13 @@ where
     /// Executes the find query, through which one, and exactly one, experience
     /// must be retrived.
     pub async fn execute(self) -> Result<Experience<Intv>> {
-        Ok(self.experience_repo.find(self.id).await?.read().await.clone())
+        Ok(self
+            .experience_repo
+            .find(self.id)
+            .await?
+            .read()
+            .await
+            .clone())
     }
 }
 

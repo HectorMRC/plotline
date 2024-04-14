@@ -10,7 +10,12 @@ mod find;
 pub use find::*;
 
 use super::error::Result;
-use crate::{experience::Experience, id::Id, interval::Interval, transaction::Tx};
+use crate::{
+    experience::Experience,
+    id::{Id, Indentify},
+    interval::Interval,
+    transaction::Tx,
+};
 use std::sync::Arc;
 
 #[trait_variant::make]
@@ -25,11 +30,11 @@ pub trait ExperienceRepository {
 }
 
 #[trait_variant::make]
-pub trait BeforeSaveExperience<'a, Intv> {
+pub trait BeforeSaveExperience<'a, Intv>: Indentify<Id = String> {
     fn with_subject(self, subject: &'a Experience<Intv>) -> Self;
     fn with_timeline(self, timeline: &'a [&Experience<Intv>]) -> Self;
     async fn execute(self) -> Self;
-    fn result(self) -> std::result::Result<(), String>;
+    fn result(&self) -> std::result::Result<(), String>;
 }
 
 pub trait PluginFactory {

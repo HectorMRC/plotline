@@ -1,47 +1,15 @@
-use crate::{
-    entity::proto_entity, event::proto_event, Error, FlavoredPlugin, Plugin, PluginKind,
-    PluginStore,
-};
+use crate::{proto, store::PluginStore, Error, Plugin, PluginFlavor, PluginKind};
 use plotline::{
     experience::{
         application::{BeforeSaveExperience, PluginFactory},
-        Experience, Profile,
+        Experience,
     },
     id::Indentify,
     interval::Interval,
 };
-use plotline_proto::{
-    model as proto,
-    plugin::{BeforeSaveExperienceInput, BeforeSaveExperienceOutput},
-};
+use plotline_proto::plugin::{BeforeSaveExperienceInput, BeforeSaveExperienceOutput};
 use protobuf::{Message, MessageField};
-use std::ops::Deref;
-
-fn proto_profile(profile: &Profile) -> proto::Profile {
-    proto::Profile {
-        entity: MessageField::some(proto_entity(&profile.entity)),
-        values: profile
-            .values
-            .iter()
-            .map(|(key, value)| proto::KeyValue {
-                key: key.to_string(),
-                value: value.to_string(),
-                ..Default::default()
-            })
-            .collect(),
-        ..Default::default()
-    }
-}
-
-fn proto_experience<Intv>(experience: &Experience<Intv>) -> proto::Experience {
-    proto::Experience {
-        id: experience.id().to_string(),
-        entity: MessageField::some(proto_entity(&experience.entity)),
-        event: MessageField::some(proto_event(&experience.event)),
-        profiles: experience.profiles.iter().map(proto_profile).collect(),
-        ..Default::default()
-    }
-}
+use std::{fmt::Display, ops::Deref};
 
 /// A BeforeSaveExperiencePlugin is a plugin that is executed before saving an
 /// [Experience], determining if the experience is suitable to be saved or not.
@@ -69,13 +37,25 @@ impl<'a, Intv> TryFrom<&'a dyn Plugin> for BeforeSaveExperiencePlugin<'a, Intv> 
     }
 }
 
-impl<'a, Intv> FlavoredPlugin<'a> for BeforeSaveExperiencePlugin<'a, Intv> {
+impl<'a, Intv> Indentify for BeforeSaveExperiencePlugin<'a, Intv> {
+    type Id = String;
+
+    fn id(&self) -> Self::Id {
+        self.plugin.id().into()
+    }
+}
+
+impl<'a, Intv> PluginFlavor<'a> for BeforeSaveExperiencePlugin<'a, Intv> {
     fn kind() -> PluginKind {
         PluginKind::BeforeSaveExperience
     }
 }
 
-impl<'a, Intv> BeforeSaveExperience<'a, Intv> for BeforeSaveExperiencePlugin<'a, Intv> {
+impl<'a, Intv> BeforeSaveExperience<'a, Intv> for BeforeSaveExperiencePlugin<'a, Intv>
+where
+    Intv: Interval,
+    Intv::Bound: Display,
+{
     fn with_subject(mut self, subject: &'a Experience<Intv>) -> Self {
         self.subject = Some(subject);
         self
@@ -91,36 +71,39 @@ impl<'a, Intv> BeforeSaveExperience<'a, Intv> for BeforeSaveExperiencePlugin<'a,
         self
     }
 
-    fn result(self) -> std::result::Result<(), String> {
-        self.result
+    fn result(&self) -> std::result::Result<(), String> {
+        self.result.clone()
     }
 }
 
-impl<'a, Intv> BeforeSaveExperiencePlugin<'a, Intv> {
+impl<'a, Intv> BeforeSaveExperiencePlugin<'a, Intv>
+where
+    Intv: Interval,
+    Intv::Bound: Display,
+{
     fn run(&self) -> std::result::Result<(), String> {
         let Some(subject) = self.subject else {
             return Err("subject has to be set".to_string());
         };
 
         let input = BeforeSaveExperienceInput {
-            subject: MessageField::some(proto_experience(subject)),
+            subject: MessageField::some(proto::from_experience(subject)),
             timeline: self
                 .timeline
                 .iter()
                 .map(Deref::deref)
-                .map(proto_experience)
+                .map(proto::from_experience)
                 .collect(),
             ..Default::default()
         }
         .write_to_bytes()
         .map_err(|err| err.to_string())?;
 
-        let output =
-            BeforeSaveExperienceOutput::parse_from_bytes(&self.plugin.run(&input)?)
-                .map_err(|err| err.to_string())?;
+        let output = BeforeSaveExperienceOutput::parse_from_bytes(&self.plugin.run(&input)?)
+            .map_err(|err| err.to_string())?;
 
         if !output.error.is_empty() {
-            return Err(output.error);
+            return Err(format!("{}\n{}", output.error, output.details));
         }
 
         Ok(())
@@ -130,6 +113,7 @@ impl<'a, Intv> BeforeSaveExperiencePlugin<'a, Intv> {
 impl<Intv> PluginFactory for PluginStore<Intv>
 where
     Intv: Interval,
+    Intv::Bound: Display,
 {
     type Intv = Intv;
     type BeforeSaveExperience<'b> = BeforeSaveExperiencePlugin<'b, Intv>

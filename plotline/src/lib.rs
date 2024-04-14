@@ -3,6 +3,7 @@ pub mod event;
 pub mod experience;
 pub mod id;
 pub mod interval;
+pub mod moment;
 pub mod name;
 pub mod period;
 

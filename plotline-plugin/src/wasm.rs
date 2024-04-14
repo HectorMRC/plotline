@@ -110,7 +110,7 @@ impl WasmPluginFactory {
             WasmPlugin::call::<GetPluginKind>(KIND_FUNCTION_KEY, &mut engine.store, &instance)?
                 .kind
                 .enum_value()
-                .map_err(|_| crate::Error::NotAKind)?,
+                .map_err(|_| crate::Error::NotAPluginKind)?,
         );
 
         Ok(WasmPlugin {

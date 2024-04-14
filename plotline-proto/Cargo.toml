@@ -10,3 +10,7 @@ protobuf = "3.4.0"
 
 [build-dependencies]
 protobuf-codegen = "3.4.0"
+
+[lib]
+name = "plotline_proto"
+path = "src/lib.rs"

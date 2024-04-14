@@ -18,5 +18,5 @@ wasmer-wasix   = { version = "0.18.0", optional = true }
 wasm = ["wasmer", "wasmer-wasix", "byteorder"]
 
 [lib]
-name = "plugin"
+name = "plotline_plugin"
 path = "src/lib.rs"

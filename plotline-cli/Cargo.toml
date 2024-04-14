@@ -17,6 +17,11 @@ strum_macros    = "0.26.1"
 thiserror       = "1.0.56"
 tokio           = "1.37.0"
 
+[lib]
+name = "plotline_cli"
+path = "src/lib.rs"
+
 [[bin]]
 name = "plot"
 path = "src/main.rs"
+

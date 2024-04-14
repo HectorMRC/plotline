@@ -8,7 +8,8 @@ message Entity {
 }
 
 message Interval {
-    bytes raw = 1;
+    string lo = 1;
+    string hi = 2;
 }
 
 message Event {

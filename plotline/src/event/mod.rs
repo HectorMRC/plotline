@@ -44,11 +44,11 @@ where
 {
     type Bound = Intv::Bound;
 
-    fn lo(&self) -> Self::Bound {
+    fn lo(&self) -> &Self::Bound {
         self.interval.lo()
     }
 
-    fn hi(&self) -> Self::Bound {
+    fn hi(&self) -> &Self::Bound {
         self.interval.hi()
     }
 }
@@ -70,19 +70,19 @@ impl<Intv> Event<Intv> {
     }
 }
 
-macros::impl_interval_based_ord_for!(Event<Intv> where Intv: Interval);
+macros::interval_based_ord_for!(Event<Intv> where Intv: Interval);
 
-#[cfg(test)]
-pub(crate) mod tests {
-    use std::str::FromStr;
+#[cfg(any(test, feature = "fixtures"))]
+pub mod fixtures {
     use super::Event;
     use crate::{id::Id, name::Name};
+    use std::str::FromStr;
 
     impl<Intv> Event<Intv> {
         pub fn fixture(interval: impl Into<Intv>) -> Self {
             Event {
                 id: Id::default(),
-                name: Name::from_str("test").unwrap(),
+                name: Name::from_str("fixture").unwrap(),
                 interval: interval.into(),
             }
         }

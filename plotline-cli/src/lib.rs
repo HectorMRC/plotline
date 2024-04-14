@@ -1,7 +1,7 @@
+pub mod display;
 pub mod entity;
 pub mod event;
 pub mod experience;
-pub mod display;
 
 mod error;
 pub use error::*;

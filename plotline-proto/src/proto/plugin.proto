@@ -23,4 +23,5 @@ message BeforeSaveExperienceInput {
 
 message BeforeSaveExperienceOutput {
     string error = 1;
+    string details = 2;
 }

@@ -43,15 +43,13 @@ where
     /// retrived.
     pub async fn execute(self) -> Result<Vec<Entity>> {
         Ok(future::join_all(
-            self
-            .entity_repo
-            .filter(&self.filter)
-            .await?
-            .into_iter()
-            .map(|entity_tx| async move {
-                entity_tx.read().await.clone()
-            })
-        ).await)
+            self.entity_repo
+                .filter(&self.filter)
+                .await?
+                .into_iter()
+                .map(|entity_tx| async move { entity_tx.read().await.clone() }),
+        )
+        .await)
     }
 }
 

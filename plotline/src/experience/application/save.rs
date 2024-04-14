@@ -109,13 +109,16 @@ where
                 .before_save_experience()
                 .into_iter()
                 .map(|plugin| async {
-                    plugin
+                    let plugin = plugin
                         .with_subject(&experience)
                         .with_timeline(&timeline)
                         .execute()
-                        .await
-                        .result()
-                        .map_err(Error::Plugin)
+                        .await;
+
+                    plugin.result().map_err(|err| Error::Plugin {
+                        plugin_id: plugin.id(),
+                        error_msg: err,
+                    })
                 }),
         )
         .await?;

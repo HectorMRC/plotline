@@ -17,6 +17,7 @@ uuid      = { version = "1.8.0", features = ["v4"] }
 
 [features]
 in_memory = []
+fixtures = []
 
 [lib]
 name = "plotline"

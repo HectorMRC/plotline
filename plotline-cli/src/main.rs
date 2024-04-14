@@ -4,10 +4,11 @@ use plotline::{
     entity::{application::EntityApplication, repository::InMemoryEntityRepository},
     event::{application::EventApplication, repository::InMemoryEventRepository},
     experience::{application::ExperienceApplication, repository::InMemoryExperienceRepository},
+    moment::Moment,
     period::Period,
 };
 use plotline_cli::{entity::EntityCli, event::EventCli, experience::ExperienceCli, CliCommand};
-use plugin::{wasm::WasmPluginFactory, PluginStore};
+use plotline_plugin::{store::PluginStore, wasm::WasmPluginFactory};
 use serde::{Deserialize, Serialize};
 use std::{
     ffi::OsString,
@@ -37,9 +38,9 @@ pub struct Snapshot {
     #[serde(flatten)]
     entity_repo: Arc<InMemoryEntityRepository>,
     #[serde(flatten)]
-    event_repo: Arc<InMemoryEventRepository<Period<usize>>>,
+    event_repo: Arc<InMemoryEventRepository<Period<Moment>>>,
     #[serde(flatten)]
-    experience_repo: Arc<InMemoryExperienceRepository<Period<usize>>>,
+    experience_repo: Arc<InMemoryExperienceRepository<Period<Moment>>>,
 }
 
 /// A plotline manager.
@@ -107,8 +108,8 @@ fn snapshot_into_yaml(path: &Path, snapshot: &Snapshot) {
     unwrap_or_exit(writer.flush());
 }
 
-fn plugins_from_dir(path: &Path) -> PluginStore<Period<usize>> {
-    let mut plugin_store = PluginStore::<Period<usize>>::default();
+fn plugins_from_dir(path: &Path) -> PluginStore<Period<Moment>> {
+    let mut plugin_store = PluginStore::<Period<Moment>>::default();
     let wasm_plugin_builder = unwrap_or_exit(WasmPluginFactory::new());
 
     unwrap_or_exit(read_dir(path))
@@ -133,9 +134,7 @@ fn plugins_from_dir(path: &Path) -> PluginStore<Period<usize>> {
 async fn main() {
     let args = Cli::parse();
 
-    let plugin_factory = Arc::new(
-        plugins_from_dir(&args.plugins)
-    );
+    let plugin_factory = Arc::new(plugins_from_dir(&args.plugins));
 
     let mut snapshot = snapshot_from_yaml(&args.file);
 

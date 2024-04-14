@@ -176,3 +176,29 @@ impl ExperienceKind {
         matches!(self, ExperienceKind::Terminal)
     }
 }
+
+#[cfg(any(test, feature = "fixtures"))]
+pub mod fixtures {
+    use super::{Event, Experience, Profile};
+    use crate::{entity::Entity, id::Id};
+
+    impl<Intv> Experience<Intv> {
+        pub fn fixture(interval: impl Into<Intv>) -> Self {
+            Experience {
+                id: Id::default(),
+                entity: Entity::fixture(),
+                event: Event::fixture(interval),
+                profiles: Default::default(),
+            }
+        }
+    }
+
+    impl Profile {
+        pub fn fixture() -> Self {
+            Profile {
+                entity: Entity::fixture(),
+                values: Default::default(),
+            }
+        }
+    }
+}

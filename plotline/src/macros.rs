@@ -19,7 +19,7 @@ pub(crate) use equals_or_return;
 
 /// Given the constraint for a type that implements the [Interval] trait,
 /// implements the [Ord] and [PartialOrd] traits for that same type.
-macro_rules! impl_interval_based_ord_for {
+macro_rules! interval_based_ord_for {
     ($type:ty where $generic:ident: $trait:ident) => {
         impl<$generic> Ord for $type
         where
@@ -43,4 +43,4 @@ macro_rules! impl_interval_based_ord_for {
     };
 }
 
-pub(crate) use impl_interval_based_ord_for;
+pub(crate) use interval_based_ord_for;

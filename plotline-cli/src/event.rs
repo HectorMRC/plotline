@@ -6,10 +6,33 @@ use plotline::{
         Event,
     },
     id::Id,
-    interval::Interval,
+    interval::{Bound, Interval, IntervalFactory},
 };
 use prettytable::row;
 use std::{fmt::Display, str::FromStr};
+
+fn parse_interval<Intv>(bounds: Vec<String>) -> std::result::Result<Intv, Error>
+where
+    Intv: IntervalFactory,
+    Intv::Bound: TryFrom<String>,
+    <Intv::Bound as TryFrom<String>>::Error: Display,
+{
+    let parse_boundary = |value: String| -> std::result::Result<Intv::Bound, Error> {
+        let bound: std::result::Result<Intv::Bound, _> = value.try_into();
+        bound.map_err(|err| Error::ParseInterval(err.to_string()))
+    };
+
+    let mut bounds = bounds.into_iter();
+    let lo = parse_boundary(bounds.next().unwrap_or_default())?;
+
+    let hi = bounds
+        .next()
+        .map(parse_boundary)
+        .transpose()?
+        .unwrap_or(lo.clone());
+
+    Ok(Intv::new(lo, hi))
+}
 
 #[derive(Args)]
 struct EventSaveArgs {
@@ -48,8 +71,9 @@ pub struct EventCli<EventRepo> {
 impl<EventRepo> EventCli<EventRepo>
 where
     EventRepo: 'static + EventRepository + Sync + Send,
-    EventRepo::Intv: TryFrom<Vec<String>> + Sync + Send,
-    <EventRepo::Intv as TryFrom<Vec<String>>>::Error: Into<Error>,
+    EventRepo::Intv: IntervalFactory + Sync + Send,
+    <EventRepo::Intv as IntervalFactory>::Bound: TryFrom<String> + Bound,
+    <<EventRepo::Intv as IntervalFactory>::Bound as TryFrom<String>>::Error: Display,
     <EventRepo::Intv as Interval>::Bound: Display,
 {
     /// Given a [EventCommand], executes the corresponding logic.
@@ -85,12 +109,7 @@ where
                 self.event_app
                     .save_event(event_id)
                     .with_name(args.name.as_deref().map(FromStr::from_str).transpose()?)
-                    .with_interval(
-                        args.interval
-                            .map(TryInto::try_into)
-                            .transpose()
-                            .map_err(Into::into)?,
-                    )
+                    .with_interval(args.interval.map(parse_interval).transpose()?)
                     .execute()
                     .await?;
 

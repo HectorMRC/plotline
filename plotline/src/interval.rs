@@ -4,21 +4,21 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::cmp;
 
 /// A Bound represents the limit of an [Interval].
-pub trait Bound: Eq + Ord + Copy + Default {}
-impl<T> Bound for T where T: Eq + Ord + Copy + Default {}
+pub trait Bound: Eq + Ord + Clone + Default {}
+impl<T> Bound for T where T: Eq + Ord + Clone + Default {}
 
 /// An Interval is anything delimited by two bounds.
 pub trait Interval: Eq + Ord + Clone + Default {
     type Bound: Bound;
 
     /// Retrives the lowest bound in the interval.
-    fn lo(&self) -> Self::Bound;
+    fn lo(&self) -> &Self::Bound;
 
     /// Retrives the higher bound in the interval.
-    fn hi(&self) -> Self::Bound;
+    fn hi(&self) -> &Self::Bound;
 
     /// Returns true if, and only if, the given bound is in self.
-    fn contains(&self, bound: Self::Bound) -> bool {
+    fn contains(&self, bound: &Self::Bound) -> bool {
         self.lo() <= bound && bound <= self.hi()
     }
 
@@ -29,6 +29,13 @@ pub trait Interval: Eq + Ord + Clone + Default {
             || other.contains(self.lo())
             || other.contains(self.hi())
     }
+}
+
+pub trait IntervalFactory {
+    type Bound: Bound;
+
+    /// Builds an interval with the given boundaries.
+    fn new(lo: Self::Bound, hi: Self::Bound) -> Self;
 }
 
 /// A Node is the minimum unit of information in an interval search tree.
@@ -59,7 +66,7 @@ where
     /// Creates a new node containing the given interval.
     pub fn new(interval: Intv) -> Self {
         Self {
-            max: interval.hi(),
+            max: interval.hi().clone(),
             value: interval,
             left: Default::default(),
             right: Default::default(),
@@ -74,8 +81,8 @@ where
 
     /// Adds the given interval in the tree rooted by self.
     pub fn _insert(&mut self, interval: Intv) {
-        if self.max < interval.hi() {
-            self.max = interval.hi();
+        if self.max < interval.hi().clone() {
+            self.max = interval.hi().clone();
         }
 
         if interval.lo() < self.value.lo() {
@@ -108,7 +115,7 @@ where
             return continue_right();
         };
 
-        if left.max < interval.lo() {
+        if left.max < interval.lo().clone() {
             return continue_right();
         }
 
@@ -137,7 +144,7 @@ where
                 return;
             };
 
-            if left.max < interval.lo() {
+            if left.max < interval.lo().clone() {
                 return;
             }
 
@@ -167,13 +174,13 @@ where
     }
 }
 
-/// An IntervalST represents an interval search tree that may be empty.
+/// An IntervalSearchTree represents an interval search tree that may be empty.
 #[derive(Clone, PartialEq)]
-pub struct IntervalST<Intv>(Option<Node<Intv>>)
+pub struct IntervalSearchTree<Intv>(Option<Node<Intv>>)
 where
     Intv: Interval;
 
-impl<Intv> Serialize for IntervalST<Intv>
+impl<Intv> Serialize for IntervalSearchTree<Intv>
 where
     Intv: Serialize + Interval,
 {
@@ -186,7 +193,7 @@ where
     }
 }
 
-impl<'de, Intv> Deserialize<'de> for IntervalST<Intv>
+impl<'de, Intv> Deserialize<'de> for IntervalSearchTree<Intv>
 where
     Intv: Deserialize<'de> + Interval,
 {
@@ -195,11 +202,13 @@ where
     where
         D: Deserializer<'de>,
     {
-        Ok(IntervalST::from(Vec::<Intv>::deserialize(deserializer)?))
+        Ok(IntervalSearchTree::from(Vec::<Intv>::deserialize(
+            deserializer,
+        )?))
     }
 }
 
-impl<Intv> Default for IntervalST<Intv>
+impl<Intv> Default for IntervalSearchTree<Intv>
 where
     Intv: Interval,
 {
@@ -208,7 +217,7 @@ where
     }
 }
 
-impl<Intv> From<Vec<Intv>> for IntervalST<Intv>
+impl<Intv> From<Vec<Intv>> for IntervalSearchTree<Intv>
 where
     Intv: Interval,
 {
@@ -230,20 +239,20 @@ where
             }
 
             root.max = cmp::max(
-                root.left.as_ref().map(|node| node.max),
-                root.right.as_ref().map(|node| node.max),
+                root.left.as_ref().map(|node| node.max.clone()),
+                root.right.as_ref().map(|node| node.max.clone()),
             )
-            .max(Some(root.value.hi()))
-            .unwrap_or(root.value.hi());
+            .max(Some(root.value.hi().clone()))
+            .unwrap_or(root.value.hi().clone());
 
             Some(root)
         }
 
-        IntervalST::<Intv>(immersion(value))
+        IntervalSearchTree::<Intv>(immersion(value))
     }
 }
 
-impl<Intv> IntervalST<Intv>
+impl<Intv> IntervalSearchTree<Intv>
 where
     Intv: Interval,
 {
@@ -285,11 +294,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{IntervalST, Node};
-    use crate::period::Period;
+    use super::{IntervalSearchTree, Node};
+    use crate::{moment::Moment, period::Period};
     use std::fmt::Debug;
 
-    impl Debug for IntervalST<Period<usize>> {
+    impl Debug for IntervalSearchTree<Period<Moment>> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             f.debug_tuple("IntervalST").field(&self.0).finish()
         }
@@ -299,8 +308,8 @@ mod tests {
     fn intersects_with_tree() {
         struct Test<'a> {
             name: &'a str,
-            tree: Node<Period<usize>>,
-            query: Period<usize>,
+            tree: Node<Period<Moment>>,
+            query: Period<Moment>,
             intersects: bool,
         }
 
@@ -360,9 +369,9 @@ mod tests {
     fn for_each_intersection_in_tree() {
         struct Test<'a> {
             name: &'a str,
-            tree: Node<Period<usize>>,
-            query: Period<usize>,
-            output: Vec<Period<usize>>,
+            tree: Node<Period<Moment>>,
+            query: Period<Moment>,
+            output: Vec<Period<Moment>>,
         }
 
         vec![
@@ -400,15 +409,15 @@ mod tests {
     fn interval_search_tree_from_vector() {
         struct Test<'a> {
             name: &'a str,
-            input: Vec<Period<usize>>,
-            output: IntervalST<Period<usize>>,
+            input: Vec<Period<Moment>>,
+            output: IntervalSearchTree<Period<Moment>>,
         }
 
         vec![
             Test {
                 name: "node from empty vector must fail",
                 input: Vec::new(),
-                output: IntervalST::default(),
+                output: IntervalSearchTree::default(),
             },
             Test {
                 name: "node from non empty vec must not fail",
@@ -419,7 +428,7 @@ mod tests {
                     [5, 9].into(),
                     [6, 6].into(),
                 ],
-                output: IntervalST(Some(
+                output: IntervalSearchTree(Some(
                     Node::new([5, 6].into())
                         ._with_interval([3, 3].into())
                         ._with_interval([0, 0].into())
@@ -430,7 +439,7 @@ mod tests {
         ]
         .into_iter()
         .for_each(|test| {
-            let tree: IntervalST<Period<usize>> = test.input.into();
+            let tree: IntervalSearchTree<Period<Moment>> = test.input.into();
             assert_eq!(tree, test.output, "{0}", test.name);
         });
     }

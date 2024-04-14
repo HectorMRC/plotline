@@ -7,7 +7,7 @@ use std::{
     collections::HashMap,
     hash::Hash,
     ops::{Deref, DerefMut},
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, LockResult},
+    sync::{Arc, LockResult, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 /// Given a [LockResult] return the inner value no matter it has been poisoned

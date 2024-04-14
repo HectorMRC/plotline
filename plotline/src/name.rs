@@ -60,6 +60,14 @@ impl<T> Display for Name<T> {
     }
 }
 
+impl<T> TryFrom<String> for Name<T> {
+    type Error = Error;
+
+    fn try_from(value: String) -> Result<Self> {
+        Name::from_str(&value)
+    }
+}
+
 impl<T> FromStr for Name<T> {
     type Err = Error;
 
