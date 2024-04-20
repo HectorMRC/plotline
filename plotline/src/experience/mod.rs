@@ -19,7 +19,9 @@ use std::collections::{HashMap, HashSet};
 /// of time.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Profile {
+    /// The entity being described by this profile.
     pub entity: Entity,
+    /// The key-value attributes of the entity.
     pub values: HashMap<String, String>,
 }
 
@@ -49,6 +51,8 @@ impl Profile {
 /// An Experience represents the change caused by an [Event] on an [Entity].
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Experience<Intv> {
+    /// The id of the experience.
+    #[serde(default)]
     pub id: Id<Self>,
     /// The entity involved in the experience.
     pub entity: Entity,

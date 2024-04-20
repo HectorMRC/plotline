@@ -47,6 +47,7 @@ impl From<&Profile> for RawProfile {
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct RawExperience<Intv> {
+    #[serde(default)]
     id: Id<Experience<Intv>>,
     entity: Id<Entity>,
     event: Id<Event<Intv>>,

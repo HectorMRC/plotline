@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Clone, Eq, Serialize, Deserialize)]
 pub struct Entity {
     /// The id of the entity.
+    #[serde(default)]
     pub id: Id<Self>,
     /// The name of the entity.
     pub name: Name<Self>,

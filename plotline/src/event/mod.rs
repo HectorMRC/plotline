@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Default, Eq, Serialize, Deserialize)]
 pub struct Event<Intv> {
     /// The id of the event.
+    #[serde(default)]
     pub id: Id<Self>,
     /// The name of the event.
     pub name: Name<Self>,
