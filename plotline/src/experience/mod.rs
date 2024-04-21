@@ -1,5 +1,9 @@
 pub mod application;
 pub mod query;
+
+pub mod profile;
+pub use profile::*;
+
 #[cfg(feature = "in_memory")]
 pub mod repository;
 
@@ -13,40 +17,7 @@ use crate::{
     interval::Interval,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
-
-/// A Profile describes an [Entity] during the time being between two periods
-/// of time.
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Profile {
-    /// The entity being described by this profile.
-    pub entity: Entity,
-    /// The key-value attributes of the entity.
-    pub values: HashMap<String, String>,
-}
-
-impl Indentify for Profile {
-    type Id = <Entity as Indentify>::Id;
-
-    fn id(&self) -> Self::Id {
-        self.entity.id()
-    }
-}
-
-impl Profile {
-    pub fn new(entity: Entity) -> Self {
-        Self {
-            entity,
-            values: HashMap::new(),
-        }
-    }
-
-    pub fn values(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.values
-            .iter()
-            .map(|(key, value)| (key.as_str(), value.as_str()))
-    }
-}
+use std::collections::HashSet;
 
 /// An Experience represents the change caused by an [Event] on an [Entity].
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -97,6 +68,10 @@ impl<Intv> Experience<Intv> {
     pub fn profiles(&self) -> &[Profile] {
         &self.profiles
     }
+
+    // pub fn kind(&self) -> ExperienceKind {
+    //     self.into()
+    // }
 }
 
 /// ExperienceBuilder makes sure an [Experience] is created if, and only if,
@@ -151,35 +126,42 @@ where
     }
 }
 
-/// An ExperienceKind determines the kind of an [Experience] based on its
-/// cardinality.
-#[derive(Clone, Copy)]
-pub enum ExperienceKind {
-    /// The [Entity] has reached the end of its timeline.
-    Terminal,
-    /// The [Entity] is evolving.
-    Transitive,
-}
-
-impl<Intv> From<&Experience<Intv>> for ExperienceKind {
-    fn from(experience: &Experience<Intv>) -> Self {
-        if experience.profiles.is_empty() {
-            ExperienceKind::Terminal
-        } else {
-            ExperienceKind::Transitive
-        }
-    }
-}
-
-impl ExperienceKind {
-    pub fn is_transitive(&self) -> bool {
-        matches!(self, ExperienceKind::Transitive)
-    }
-
-    pub fn is_terminal(&self) -> bool {
-        matches!(self, ExperienceKind::Terminal)
-    }
-}
+// /// An ExperienceKind determines the kind of an [Experience] based on its
+// /// cardinality.
+// #[derive(Clone, Copy)]
+// pub enum ExperienceKind {
+//     /// The entity has reached the end of its timeline.
+//     /// Implies the experience has no profile for self.entity.
+//     Terminal,
+//     /// The entity is evolving.
+//     /// Implies the experience has a profile for self.entity.
+//     Transitive,
+// }
+//
+// impl<Intv> From<&Experience<Intv>> for ExperienceKind {
+//     fn from(experience: &Experience<Intv>) -> Self {
+//         if experience
+//             .profiles
+//             .iter()
+//             .find(|profile| profile.entity == experience.entity)
+//             .is_some()
+//         {
+//             ExperienceKind::Transitive
+//         } else {
+//             ExperienceKind::Terminal
+//         }
+//     }
+// }
+//
+// impl ExperienceKind {
+//     pub fn is_transitive(&self) -> bool {
+//         matches!(self, ExperienceKind::Transitive)
+//     }
+//
+//     pub fn is_terminal(&self) -> bool {
+//         matches!(self, ExperienceKind::Terminal)
+//     }
+// }
 
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
