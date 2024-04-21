@@ -67,9 +67,6 @@ struct ExperienceListArgs {
     /// The id of the event that must be causing the experience.
     #[arg(long)]
     event: Option<String>,
-    /// Displays the information in a fancy way.
-    #[arg(short, long)]
-    visual: bool,
 }
 
 #[derive(Subcommand)]
