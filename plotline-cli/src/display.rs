@@ -55,3 +55,65 @@ impl<'a, T> DisplayTable<'a, T> {
         print!("{}", table)
     }
 }
+
+/// Provides a method to display the inner data into a tree.
+pub struct DisplayTree<'a, T> {
+    chunks: Vec<&'a [T]>,
+    // chunk_name_fn: Option<ChunkNameFn>,
+}
+
+impl<'a, T> DisplayTree<'a, T>
+where
+    T: Eq,
+{
+    pub fn new(items: &'a [T]) -> Self {
+        Self {
+            chunks: items.chunk_by(T::eq).collect(),
+        }
+    }
+}
+
+impl<'a, T> Display for DisplayTree<'a, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "")
+    }
+}
+
+impl<'a, T> DisplayTree<'a, T> {
+    /// Displays the tree through stdout.
+    pub fn show<F>(self) {
+        print!("{}", self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::display::DisplayTree;
+
+    #[test]
+    fn display_tree() {
+        struct Test<'a> {
+            name: &'a str,
+            items: Vec<&'a str>,
+            want: &'a str,
+        }
+
+        vec![
+            Test {
+                name: "empty list should display nothing",
+                items: vec![],
+                want: "",
+            },
+            Test {
+                name: "list with only one element should display a single bullet",
+                items: vec!["this is a 'bullet' in the tree"],
+                want: &format!("\u{25EF}    this is a 'bullet' in the tree"),
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            let got = DisplayTree::new(test.items.as_slice()).to_string();
+            assert_eq!(test.want, got, "{}", test.name);
+        });
+    }
+}
