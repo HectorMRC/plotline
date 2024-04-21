@@ -1,5 +1,9 @@
 pub mod application;
 pub mod query;
+
+pub mod profile;
+pub use profile::*;
+
 #[cfg(feature = "in_memory")]
 pub mod repository;
 
@@ -10,43 +14,10 @@ use crate::{
     entity::Entity,
     event::Event,
     id::{Id, Indentify},
-    interval::Interval,
+    interval::Interval, macros,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
-
-/// A Profile describes an [Entity] during the time being between two periods
-/// of time.
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Profile {
-    /// The entity being described by this profile.
-    pub entity: Entity,
-    /// The key-value attributes of the entity.
-    pub values: HashMap<String, String>,
-}
-
-impl Indentify for Profile {
-    type Id = <Entity as Indentify>::Id;
-
-    fn id(&self) -> Self::Id {
-        self.entity.id()
-    }
-}
-
-impl Profile {
-    pub fn new(entity: Entity) -> Self {
-        Self {
-            entity,
-            values: HashMap::new(),
-        }
-    }
-
-    pub fn values(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.values
-            .iter()
-            .map(|(key, value)| (key.as_str(), value.as_str()))
-    }
-}
+use std::collections::HashSet;
 
 /// An Experience represents the change caused by an [Event] on an [Entity].
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -70,24 +41,6 @@ impl<Intv> Indentify for Experience<Intv> {
     }
 }
 
-impl<Intv> Ord for Experience<Intv>
-where
-    Intv: Interval,
-{
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.event.cmp(&other.event)
-    }
-}
-
-impl<Intv> PartialOrd for Experience<Intv>
-where
-    Intv: Interval,
-{
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 impl<Intv> Experience<Intv> {
     pub fn with_profiles(mut self, profiles: Vec<Profile>) -> Self {
         self.profiles = profiles;
@@ -98,6 +51,8 @@ impl<Intv> Experience<Intv> {
         &self.profiles
     }
 }
+
+macros::interval_based_ord_for!(event as Intv in Experience<Intv>);
 
 /// ExperienceBuilder makes sure an [Experience] is created if, and only if,
 /// all of its requirements are meet.
@@ -148,36 +103,6 @@ where
             event: self.event.clone(),
             profiles: self.profiles.unwrap_or_default(),
         })
-    }
-}
-
-/// An ExperienceKind determines the kind of an [Experience] based on its
-/// cardinality.
-#[derive(Clone, Copy)]
-pub enum ExperienceKind {
-    /// The [Entity] has reached the end of its timeline.
-    Terminal,
-    /// The [Entity] is evolving.
-    Transitive,
-}
-
-impl<Intv> From<&Experience<Intv>> for ExperienceKind {
-    fn from(experience: &Experience<Intv>) -> Self {
-        if experience.profiles.is_empty() {
-            ExperienceKind::Terminal
-        } else {
-            ExperienceKind::Transitive
-        }
-    }
-}
-
-impl ExperienceKind {
-    pub fn is_transitive(&self) -> bool {
-        matches!(self, ExperienceKind::Transitive)
-    }
-
-    pub fn is_terminal(&self) -> bool {
-        matches!(self, ExperienceKind::Terminal)
     }
 }
 

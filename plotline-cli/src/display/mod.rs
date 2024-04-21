@@ -1,5 +1,7 @@
+mod table;
+pub use table::*;
+
 use futures::{future, Future};
-use prettytable::{format::consts::FORMAT_CLEAN, Table};
 use std::fmt::Display;
 
 /// Displays the given result through the stdout if is [Result::Ok], or through
@@ -30,28 +32,4 @@ where
         display_result(f(value).await);
     }))
     .await;
-}
-
-/// Provides a method to display the inner data into a table.
-pub struct DisplayTable<'a, T> {
-    item: &'a T,
-}
-
-impl<'a, T> DisplayTable<'a, T> {
-    pub fn new(item: &'a T) -> Self {
-        Self { item }
-    }
-
-    /// Displays through stdout the table resulting from calling the given
-    /// closure.
-    pub fn show<F>(self, f: F)
-    where
-        F: Fn(&mut Table, &T),
-    {
-        let mut table = Table::new();
-        table.set_format(*FORMAT_CLEAN);
-
-        f(&mut table, self.item);
-        print!("{}", table)
-    }
 }

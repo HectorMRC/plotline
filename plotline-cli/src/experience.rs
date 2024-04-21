@@ -1,10 +1,15 @@
-use crate::{display::DisplayTable, Error, Result};
+use crate::{
+    display::DisplayTable,
+    Error, Result,
+};
 use clap::{Args, Subcommand};
 use plotline::{
     entity::{application::EntityRepository, Entity},
     event::application::EventRepository,
     experience::{
-        application::{ExperienceApplication, ExperienceRepository, PluginFactory},
+        application::{
+            ExperienceApplication, ExperienceFilter, ExperienceRepository, PluginFactory,
+        },
         Experience, Profile,
     },
     id::{Id, Indentify},
@@ -54,6 +59,16 @@ struct ExperienceSaveArgs {
     terminal: bool,
 }
 
+#[derive(Args)]
+struct ExperienceListArgs {
+    /// The id of the entity that must be involved in the experience.
+    #[arg(long)]
+    entity: Option<String>,
+    /// The id of the event that must be causing the experience.
+    #[arg(long)]
+    event: Option<String>,
+}
+
 #[derive(Subcommand)]
 #[clap(subcommand_negates_reqs = true, subcommand_precedence_over_arg = true)]
 enum ExperienceSubCommand {
@@ -61,7 +76,7 @@ enum ExperienceSubCommand {
     Save(ExperienceSaveArgs),
     /// List all experiences.
     #[command(alias("ls"))]
-    List,
+    List(ExperienceListArgs),
     /// Manage profiles.
     Profile(ProfileArgs),
 }
@@ -120,18 +135,31 @@ where
 
                 println!("{}", experience_id);
             }
-            ExperienceSubCommand::List => {
-                let experiences = self.experience_app.filter_experiences().execute().await?;
-                DisplayTable::new(&experiences).show(|table, experiences| {
-                    table.add_row(row!["ID", "ENTITY ID", "EVENT ID"]);
-                    experiences.iter().for_each(|experience| {
-                        table.add_row(row![
-                            &experience.id,
-                            &experience.entity.id(),
-                            &experience.event.id()
-                        ]);
+            ExperienceSubCommand::List(args) => {
+                let experiences = self
+                    .experience_app
+                    .filter_experiences()
+                    .with_filter(
+                        ExperienceFilter::default()
+                            .with_entity(args.entity.map(TryInto::try_into).transpose()?)
+                            .with_event(args.event.map(TryInto::try_into).transpose()?),
+                    )
+                    .execute()
+                    .await?;
+
+                let display_table =
+                    DisplayTable::new(&experiences).with_format(|table, experiences| {
+                        table.add_row(row!["ID", "ENTITY ID", "EVENT ID"]);
+                        experiences.iter().for_each(|experience| {
+                            table.add_row(row![
+                                &experience.id,
+                                &experience.entity.id(),
+                                &experience.event.id()
+                            ]);
+                        });
                     });
-                });
+
+                print!("{display_table}");
             }
             ExperienceSubCommand::Profile(args) => {
                 self.execute_profile_command(
@@ -186,7 +214,7 @@ where
         });
 
         if let Some(profile) = profile {
-            DisplayTable::new(profile).show(|table, profile| {
+            let display_table = DisplayTable::new(profile).with_format(|table, profile| {
                 table.add_row(row!["ENTITY", profile.id()]);
                 table.add_empty_row();
 
@@ -194,13 +222,18 @@ where
                     table.add_row(row![key, value]);
                 });
             });
+
+            print!("{display_table}");
         } else {
-            DisplayTable::new(&experience.profiles()).show(|table, profiles| {
+            let profiles = experience.profiles();
+            let display_table = DisplayTable::new(&profiles).with_format(|table, profiles| {
                 table.add_row(row!["ID"]);
                 profiles.iter().for_each(|profile| {
                     table.add_row(row![profile.id()]);
                 });
             });
+
+            print!("{display_table}");
         };
 
         Ok(())

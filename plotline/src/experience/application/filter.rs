@@ -57,14 +57,17 @@ where
     ExperienceRepo: ExperienceRepository,
 {
     pub async fn execute(self) -> Result<Vec<Experience<ExperienceRepo::Intv>>> {
-        Ok(future::join_all(
+        let mut experiences = future::join_all(
             self.experience_repo
                 .filter(&self.filter)
                 .await?
                 .into_iter()
                 .map(|entity_tx| async move { entity_tx.read().await.clone() }),
         )
-        .await)
+        .await;
+
+        experiences.sort();
+        Ok(experiences)
     }
 }
 
