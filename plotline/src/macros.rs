@@ -41,6 +41,26 @@ macro_rules! interval_based_ord_for {
             }
         }
     };
+
+    ($field:ident as $generic:ident in $type:ty) => {
+        impl<$generic> Ord for $type
+        where
+            $generic: Interval,
+        {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                self.$field.cmp(&other.$field)
+            }
+        }
+
+        impl<$generic> PartialOrd for $type
+        where
+            $generic: Interval,
+        {
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                Some(self.cmp(other))
+            }
+        }
+    };
 }
 
 pub(crate) use interval_based_ord_for;

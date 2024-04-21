@@ -14,7 +14,7 @@ use crate::{
     entity::Entity,
     event::Event,
     id::{Id, Indentify},
-    interval::Interval,
+    interval::Interval, macros,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -41,24 +41,6 @@ impl<Intv> Indentify for Experience<Intv> {
     }
 }
 
-impl<Intv> Ord for Experience<Intv>
-where
-    Intv: Interval,
-{
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.event.cmp(&other.event)
-    }
-}
-
-impl<Intv> PartialOrd for Experience<Intv>
-where
-    Intv: Interval,
-{
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 impl<Intv> Experience<Intv> {
     pub fn with_profiles(mut self, profiles: Vec<Profile>) -> Self {
         self.profiles = profiles;
@@ -68,11 +50,9 @@ impl<Intv> Experience<Intv> {
     pub fn profiles(&self) -> &[Profile] {
         &self.profiles
     }
-
-    // pub fn kind(&self) -> ExperienceKind {
-    //     self.into()
-    // }
 }
+
+macros::interval_based_ord_for!(event as Intv in Experience<Intv>);
 
 /// ExperienceBuilder makes sure an [Experience] is created if, and only if,
 /// all of its requirements are meet.
@@ -125,43 +105,6 @@ where
         })
     }
 }
-
-// /// An ExperienceKind determines the kind of an [Experience] based on its
-// /// cardinality.
-// #[derive(Clone, Copy)]
-// pub enum ExperienceKind {
-//     /// The entity has reached the end of its timeline.
-//     /// Implies the experience has no profile for self.entity.
-//     Terminal,
-//     /// The entity is evolving.
-//     /// Implies the experience has a profile for self.entity.
-//     Transitive,
-// }
-//
-// impl<Intv> From<&Experience<Intv>> for ExperienceKind {
-//     fn from(experience: &Experience<Intv>) -> Self {
-//         if experience
-//             .profiles
-//             .iter()
-//             .find(|profile| profile.entity == experience.entity)
-//             .is_some()
-//         {
-//             ExperienceKind::Transitive
-//         } else {
-//             ExperienceKind::Terminal
-//         }
-//     }
-// }
-//
-// impl ExperienceKind {
-//     pub fn is_transitive(&self) -> bool {
-//         matches!(self, ExperienceKind::Transitive)
-//     }
-//
-//     pub fn is_terminal(&self) -> bool {
-//         matches!(self, ExperienceKind::Terminal)
-//     }
-// }
 
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {

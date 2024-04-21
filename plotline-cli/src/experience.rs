@@ -1,5 +1,5 @@
 use crate::{
-    display::{DisplayTable, DisplayTree},
+    display::DisplayTable,
     Error, Result,
 };
 use clap::{Args, Subcommand};
@@ -150,10 +150,8 @@ where
                     .execute()
                     .await?;
 
-                if args.visual {
-                    DisplayTree::new(&experiences);
-                } else {
-                    DisplayTable::new(&experiences).show(|table, experiences| {
+                let display_table =
+                    DisplayTable::new(&experiences).with_format(|table, experiences| {
                         table.add_row(row!["ID", "ENTITY ID", "EVENT ID"]);
                         experiences.iter().for_each(|experience| {
                             table.add_row(row![
@@ -163,7 +161,8 @@ where
                             ]);
                         });
                     });
-                }
+
+                print!("{display_table}");
             }
             ExperienceSubCommand::Profile(args) => {
                 self.execute_profile_command(
@@ -218,7 +217,7 @@ where
         });
 
         if let Some(profile) = profile {
-            DisplayTable::new(profile).show(|table, profile| {
+            let display_table = DisplayTable::new(profile).with_format(|table, profile| {
                 table.add_row(row!["ENTITY", profile.id()]);
                 table.add_empty_row();
 
@@ -226,13 +225,18 @@ where
                     table.add_row(row![key, value]);
                 });
             });
+
+            print!("{display_table}");
         } else {
-            DisplayTable::new(&experience.profiles()).show(|table, profiles| {
+            let profiles = experience.profiles();
+            let display_table = DisplayTable::new(&profiles).with_format(|table, profiles| {
                 table.add_row(row!["ID"]);
                 profiles.iter().for_each(|profile| {
                     table.add_row(row![profile.id()]);
                 });
             });
+
+            print!("{display_table}");
         };
 
         Ok(())

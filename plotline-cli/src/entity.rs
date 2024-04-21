@@ -70,11 +70,12 @@ where
         };
 
         let entity = self.entity_app.find_entity(entity_id).execute().await?;
-        DisplayTable::new(&entity).show(|table, entity| {
+        let display_table = DisplayTable::new(&entity).with_format(|table, entity| {
             table.add_row(row!["ID", entity.id]);
             table.add_row(row!["NAME", entity.name]);
         });
 
+        print!("{display_table}");
         Ok(())
     }
 
@@ -97,12 +98,14 @@ where
 
             EntitySubCommand::List => {
                 let entities = self.entity_app.filter_entities().execute().await?;
-                DisplayTable::new(&entities).show(|table, entities| {
+                let display_table = DisplayTable::new(&entities).with_format(|table, entities| {
                     table.add_row(row!["ID", "NAME"]);
                     entities.iter().for_each(|entity| {
                         table.add_row(row![&entity.id, &entity.name]);
                     });
                 });
+
+                print!("{display_table}");
             }
 
             EntitySubCommand::Remove(args) => {

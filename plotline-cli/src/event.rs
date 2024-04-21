@@ -88,13 +88,14 @@ where
         };
 
         let event = self.event_app.find_event(event_id).execute().await?;
-        DisplayTable::new(&event).show(|table, event| {
+        let display_table = DisplayTable::new(&event).with_format(|table, event| {
             table.add_row(row!["ID", event.id]);
             table.add_row(row!["NAME", event.name]);
             table.add_row(row!["START", event.interval.lo()]);
             table.add_row(row!["END", event.interval.hi()]);
         });
 
+        print!("{display_table}");
         Ok(())
     }
 
@@ -117,7 +118,7 @@ where
             }
             EventSubCommand::List => {
                 let events = self.event_app.filter_events().execute().await?;
-                DisplayTable::new(&events).show(|table, events| {
+                let display_table = DisplayTable::new(&events).with_format(|table, events| {
                     table.add_row(row!["ID", "NAME", "START", "END"]);
                     events.iter().for_each(|event| {
                         table.add_row(row![
@@ -128,6 +129,8 @@ where
                         ]);
                     })
                 });
+
+                print!("{display_table}");
             }
         }
 
