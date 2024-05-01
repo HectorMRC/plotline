@@ -57,16 +57,15 @@ fn run(ptr: u32) -> *const u8 {
 }
 
 fn execute(input: BeforeSaveExperienceInput) -> std::result::Result<(), Error> {
-    let subject =
-        proto::into_experience(&input.subject).map_err(|err| Error::new(err.to_string()))?;
+    let subject = proto::into_experience(&input.subject).unwrap();
+
     input
         .timeline
         .into_iter()
         .try_fold(
             ExperienceIsNotSimultaneous::<Period<Moment>>::new(&subject),
             |constraint, exp| {
-                let experience =
-                    proto::into_experience(&exp).map_err(|err| Error::new(err.to_string()))?;
+                let experience = proto::into_experience(&exp).unwrap();
                 let constraint = constraint.with(&experience);
 
                 constraint.result().map(|_| constraint)

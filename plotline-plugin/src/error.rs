@@ -1,5 +1,5 @@
-/// PluginResult represents the output or crashing cause of a plugin.
-pub type PluginResult = std::result::Result<Vec<u8>, String>;
+/// RunPluginResult represents the output or crashing cause of a plugin.
+pub type RunPluginResult = std::result::Result<Vec<u8>, String>;
 
 pub type Result<T> = std::result::Result<T, Error>;
 

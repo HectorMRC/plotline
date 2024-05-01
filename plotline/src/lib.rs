@@ -6,6 +6,7 @@ pub mod interval;
 pub mod moment;
 pub mod name;
 pub mod period;
+pub mod plugin;
 
 mod macros;
 #[cfg(feature = "in_memory")]

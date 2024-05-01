@@ -1,5 +1,3 @@
-use futures::future;
-
 use super::{
     BeforeSaveExperience, ExperienceApplication, ExperienceFilter, ExperienceRepository,
     PluginFactory,
@@ -12,6 +10,7 @@ use crate::{
     interval::Interval,
     transaction::Tx,
 };
+use futures::future;
 use std::{ops::Deref, sync::Arc};
 
 /// Implements the save experience transaction.
@@ -104,24 +103,11 @@ where
 
         let timeline = experiences.iter().map(Deref::deref).collect::<Vec<_>>();
 
-        future::try_join_all(
-            self.plugin_factory
-                .before_save_experience()
-                .into_iter()
-                .map(|plugin| async {
-                    let plugin = plugin
-                        .with_subject(&experience)
-                        .with_timeline(&timeline)
-                        .execute()
-                        .await;
-
-                    plugin.result().map_err(|err| Error::Plugin {
-                        plugin_id: plugin.id(),
-                        error_msg: err,
-                    })
-                }),
-        )
-        .await?;
+        self.plugin_factory
+            .before_save_experience()
+            .map(|plugin| plugin.with_subject(&experience).with_timeline(&timeline))
+            .execute()
+            .await;
 
         self.experience_repo.create(&experience).await?;
         Ok(())

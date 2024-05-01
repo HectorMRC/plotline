@@ -151,7 +151,7 @@ impl Plugin for WasmPlugin {
         self.kind.clone()
     }
 
-    fn run(&self, input: &[u8]) -> crate::PluginResult {
+    fn run(&self, input: &[u8]) -> crate::RunPluginResult {
         self.execute(input).map_err(|err| err.to_string())
     }
 }

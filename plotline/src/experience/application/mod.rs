@@ -12,8 +12,9 @@ pub use find::*;
 use super::error::Result;
 use crate::{
     experience::Experience,
-    id::{Id, Indentify},
+    id::Id,
     interval::Interval,
+    plugin::{Command, PluginGroup},
     transaction::Tx,
 };
 use std::sync::Arc;
@@ -29,12 +30,9 @@ pub trait ExperienceRepository {
     async fn delete(&self, id: Id<Experience<Self::Intv>>) -> Result<()>;
 }
 
-#[trait_variant::make]
-pub trait BeforeSaveExperience<'a, Intv>: Indentify<Id = String> {
+pub trait BeforeSaveExperience<'a, Intv>: Command<()> {
     fn with_subject(self, subject: &'a Experience<Intv>) -> Self;
     fn with_timeline(self, timeline: &'a [&Experience<Intv>]) -> Self;
-    async fn execute(self) -> Self;
-    fn result(&self) -> std::result::Result<(), String>;
 }
 
 pub trait PluginFactory {
@@ -43,7 +41,7 @@ pub trait PluginFactory {
     where
         Self: 'a;
 
-    fn before_save_experience(&self) -> Vec<Self::BeforeSaveExperience<'_>>;
+    fn before_save_experience(&self) -> PluginGroup<Self::BeforeSaveExperience<'_>>;
 }
 
 pub struct ExperienceApplication<ExperienceRepo, EntityRepo, EventRepo, PluginFactory> {

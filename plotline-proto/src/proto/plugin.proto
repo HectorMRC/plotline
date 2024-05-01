@@ -16,12 +16,16 @@ message GetPluginId {
     string id = 1;
 }
 
+message PluginError {
+    string code = 1;
+    string message = 2;
+}
+
 message BeforeSaveExperienceInput {
     model.Experience subject = 1;
     repeated model.Experience timeline = 2;
 }
 
 message BeforeSaveExperienceOutput {
-    string error = 1;
-    string details = 2;
+    PluginError error = 1;
 }

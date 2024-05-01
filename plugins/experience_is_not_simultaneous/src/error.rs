@@ -1,37 +1,30 @@
-use plotline_proto::plugin::BeforeSaveExperienceOutput;
+use plotline::plugin;
+use plotline_proto::plugin::{BeforeSaveExperienceOutput, PluginError};
 
 #[derive(Debug)]
-pub struct Error {
-    pub error: String,
-    pub details: String,
+pub struct Error(pub plugin::Error);
+
+impl From<plugin::Error> for Error {
+    fn from(value: plugin::Error) -> Self {
+        Self(value)
+    }
 }
 
-impl Default for Error {
-    fn default() -> Self {
-        Self::new("an entity cannot experience simultaneous events".to_string())
+impl From<Error> for PluginError {
+    fn from(value: Error) -> Self {
+        PluginError {
+            code: value.0.code,
+            message: value.0.message,
+            ..Default::default()
+        }
     }
 }
 
 impl From<Error> for BeforeSaveExperienceOutput {
     fn from(value: Error) -> Self {
         BeforeSaveExperienceOutput {
-            error: value.error,
-            details: value.details,
+            error: protobuf::MessageField::some(value.into()),
             ..Default::default()
         }
-    }
-}
-
-impl Error {
-    pub fn new(error: String) -> Self {
-        Self {
-            error,
-            details: Default::default(),
-        }
-    }
-
-    pub fn with_details(mut self, details: String) -> Self {
-        self.details = details;
-        self
     }
 }

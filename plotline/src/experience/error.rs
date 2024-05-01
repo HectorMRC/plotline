@@ -8,7 +8,7 @@ pub enum Error {
     #[error("experience not found")]
     NotFound,
     // application
-    #[error("{0}: must to be set")]
+    #[error("{0}: must be set")]
     MandatoryField(&'static str),
     // domain
     #[error("an entity cannot result from the same experience more than once")]

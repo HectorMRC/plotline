@@ -20,7 +20,7 @@ pub trait Plugin: Indentify<Id = PluginId> + Sync + Send {
     /// Identifies the kind of the plugin.
     fn kind(&self) -> PluginKind;
     /// Executes the corresponding action passing its input encoded in bytes.
-    fn run(&self, input: &[u8]) -> PluginResult;
+    fn run(&self, input: &[u8]) -> RunPluginResult;
 }
 
 /// A PluginFlavor represents a layer of abstraction between the generic form

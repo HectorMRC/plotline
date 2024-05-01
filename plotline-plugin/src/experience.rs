@@ -6,6 +6,7 @@ use plotline::{
     },
     id::Indentify,
     interval::Interval,
+    plugin,
 };
 use plotline_proto::plugin::{BeforeSaveExperienceInput, BeforeSaveExperienceOutput};
 use protobuf::{Message, MessageField};
@@ -17,13 +18,13 @@ pub struct BeforeSaveExperiencePlugin<'a, Intv> {
     plugin: &'a dyn Plugin,
     subject: Option<&'a Experience<Intv>>,
     timeline: &'a [&'a Experience<Intv>],
-    result: std::result::Result<(), String>,
+    result: plugin::Result<()>,
 }
 
 impl<'a, Intv> TryFrom<&'a dyn Plugin> for BeforeSaveExperiencePlugin<'a, Intv> {
     type Error = Error;
 
-    fn try_from(plugin: &'a dyn Plugin) -> Result<Self, Self::Error> {
+    fn try_from(plugin: &'a dyn Plugin) -> std::result::Result<Self, Self::Error> {
         if plugin.kind() != PluginKind::BeforeSaveExperience {
             return Err(Error::WrongKind);
         }
@@ -32,7 +33,7 @@ impl<'a, Intv> TryFrom<&'a dyn Plugin> for BeforeSaveExperiencePlugin<'a, Intv> 
             plugin,
             subject: Default::default(),
             timeline: Default::default(),
-            result: Err("not executed".to_string()),
+            result: Err("not executed".into()),
         })
     }
 }
@@ -42,6 +43,21 @@ impl<'a, Intv> Indentify for BeforeSaveExperiencePlugin<'a, Intv> {
 
     fn id(&self) -> Self::Id {
         self.plugin.id().into()
+    }
+}
+
+impl<'a, Intv> plugin::Command<()> for BeforeSaveExperiencePlugin<'a, Intv>
+where
+    Intv: Interval,
+    Intv::Bound: Display,
+{
+    async fn execute(mut self) -> Self {
+        self.result = self.run();
+        self
+    }
+
+    fn result(&self) -> plugin::Result<()> {
+        self.result.clone()
     }
 }
 
@@ -65,15 +81,6 @@ where
         self.timeline = timeline;
         self
     }
-
-    async fn execute(mut self) -> Self {
-        self.result = self.run();
-        self
-    }
-
-    fn result(&self) -> std::result::Result<(), String> {
-        self.result.clone()
-    }
 }
 
 impl<'a, Intv> BeforeSaveExperiencePlugin<'a, Intv>
@@ -81,9 +88,9 @@ where
     Intv: Interval,
     Intv::Bound: Display,
 {
-    fn run(&self) -> std::result::Result<(), String> {
+    fn run(&self) -> plugin::Result<()> {
         let Some(subject) = self.subject else {
-            return Err("subject has to be set".to_string());
+            return Err("subject has to be set".into());
         };
 
         let input = BeforeSaveExperienceInput {
@@ -99,14 +106,17 @@ where
         .write_to_bytes()
         .map_err(|err| err.to_string())?;
 
-        let output = BeforeSaveExperienceOutput::parse_from_bytes(&self.plugin.run(&input)?)
-            .map_err(|err| err.to_string())?;
+        let result = self.plugin.run(&input)?;
+        let output =
+            BeforeSaveExperienceOutput::parse_from_bytes(&result).map_err(|err| err.to_string())?;
 
-        if !output.error.is_empty() {
-            return Err(format!("{}\n{}", output.error, output.details));
+        if let Some(error) = output.error.0 {
+            return Ok(Err(
+                plugin::Error::new(error.code).with_message(error.message)
+            ));
         }
 
-        Ok(())
+        Ok(Ok(()))
     }
 }
 
@@ -120,7 +130,7 @@ where
     where
         Self: 'b;
 
-    fn before_save_experience(&self) -> Vec<Self::BeforeSaveExperience<'_>> {
-        self.retrieve().unwrap_or_default()
+    fn before_save_experience(&self) -> plugin::PluginGroup<Self::BeforeSaveExperience<'_>> {
+        plugin::PluginGroup::new(self.retrieve().unwrap_or_default())
     }
 }
