@@ -1,5 +1,4 @@
 use clap::{error::ErrorKind, Parser};
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use once_cell::sync::Lazy;
 use plotline::{
     entity::{application::EntityApplication, repository::InMemoryEntityRepository},
@@ -8,10 +7,7 @@ use plotline::{
     moment::Moment,
     period::Period,
 };
-use plotline_cli::{
-    display::SPINNER_FRAMES, entity::EntityCli, event::EventCli, experience::ExperienceCli,
-    CliCommand,
-};
+use plotline_cli::{entity::EntityCli, event::EventCli, experience::ExperienceCli, CliCommand};
 use plotline_plugin::{store::PluginStore, wasm::WasmPluginFactory};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -20,6 +16,7 @@ use std::{
     fs::{read_dir, File, OpenOptions},
     io::{BufReader, BufWriter, Write},
     path::{Path, PathBuf},
+    str::FromStr,
     sync::Arc,
 };
 
@@ -75,10 +72,7 @@ struct Cli {
     plugins: PathBuf,
 
     /// Do not print progress bars.
-    #[arg(
-        global = true,
-        short, long
-    )]
+    #[arg(global = true, short, long)]
     quiet: bool,
 }
 
@@ -95,41 +89,17 @@ where
     }
 }
 
-async fn snapshot_from_yaml(path: &Path, pb: ProgressBar) -> Snapshot {
-    pb.set_style(
-        unwrap_or_exit(ProgressStyle::with_template(
-            "{spinner} {prefix:.bold.dim} {wide_msg}",
-        ))
-        .tick_chars(&vec![SPINNER_FRAMES, "🖪"].concat()),
-    );
-
-    pb.set_prefix(format!("Loading snapshot... "));
-
-    if path.exists() {
-        pb.set_message(format!("{}", path.to_string_lossy()));
-
-        let f = unwrap_or_exit(File::open(path));
-        let reader = BufReader::new(f);
-        let snapshot = unwrap_or_exit(serde_yaml::from_reader(reader));
-
-        pb.finish();
-        snapshot
-    } else {
-        pb.finish_with_message(format!("file not found."));
-        Snapshot::default()
+async fn snapshot_from_yaml(path: &Path) -> Snapshot {
+    if !path.exists() {
+        return Snapshot::default();
     }
+
+    let f = unwrap_or_exit(File::open(path));
+    let reader = BufReader::new(f);
+    unwrap_or_exit(serde_yaml::from_reader(reader))
 }
 
-async fn snapshot_into_yaml(path: &Path, snapshot: &Snapshot, pb: ProgressBar) {
-    pb.set_style(
-        unwrap_or_exit(ProgressStyle::with_template(
-            "{spinner} {prefix:.bold.dim} {wide_msg}",
-        ))
-        .tick_chars(&vec![SPINNER_FRAMES, "🖪"].concat()),
-    );
-
-    pb.set_prefix(format!("Storing snapshot... "));
-
+async fn snapshot_into_yaml(path: &Path, snapshot: &Snapshot) {
     let f = unwrap_or_exit(
         OpenOptions::new()
             .write(true)
@@ -141,20 +111,15 @@ async fn snapshot_into_yaml(path: &Path, snapshot: &Snapshot, pb: ProgressBar) {
     let mut writer = BufWriter::new(f);
     unwrap_or_exit(serde_yaml::to_writer(&mut writer, &snapshot));
     unwrap_or_exit(writer.flush());
-
-    pb.finish_with_message(format!("{}", path.to_string_lossy()));
 }
 
-async fn plugins_from_dir(path: &Path, pb: ProgressBar) -> PluginStore<Period<Moment>> {
-    pb.set_style(
-        unwrap_or_exit(ProgressStyle::with_template(
-            "{spinner} {prefix:.bold.dim} {wide_msg} [count: {pos}]",
-        ))
-        .tick_chars(&vec![SPINNER_FRAMES, "⮻"].concat()),
-    );
+#[derive(strum_macros::EnumString, strum_macros::Display)]
+#[strum(serialize_all = "lowercase")]
+enum PluginExtension {
+    Wasm,
+}
 
-    pb.set_prefix(format!("Loading plugins...  "));
-
+async fn plugins_from_dir(path: &Path) -> PluginStore<Period<Moment>> {
     let mut plugin_store = PluginStore::<Period<Moment>>::default();
     let wasm_plugin_builder = unwrap_or_exit(WasmPluginFactory::new());
 
@@ -163,20 +128,21 @@ async fn plugins_from_dir(path: &Path, pb: ProgressBar) -> PluginStore<Period<Mo
         .map(|path| path.path())
         .filter(|path| path.is_file())
         .for_each(|path| {
-            let Some(extension) = path.extension() else {
+            let Some(Ok(extension)) = path
+                .extension()
+                .map(|ext| PluginExtension::from_str(&ext.to_string_lossy()))
+            else {
                 return;
             };
 
-            if extension == "wasm" {
-                pb.set_message(format!("{}", path.to_string_lossy()));
-                pb.inc(1);
-
-                let wasm_plugin = unwrap_or_exit(wasm_plugin_builder.from_file(&path));
-                unwrap_or_exit(plugin_store.add(Box::new(wasm_plugin)));
+            match extension {
+                PluginExtension::Wasm => {
+                    let wasm_plugin = unwrap_or_exit(wasm_plugin_builder.from_file(&path));
+                    unwrap_or_exit(plugin_store.add(Box::new(wasm_plugin)));
+                }
             }
         });
 
-    pb.finish_with_message(format!("{}", path.to_string_lossy()));
     plugin_store
 }
 
@@ -184,10 +150,9 @@ async fn plugins_from_dir(path: &Path, pb: ProgressBar) -> PluginStore<Period<Mo
 async fn main() {
     let args = Cli::parse();
 
-    let mp = MultiProgress::new();
     let (mut snapshot, plugins) = futures::join!(
-        snapshot_from_yaml(&args.file, mp.add(ProgressBar::hidden())),
-        plugins_from_dir(&args.plugins, mp.add(ProgressBar::hidden())),
+        snapshot_from_yaml(&args.file),
+        plugins_from_dir(&args.plugins),
     );
 
     snapshot.experience_repo = Arc::new(
@@ -225,5 +190,5 @@ async fn main() {
         CliCommand::Experience(command) => experience_cli.execute(command).await,
     });
 
-    snapshot_into_yaml(&args.file, &snapshot, mp.add(ProgressBar::hidden())).await;
+    snapshot_into_yaml(&args.file, &snapshot).await;
 }

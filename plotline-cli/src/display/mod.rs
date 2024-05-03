@@ -1,9 +1,6 @@
 mod table;
 pub use table::*;
 
-mod progress;
-pub use progress::*;
-
 use futures::{future, Future};
 use std::fmt::Display;
 
