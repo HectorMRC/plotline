@@ -13,6 +13,7 @@ syn = { version = "2.0.60", features = ["full"] }
 quote = "1.0.36"
 proc-macro2 = "1.0.81"
 
+plotline        = { path = "../plotline" }
 plotline-plugin = { path = "../plotline-plugin" }
 plotline-proto  = { path = "../plotline-proto"}
 strum = "0.26.2"

@@ -1,6 +1,6 @@
 use crate::{
     id::Indentify,
-    transaction::{Tx, TxReadGuard, TxWriteGuard},
+    transaction::{Tx, TxWriteGuard},
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{
@@ -103,10 +103,6 @@ impl<'a, T> Deref for ResourceReadGuard<'a, T> {
     }
 }
 
-impl<'a, T> TxReadGuard<T> for ResourceReadGuard<'a, T> {
-    fn release(self) {}
-}
-
 /// ResourceWriteGuard is the [TxWriteGuard] implementation for [Resource].
 pub struct ResourceWriteGuard<'a, T> {
     guard: RwLockWriteGuard<'a, T>,
@@ -131,8 +127,6 @@ impl<'a, T> TxWriteGuard<T> for ResourceWriteGuard<'a, T> {
     fn commit(mut self) {
         *self.guard = self.data;
     }
-
-    fn rollback(self) {}
 }
 
 /// A ResourceMap is a collection of [Identify] [Resource]s.

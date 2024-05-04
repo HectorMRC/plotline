@@ -71,7 +71,7 @@ impl<T> TryFrom<String> for Name<T> {
 impl<T> FromStr for Name<T> {
     type Err = Error;
 
-    /// A name must consist of a single word string.
+    /// A name must consist of a single line string.
     fn from_str(value: &str) -> Result<Self> {
         let is_invalid_char = |c: char| -> bool {
             const INVALID_CHARS: [char; 2] = ['\n', '\r'];
@@ -125,13 +125,18 @@ mod tests {
                 must_fail: true,
             },
             Test {
-                name: "An string with carreiage return is not a valid name",
+                name: "An string with carriage return is not a valid name",
                 entity_name: "entity\rname",
                 must_fail: true,
             },
             Test {
-                name: "An string with carreiage return plus line feed is not a valid name",
+                name: "An string with carriage return plus line feed is not a valid name",
                 entity_name: "entity\r\nname",
+                must_fail: true,
+            },
+            Test {
+                name: "An string with line feed plus carriage is not a valid name",
+                entity_name: "entity\n\rname",
                 must_fail: true,
             },
             Test {
@@ -151,7 +156,7 @@ mod tests {
             assert_eq!(result.is_err(), test.must_fail, "{}", test.name);
 
             match result {
-                Ok(tag) => assert_eq!(tag.as_ref(), test.entity_name, "{}", test.name),
+                Ok(name) => assert_eq!(name.as_ref(), test.entity_name, "{}", test.name),
                 Err(err) => assert!(matches!(err, Error::NotAName), "{}", test.name),
             }
         });

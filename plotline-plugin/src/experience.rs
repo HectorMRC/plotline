@@ -42,7 +42,7 @@ impl<'a, Intv> Indentify for BeforeSaveExperiencePlugin<'a, Intv> {
     type Id = String;
 
     fn id(&self) -> Self::Id {
-        self.plugin.id().into()
+        self.plugin.id().as_ref().into()
     }
 }
 
@@ -112,7 +112,7 @@ where
 
         if let Some(error) = output.error.0 {
             return Ok(Err(
-                plugin::Error::new(error.code).with_message(error.message)
+                plugin::PluginError::new(error.code).with_message(error.message)
             ));
         }
 

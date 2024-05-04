@@ -11,12 +11,12 @@ pub enum Error {
     AlreadyExists,
     #[error("plugin is not of the expected kind")]
     WrongKind,
-    #[error("invalid plugin id")]
-    NotAPluginId,
     #[error("invalid plugin kind")]
     NotAPluginKind,
     #[error("field is missing: {0}")]
     MissingField(&'static str),
+    #[error("{0}")]
+    Plugin(#[from] plotline::plugin::Error),
     #[error("{0}")]
     Id(#[from] plotline::id::Error),
     #[error("{0}")]

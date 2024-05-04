@@ -12,7 +12,7 @@ use crate::{
         from_rwlock, infallible_lock, into_rwlock, Resource, ResourceMap, ResourceReadGuard,
         ResourceWriteGuard,
     },
-    transaction::{Tx, TxReadGuard, TxWriteGuard},
+    transaction::{Tx, TxWriteGuard},
 };
 use futures::future;
 use serde::{Deserialize, Serialize};
@@ -286,10 +286,6 @@ impl<'a, Intv> Deref for ExperienceAggregateReadGuard<'a, Intv> {
     }
 }
 
-impl<'a, Intv> TxReadGuard<Experience<Intv>> for ExperienceAggregateReadGuard<'a, Intv> {
-    fn release(self) {}
-}
-
 pub struct ExperienceAggregateWriteGuard<'a, Intv> {
     experience: ResourceWriteGuard<'a, RawExperience<Intv>>,
     data: Experience<Intv>,
@@ -313,8 +309,6 @@ impl<'a, Intv> TxWriteGuard<Experience<Intv>> for ExperienceAggregateWriteGuard<
     fn commit(mut self) {
         *self.experience = (&self.data).into()
     }
-
-    fn rollback(self) {}
 }
 
 impl<Intv> ExperienceFilter<Intv> {

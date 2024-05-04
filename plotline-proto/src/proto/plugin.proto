@@ -8,12 +8,16 @@ enum PluginKind {
     BeforeSaveExperience = 0;
 }
 
+message GetPluginId {
+    string id = 1;
+}
+
 message GetPluginKind {
     PluginKind kind = 1;
 }
 
-message GetPluginId {
-    string id = 1;
+message GetPluginVersion {
+    string version = 1;
 }
 
 message PluginError {

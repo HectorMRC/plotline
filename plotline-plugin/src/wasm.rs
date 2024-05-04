@@ -104,7 +104,8 @@ impl WasmPluginFactory {
 
         let id = PluginId::from_str(
             &WasmPlugin::call::<GetPluginId>(ID_FUNCTION_KEY, &mut engine.store, &instance)?.id,
-        )?;
+        )
+        .map_err(crate::Error::from)?;
 
         let kind = PluginKind::from(
             WasmPlugin::call::<GetPluginKind>(KIND_FUNCTION_KEY, &mut engine.store, &instance)?
@@ -185,7 +186,7 @@ impl WasmPlugin {
 
     fn input(store: &mut Store, instance: &Instance, input: &[u8]) -> Result<()> {
         let input_len = (input.len() as u32).to_le_bytes();
-        let input = [&input_len[..], &input].concat();
+        let input = [&input_len[..], input].concat();
 
         let memory = instance.exports.get_memory(MEMORY_KEY)?;
         let pages = (input.len() / wasmer::WASM_PAGE_SIZE) + 1;

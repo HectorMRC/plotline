@@ -1,14 +1,16 @@
-use plotline_plugin::kind::PluginKind;
+use plotline::plugin::{PluginId, PluginVersion};
+use plotline_plugin::PluginKind;
 use std::str::FromStr;
 use strum::VariantNames;
 use syn::{
     parse::{Parse, ParseStream},
-    Ident, LitStr
+    Ident, LitStr,
 };
 
 mod keyword {
-    syn::custom_keyword!(kind);
     syn::custom_keyword!(id);
+    syn::custom_keyword!(kind);
+    syn::custom_keyword!(version);
 }
 
 pub struct PluginArgs {
@@ -16,34 +18,36 @@ pub struct PluginArgs {
     pub id: PluginIdArg,
     /// The kind of the plugin.
     pub kind: PluginKindArg,
+    /// The version of the plugin.
+    pub version: PluginVersionArg,
 }
 
 impl Parse for PluginArgs {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let mut id: Option<PluginIdArg> = None;
         let mut kind: Option<PluginKindArg> = None;
+        let mut version: Option<PluginVersionArg> = None;
 
         while !input.is_empty() {
             let lookahead = input.lookahead1();
-            if lookahead.peek(keyword::kind) {
+            if lookahead.peek(keyword::id) {
+                if id.is_some() {
+                    return Err(input.error("the plugin id must be set once"));
+                }
+
+                id = Some(input.parse()?);
+            } else if lookahead.peek(keyword::kind) {
                 if kind.is_some() {
                     return Err(input.error("the plugin kind must be set once"));
                 }
 
                 kind = Some(input.parse()?);
-            } else if lookahead.peek(keyword::id) {
-                if id.is_some() {
-                    return Err(input.error("the plugin id must be set once"));
+            } else if lookahead.peek(keyword::version) {
+                if version.is_some() {
+                    return Err(input.error("the plugin version must be set once"));
                 }
 
-                let mut plugin_id: PluginIdArg = input.parse()?;
-                plugin_id.value = plugin_id.value.trim().to_string();
-
-                if plugin_id.value.is_empty() {
-                    return Err(input.error("the plugin id cannot be empty"));
-                }
-
-                id = Some(plugin_id);
+                version = Some(input.parse()?);
             } else {
                 // Parse the unrecognized token tree to advance the parse
                 // stream, and throw it away so we can keep parsing. Otherwise
@@ -53,15 +57,32 @@ impl Parse for PluginArgs {
         }
 
         Ok(PluginArgs {
-            id: id.ok_or(input.error("the plugin id must be set once"))?,
-            kind: kind.ok_or(input.error("the plugin kind must be set once"))?,
+            id: id.ok_or(input.error("the plugin id must be set"))?,
+            kind: kind.ok_or(input.error("the plugin kind must be set"))?,
+            version: version.ok_or(input.error("the plugin version must be set"))?,
         })
     }
 }
+pub struct PluginIdArg {
+    pub value: PluginId,
+}
 
-pub struct PluginKindArg{
+impl Parse for PluginIdArg {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        input.parse::<keyword::id>()?;
+
+        let content;
+        let _ = syn::parenthesized!(content in input);
+
+        PluginId::from_str(&content.parse::<LitStr>()?.value())
+            .map_err(|err| input.error(err))
+            .map(|value| Self { value })
+    }
+}
+
+pub struct PluginKindArg {
     pub ident: Ident,
-    pub value: PluginKind
+    pub value: PluginKind,
 }
 
 impl Parse for PluginKindArg {
@@ -79,24 +100,23 @@ impl Parse for PluginKindArg {
             )));
         };
 
-        Ok(Self{
-            ident,
-            value
-        })
+        Ok(Self { ident, value })
     }
 }
 
-pub struct PluginIdArg{
-    pub value: String
+pub struct PluginVersionArg {
+    pub value: PluginVersion,
 }
 
-impl Parse for PluginIdArg {
+impl Parse for PluginVersionArg {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        input.parse::<keyword::id>()?;
+        input.parse::<keyword::version>()?;
 
         let content;
         let _ = syn::parenthesized!(content in input);
 
-        Ok(Self{value: content.parse::<LitStr>()?.value()})
+        PluginVersion::from_str(&content.parse::<LitStr>()?.value())
+            .map_err(|err| input.error(err))
+            .map(|value| Self { value })
     }
 }

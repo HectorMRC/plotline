@@ -1,31 +1,32 @@
 mod constraint;
+pub use constraint::*;
+
 mod error;
+pub use error::*;
 
-use constraint::ExperienceIsNotSimultaneous;
-use error::Error;
-use plotline::{moment::Moment, period::Period};
-use plotline_macros::plugin;
-use plotline_plugin::{kind::PluginKind::BeforeSaveExperience, proto};
-use plotline_proto::plugin::{
-    BeforeSaveExperienceInput, BeforeSaveExperienceOutput, GetPluginId, GetPluginKind,
-};
-use protobuf::{EnumOrUnknown, Message};
+use plotline::{experience::Experience, moment::Moment, period::Period};
+use plotline_plugin::PluginKind::BeforeSaveExperience;
 
-#[plugin(id("experience_is_not_simultaneous"), kind(BeforeSaveExperience))]
-fn main(input: BeforeSaveExperienceInput) -> std::result::Result<(), Error> {
-    let subject = proto::into_experience(&input.subject).unwrap();
+type Intv = Period<Moment>;
 
-    input
-        .timeline
-        .into_iter()
-        .try_fold(
-            ExperienceIsNotSimultaneous::<Period<Moment>>::new(&subject),
-            |constraint, exp| {
-                let experience = proto::into_experience(&exp).unwrap();
-                let constraint = constraint.with(&experience);
+#[plotline_macros::plugin(
+    id("ExperienceIsNotSimultaneous"),
+    kind(BeforeSaveExperience),
+    version("0.1.0")
+)]
+fn main(
+    subject: &Experience<Intv>,
+    timeline: &[Experience<Intv>],
+) -> std::result::Result<(), Error> {
+    timeline.iter().try_fold(
+        ExperienceIsNotSimultaneous::new(subject),
+        |constraint, experience| -> Result<_, Error> {
+            let constraint = constraint.with(experience);
+            constraint.result()?;
 
-                constraint.result().map(|_| constraint)
-            },
-        )
-        .map(|_| ())
+            Ok(constraint)
+        },
+    )?;
+
+    Ok(())
 }

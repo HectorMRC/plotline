@@ -2,10 +2,10 @@ use plotline::plugin;
 use plotline_proto::plugin::{BeforeSaveExperienceOutput, PluginError};
 
 #[derive(Debug)]
-pub struct Error(pub plugin::Error);
+pub struct Error(pub plugin::PluginError);
 
-impl From<plugin::Error> for Error {
-    fn from(value: plugin::Error) -> Self {
+impl From<plugin::PluginError> for Error {
+    fn from(value: plugin::PluginError) -> Self {
         Self(value)
     }
 }

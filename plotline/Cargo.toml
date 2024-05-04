@@ -10,6 +10,7 @@ version     = "0.1.0"
 
 [dependencies]
 futures   = "0.3.30"
+semver    = "1.0.22"
 serde     = { version = "1.0.195", features = ["derive", "rc"] } # data parser
 thiserror = "1.0.56"
 trait-variant = "0.1.2"
