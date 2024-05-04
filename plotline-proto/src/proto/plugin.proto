@@ -5,7 +5,7 @@ package plugin;
 import "model.proto";
 
 enum PluginKind {
-    BEFORE_SAVE_EXPERIENCE = 0;
+    BeforeSaveExperience = 0;
 }
 
 message GetPluginKind {

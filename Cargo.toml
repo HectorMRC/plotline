@@ -1,7 +1,8 @@
 [workspace]
 members  = [
     "plotline",
-    "plotline-cli",
+    "plotline-cli", 
+    "plotline-macros",
     "plotline-plugin", 
     "plotline-proto", 
     "plugins/experience_is_not_simultaneous"
