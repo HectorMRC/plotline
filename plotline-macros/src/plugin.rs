@@ -1,5 +1,4 @@
-use plotline::plugin::{PluginId, PluginVersion};
-use plotline_plugin::PluginKind;
+use plotline_plugin::{PluginId, PluginKind, PluginVersion};
 use std::str::FromStr;
 use strum::VariantNames;
 use syn::{

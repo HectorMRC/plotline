@@ -5,13 +5,19 @@ pub mod experience;
 pub mod proto;
 pub mod store;
 
+mod id;
+pub use id::*;
+
 mod kind;
 pub use kind::*;
+
+mod version;
+pub use version::*;
 
 mod error;
 pub use error::*;
 
-use plotline::{id::Indentify, plugin::PluginId};
+use plotline::id::Indentify;
 
 /// A Plugin is a set of methods loaded at runtime that extends the default
 /// behavior based on its [PluginKind].

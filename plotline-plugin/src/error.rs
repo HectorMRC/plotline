@@ -15,8 +15,10 @@ pub enum Error {
     NotAPluginKind,
     #[error("field is missing: {0}")]
     MissingField(&'static str),
-    #[error("{0}")]
-    Plugin(#[from] plotline::plugin::Error),
+    #[error("invalid plugin id")]
+    NotAnId,
+    #[error("invalid plugin version: {0}")]
+    NotAVersion(#[from] semver::Error),
     #[error("{0}")]
     Id(#[from] plotline::id::Error),
     #[error("{0}")]
