@@ -15,5 +15,3 @@ proc-macro2 = "1.0.81"
 
 plotline-plugin = { path = "../plotline-plugin" }
 plotline-proto  = { path = "../plotline-proto"}
-strum = "0.26.2"
-

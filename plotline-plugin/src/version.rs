@@ -2,6 +2,7 @@ use std::{fmt::Display, str::FromStr};
 use crate::Error;
 
 /// PluginVersion represents the semantic version of a plugin.
+#[derive(Clone)]
 pub struct PluginVersion(semver::Version);
 
 impl FromStr for PluginVersion {

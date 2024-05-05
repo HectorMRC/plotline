@@ -38,9 +38,9 @@ pub fn plugin(args: TokenStream, input: TokenStream) -> TokenStream {
         output_bytes.as_ptr()
     };
 
-    let plugin_id = id.value.as_ref();
+    let plugin_id = id.litstr;
     let plugin_kind = kind.ident;
-    let plugin_version = version.value.to_string();
+    let plugin_version = version.litstr;
 
     TokenStream::from(quote! {
         #[no_mangle]

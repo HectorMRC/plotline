@@ -1,6 +1,5 @@
 use plotline_plugin::{PluginId, PluginKind, PluginVersion};
 use std::str::FromStr;
-use strum::VariantNames;
 use syn::{
     parse::{Parse, ParseStream},
     Ident, LitStr,
@@ -63,6 +62,7 @@ impl Parse for PluginArgs {
     }
 }
 pub struct PluginIdArg {
+    pub litstr: LitStr,
     pub value: PluginId,
 }
 
@@ -73,9 +73,10 @@ impl Parse for PluginIdArg {
         let content;
         let _ = syn::parenthesized!(content in input);
 
-        PluginId::from_str(&content.parse::<LitStr>()?.value())
+        let litstr = content.parse::<LitStr>()?;
+        PluginId::from_str(&litstr.value())
             .map_err(|err| input.error(err))
-            .map(|value| Self { value })
+            .map(|value| Self { litstr, value })
     }
 }
 
@@ -92,11 +93,11 @@ impl Parse for PluginKindArg {
         let _ = syn::parenthesized!(content in input);
 
         let ident = content.parse::<Ident>()?;
-        let Ok(value) = PluginKind::from_str(&ident.to_string()) else {
-            return Err(input.error(format!(
-                "kind must be one of: {}",
-                PluginKind::VARIANTS.join(", ")
-            )));
+        let value = match ident.to_string().as_str() {
+            "BeforeSaveExperience" => PluginKind::BeforeSaveExperience,
+            other => return Err(input.error(format!(
+                "unknown plugin kind: {other}"
+            ))),
         };
 
         Ok(Self { ident, value })
@@ -104,6 +105,7 @@ impl Parse for PluginKindArg {
 }
 
 pub struct PluginVersionArg {
+    pub litstr: LitStr,
     pub value: PluginVersion,
 }
 
@@ -114,8 +116,9 @@ impl Parse for PluginVersionArg {
         let content;
         let _ = syn::parenthesized!(content in input);
 
-        PluginVersion::from_str(&content.parse::<LitStr>()?.value())
+        let litstr = content.parse::<LitStr>()?;
+        PluginVersion::from_str(&litstr.value())
             .map_err(|err| input.error(err))
-            .map(|value| Self { value })
+            .map(|value| Self { litstr, value })
     }
 }

@@ -1,7 +1,7 @@
 use plotline_proto::plugin;
 
 /// PluginKind determines the kind of a plugin.
-#[derive(PartialEq, Eq, Clone, strum_macros::EnumString, strum_macros::VariantNames)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum PluginKind {
     /// Plugins of this kind will be executed before saving an experience. Its
     /// result will indicate whether the experience is suitable to be saved or

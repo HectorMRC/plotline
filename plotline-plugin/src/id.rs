@@ -29,7 +29,6 @@ impl AsRef<str> for PluginId {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;

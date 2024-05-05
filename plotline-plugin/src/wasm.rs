@@ -1,7 +1,7 @@
-use crate::{Plugin, PluginId, PluginKind};
+use crate::{Plugin, PluginId, PluginKind, PluginVersion, RunPluginResult};
 use byteorder::{LittleEndian, ReadBytesExt};
 use plotline::id::Indentify;
-use plotline_proto::plugin::{GetPluginId, GetPluginKind};
+use plotline_proto::plugin::{GetPluginId, GetPluginKind, GetPluginVersion};
 use protobuf::Message;
 use std::{
     fs::File,
@@ -20,6 +20,7 @@ const PROGRAM_NAME: &str = "plugin";
 
 const ID_FUNCTION_KEY: &str = "id";
 const KIND_FUNCTION_KEY: &str = "kind";
+const VERSION_FUNCTION_KEY: &str = "version";
 const RUN_FUNCTION_KEY: &str = "run";
 
 const MEMORY_KEY: &str = "memory";
@@ -104,8 +105,7 @@ impl WasmPluginFactory {
 
         let id = PluginId::from_str(
             &WasmPlugin::call::<GetPluginId>(ID_FUNCTION_KEY, &mut engine.store, &instance)?.id,
-        )
-        .map_err(crate::Error::from)?;
+        )?;
 
         let kind = PluginKind::from(
             WasmPlugin::call::<GetPluginKind>(KIND_FUNCTION_KEY, &mut engine.store, &instance)?
@@ -114,11 +114,17 @@ impl WasmPluginFactory {
                 .map_err(|_| crate::Error::NotAPluginKind)?,
         );
 
+        let version = PluginVersion::from_str(
+            &WasmPlugin::call::<GetPluginVersion>(VERSION_FUNCTION_KEY, &mut engine.store, &instance)?
+                .version,
+        )?;
+
         Ok(WasmPlugin {
             engine: self.engine.clone(),
             instance,
             id,
             kind,
+            version
         })
     }
 
@@ -137,6 +143,7 @@ pub struct WasmPlugin {
     instance: Instance,
     id: PluginId,
     kind: PluginKind,
+    version: PluginVersion,
 }
 
 impl Indentify for WasmPlugin {
@@ -148,11 +155,15 @@ impl Indentify for WasmPlugin {
 }
 
 impl Plugin for WasmPlugin {
-    fn kind(&self) -> crate::PluginKind {
+    fn kind(&self) -> PluginKind {
         self.kind.clone()
     }
 
-    fn run(&self, input: &[u8]) -> crate::RunPluginResult {
+    fn version(&self) -> PluginVersion {
+        self.version.clone()
+    }
+
+    fn run(&self, input: &[u8]) -> RunPluginResult {
         self.execute(input).map_err(|err| err.to_string())
     }
 }

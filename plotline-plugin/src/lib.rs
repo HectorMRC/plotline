@@ -24,6 +24,8 @@ use plotline::id::Indentify;
 pub trait Plugin: Indentify<Id = PluginId> + Sync + Send {
     /// Identifies the kind of the plugin.
     fn kind(&self) -> PluginKind;
+    /// Determines the current version of the plugin.
+    fn version(&self) -> PluginVersion;
     /// Executes the corresponding action passing its input encoded in bytes.
     fn run(&self, input: &[u8]) -> RunPluginResult;
 }
