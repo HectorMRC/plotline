@@ -12,6 +12,7 @@ version     = "0.1.0"
 futures       = "0.3.30"
 serde         = { version = "1.0.195", features = ["derive", "rc"] } # data parser
 thiserror     = "1.0.56"
+tracing       = "0.1.40"
 trait-variant = "0.1.2"
 uuid          = { version = "1.8.0", features = ["v4"] }
 

@@ -19,6 +19,8 @@ use std::{
     str::FromStr,
     sync::Arc,
 };
+use tracing::{debug, error, info, warn, Level};
+use tracing_subscriber;
 
 const ENV_PLOTFILE: &str = "PLOTFILE";
 const ENV_PLUGINS: &str = "PLUGINS";
@@ -73,7 +75,7 @@ struct Cli {
 
     /// Do not print progress bars.
     #[arg(global = true, short, long)]
-    quiet: bool,
+    verbose: bool,
 }
 
 /// Returns the value of the result if, and only if, the result is OK.
@@ -84,15 +86,28 @@ where
     E: Display,
 {
     match result {
-        Err(error) => clap::Error::raw(ErrorKind::Io, format!("{error}\n")).exit(),
+        Err(error) => {
+            error!(error = error.to_string(), "Aborting");
+            clap::Error::raw(ErrorKind::Io, format!("{error}\n")).exit()
+        }
         Ok(value) => value,
     }
 }
 
 async fn snapshot_from_yaml(path: &Path) -> Snapshot {
     if !path.exists() {
+        warn!(
+            path = path.to_string_lossy().to_string(),
+            "Snapshot not found, using default"
+        );
+
         return Snapshot::default();
     }
+
+    info!(
+        path = path.to_string_lossy().to_string(),
+        "Loading snapshot"
+    );
 
     let f = unwrap_or_exit(File::open(path));
     let reader = BufReader::new(f);
@@ -100,6 +115,11 @@ async fn snapshot_from_yaml(path: &Path) -> Snapshot {
 }
 
 async fn snapshot_into_yaml(path: &Path, snapshot: &Snapshot) {
+    info!(
+        path = path.to_string_lossy().to_string(),
+        "Storing snapshot"
+    );
+
     let f = unwrap_or_exit(
         OpenOptions::new()
             .write(true)
@@ -132,8 +152,15 @@ async fn plugins_from_dir(path: &Path) -> PluginStore<Period<Moment>> {
                 .extension()
                 .map(|ext| PluginExtension::from_str(&ext.to_string_lossy()))
             else {
+                debug!(
+                    path = path.to_string_lossy().to_string(),
+                    "Not a plugin, unknown extension:"
+                );
+
                 return;
             };
+
+            info!(path = path.to_string_lossy().to_string(), "Loading plugin");
 
             match extension {
                 PluginExtension::Wasm => {
@@ -146,9 +173,21 @@ async fn plugins_from_dir(path: &Path) -> PluginStore<Period<Moment>> {
     plugin_store
 }
 
+fn init_tracing(verbose: bool) {
+    let max_level = if verbose { Level::INFO } else { Level::ERROR };
+    let format = tracing_subscriber::fmt()
+        .without_time()
+        .with_target(false)
+        .with_max_level(max_level);
+
+    format.init();
+}
+
 #[tokio::main]
 async fn main() {
     let args = Cli::parse();
+
+    init_tracing(args.verbose);
 
     let (mut snapshot, plugins) = futures::join!(
         snapshot_from_yaml(&args.file),
