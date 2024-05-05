@@ -1,4 +1,4 @@
-use crate::{Plugin, PluginId, PluginKind, PluginVersion, RunPluginResult};
+use crate::{PluginId, PluginKind, PluginVersion, RawPlugin, RunPluginResult};
 use byteorder::{LittleEndian, ReadBytesExt};
 use plotline::id::Indentify;
 use plotline_proto::plugin::{GetPluginId, GetPluginKind, GetPluginVersion};
@@ -53,7 +53,11 @@ pub enum Error {
     #[error("{0}")]
     Io(#[from] std::io::Error),
     #[error("{0}")]
-    Plugin(#[from] crate::Error),
+    Id(#[from] plotline::id::Error),
+    #[error("{0}")]
+    Kind(#[from] crate::kind::Error),
+    #[error("{0}")]
+    Version(#[from] crate::version::Error),
     #[error("WASM engine may be corrupted")]
     Poison,
 }
@@ -107,12 +111,10 @@ impl WasmPluginFactory {
             &WasmPlugin::call::<GetPluginId>(ID_FUNCTION_KEY, &mut engine.store, &instance)?.id,
         )?;
 
-        let kind = PluginKind::from(
+        let kind = PluginKind::try_from(
             WasmPlugin::call::<GetPluginKind>(KIND_FUNCTION_KEY, &mut engine.store, &instance)?
-                .kind
-                .enum_value()
-                .map_err(|_| crate::Error::NotAPluginKind)?,
-        );
+                .kind,
+        )?;
 
         let version = PluginVersion::from_str(
             &WasmPlugin::call::<GetPluginVersion>(
@@ -158,7 +160,7 @@ impl Indentify for WasmPlugin {
     }
 }
 
-impl Plugin for WasmPlugin {
+impl RawPlugin for WasmPlugin {
     fn kind(&self) -> PluginKind {
         self.kind.clone()
     }

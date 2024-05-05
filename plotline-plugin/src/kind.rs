@@ -1,4 +1,11 @@
-use plotline_proto::plugin;
+use plotline_proto::plugin as proto;
+use protobuf::EnumOrUnknown;
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("invalid plugin kind")]
+    NotAKind,
+}
 
 /// PluginKind determines the kind of a plugin.
 #[derive(PartialEq, Eq, Clone)]
@@ -9,18 +16,29 @@ pub enum PluginKind {
     BeforeSaveExperience,
 }
 
-impl From<plugin::PluginKind> for PluginKind {
-    fn from(value: plugin::PluginKind) -> Self {
+impl From<proto::PluginKind> for PluginKind {
+    fn from(value: proto::PluginKind) -> Self {
         match value {
-            plugin::PluginKind::BeforeSaveExperience => PluginKind::BeforeSaveExperience,
+            proto::PluginKind::BeforeSaveExperience => PluginKind::BeforeSaveExperience,
         }
     }
 }
 
-impl From<PluginKind> for plugin::PluginKind {
+impl TryFrom<EnumOrUnknown<proto::PluginKind>> for PluginKind {
+    type Error = Error;
+
+    fn try_from(value: EnumOrUnknown<proto::PluginKind>) -> std::result::Result<Self, Self::Error> {
+        value
+            .enum_value()
+            .map(PluginKind::from)
+            .map_err(|_| Error::NotAKind)
+    }
+}
+
+impl From<PluginKind> for proto::PluginKind {
     fn from(value: PluginKind) -> Self {
         match value {
-            PluginKind::BeforeSaveExperience => plugin::PluginKind::BeforeSaveExperience,
+            PluginKind::BeforeSaveExperience => proto::PluginKind::BeforeSaveExperience,
         }
     }
 }

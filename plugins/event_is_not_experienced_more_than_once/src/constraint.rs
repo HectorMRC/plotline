@@ -2,11 +2,11 @@ use plotline::{
     experience::Experience,
     id::Indentify,
     interval::Interval,
-    plugin::{self, PluginError},
+    plugin::{self, OutputError},
 };
 
 /// An entity cannot experience an event more than once.
-pub const ALREADY_EXPERIENCED_ERROR: &str = "EventAlreadyExperienced";
+pub const ALREADY_EXPERIENCED_ERROR: &str = "event_already_experienced";
 
 pub struct EventIsNotExperiencedMoreThanOnce<'a, Intv> {
     subject: &'a Experience<Intv>,
@@ -22,10 +22,10 @@ where
         self
     }
 
-    pub fn result(&self) -> std::result::Result<(), PluginError> {
+    pub fn result(&self) -> std::result::Result<(), OutputError> {
         if self.already_experienced {
             return Err(
-                plugin::PluginError::new(ALREADY_EXPERIENCED_ERROR).with_message(format!(
+                plugin::OutputError::new(ALREADY_EXPERIENCED_ERROR).with_message(format!(
                     "the entity {} would be experiencing the event {} more than once",
                     self.subject.entity.id(),
                     self.subject.event.id(),

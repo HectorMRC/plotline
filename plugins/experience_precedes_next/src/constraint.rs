@@ -2,11 +2,11 @@ use plotline::{
     experience::{query::SelectNextExperience, Experience},
     id::Indentify,
     interval::Interval,
-    plugin::{self, PluginError},
+    plugin::{self, OutputError},
 };
 
 /// An experience cannot precede another experience which entity is not listed in the current one.
-pub const NOT_IN_NEXT_ERROR: &str = "NotInNextExperience";
+pub const NOT_IN_NEXT_ERROR: &str = "not_in_next_experience";
 
 pub struct ExperiencePrecedesNext<'a, Intv> {
     subject: &'a Experience<Intv>,
@@ -22,7 +22,7 @@ where
         self
     }
 
-    pub fn result(&self) -> std::result::Result<(), PluginError> {
+    pub fn result(&self) -> std::result::Result<(), OutputError> {
         let Some(next) = self.next.as_ref() else {
             return Ok(());
         };
@@ -37,7 +37,7 @@ where
         }
 
         Err(
-            plugin::PluginError::new(NOT_IN_NEXT_ERROR).with_message(format!(
+            plugin::OutputError::new(NOT_IN_NEXT_ERROR).with_message(format!(
                 "the experience {} belongs to the entity {} which is not listed in the experience",
                 self.subject.id(),
                 next.entity.id(),
@@ -64,7 +64,7 @@ mod tests {
         id::Id,
         moment::Moment,
         period::Period,
-        plugin::PluginError,
+        plugin::OutputError,
     };
 
     #[test]
@@ -73,7 +73,7 @@ mod tests {
             name: &'a str,
             experience: Experience<Period<Moment>>,
             timeline: Vec<Experience<Period<Moment>>>,
-            result: std::result::Result<(), PluginError>,
+            result: std::result::Result<(), OutputError>,
         }
 
         let const_entity = Entity::default().with_id(Id::default());
@@ -83,7 +83,7 @@ mod tests {
                 name: "experience does not precedes next",
                 experience: Experience::fixture([1, 1]),
                 timeline: vec![Experience::fixture([2, 2])],
-                result: Err(PluginError::new(NOT_IN_NEXT_ERROR)),
+                result: Err(OutputError::new(NOT_IN_NEXT_ERROR)),
             },
             Test {
                 name: "experience precedes next",

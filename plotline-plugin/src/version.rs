@@ -1,5 +1,10 @@
-use crate::Error;
 use std::{fmt::Display, str::FromStr};
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("{0}")]
+    NotAVersion(#[from] semver::Error),
+}
 
 /// PluginVersion represents the semantic version of a plugin.
 #[derive(Clone)]

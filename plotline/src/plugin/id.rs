@@ -1,5 +1,5 @@
-use crate::Error;
-use std::str::FromStr;
+use crate::id::Error;
+use std::{fmt::Display, str::FromStr};
 
 /// A PluginId uniquely identifies a plugin.
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -16,10 +16,16 @@ impl FromStr for PluginId {
         };
 
         if value.is_empty() || value.contains(is_invalid_char) {
-            return Err(Error::NotAnId);
+            return Err(Self::Err::NotAnId);
         }
 
         Ok(Self(value.to_string()))
+    }
+}
+
+impl Display for PluginId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -32,7 +38,7 @@ impl AsRef<str> for PluginId {
 #[cfg(test)]
 mod tests {
     use super::PluginId;
-    use crate::Error;
+    use crate::id::Error;
     use std::str::FromStr;
 
     #[test]

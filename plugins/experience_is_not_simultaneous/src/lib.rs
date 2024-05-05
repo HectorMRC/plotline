@@ -1,7 +1,7 @@
 mod constraint;
 pub use constraint::*;
 
-use plotline::{experience::Experience, moment::Moment, period::Period, plugin::PluginError};
+use plotline::{experience::Experience, moment::Moment, period::Period, plugin::OutputError};
 use plotline_plugin::PluginKind::BeforeSaveExperience;
 
 type Intv = Period<Moment>;
@@ -14,7 +14,7 @@ type Intv = Period<Moment>;
 fn main(
     subject: &Experience<Intv>,
     timeline: &[Experience<Intv>],
-) -> std::result::Result<(), PluginError> {
+) -> std::result::Result<(), OutputError> {
     timeline.iter().try_fold(
         ExperienceIsNotSimultaneous::new(subject),
         |constraint, experience| {

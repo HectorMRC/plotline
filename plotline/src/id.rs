@@ -8,6 +8,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("uuid: {0}")]
     Uuid(#[from] uuid::Error),
+    #[error("invalid id")]
+    NotAnId,
 }
 
 /// Indentify qualifies a resource of being uniquely identifiable.

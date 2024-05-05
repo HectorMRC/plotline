@@ -1,7 +1,7 @@
 mod plugin;
 use plugin::*;
 
-use plotline_plugin::PluginKind;
+use plotline_plugin::kind::PluginKind;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, ItemFn};

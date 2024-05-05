@@ -18,9 +18,6 @@ pub enum Error {
     Entity(#[from] crate::entity::Error),
     #[error("{0}")]
     Event(#[from] crate::event::Error),
-    #[error("{plugin_id}: {error_msg}")]
-    Plugin {
-        plugin_id: String,
-        error_msg: String,
-    },
+    #[error("{0}")]
+    Plugin(#[from] crate::plugin::Error),
 }

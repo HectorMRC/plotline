@@ -12,9 +12,9 @@ pub use find::*;
 use super::error::Result;
 use crate::{
     experience::Experience,
-    id::Id,
+    id::{Id, Indentify},
     interval::Interval,
-    plugin::{Command, PluginGroup},
+    plugin::{Plugin, PluginGroup, PluginId},
     transaction::Tx,
 };
 use std::sync::Arc;
@@ -30,7 +30,7 @@ pub trait ExperienceRepository {
     async fn delete(&self, id: Id<Experience<Self::Intv>>) -> Result<()>;
 }
 
-pub trait BeforeSaveExperience<'a, Intv>: Command<()> {
+pub trait BeforeSaveExperience<'a, Intv>: Indentify<Id = PluginId> + Plugin<()> {
     fn with_subject(self, subject: &'a Experience<Intv>) -> Self;
     fn with_timeline(self, timeline: &'a [&Experience<Intv>]) -> Self;
 }

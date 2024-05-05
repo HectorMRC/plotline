@@ -1,4 +1,4 @@
-use plotline_plugin::{PluginId, PluginKind, PluginVersion};
+use plotline_plugin::{kind::PluginKind, version::PluginVersion, PluginId};
 use std::str::FromStr;
 use syn::{
     parse::{Parse, ParseStream},

@@ -1,16 +1,16 @@
-use super::{Error, Plugin, PluginFlavor, PluginId, Result};
+use super::{Error, PluginFlavor, PluginId, RawPlugin, Result};
 use std::{collections::HashMap, marker::PhantomData, ops::Deref};
 
 /// A PluginStore holds all the available plugins.
 #[derive(Default)]
 pub struct PluginStore<Intv> {
-    plugins: HashMap<PluginId, Box<dyn Plugin>>,
+    plugins: HashMap<PluginId, Box<dyn RawPlugin>>,
     _interval: PhantomData<Intv>,
 }
 
 impl<Intv> PluginStore<Intv> {
     /// Adds a new plugin into the store.
-    pub fn add(&mut self, plugin: Box<dyn Plugin>) -> Result<()> {
+    pub fn add(&mut self, plugin: Box<dyn RawPlugin>) -> Result<()> {
         if self.plugins.contains_key(&plugin.id()) {
             return Err(Error::AlreadyExists);
         }

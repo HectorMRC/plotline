@@ -1,4 +1,4 @@
-use clap::{error::ErrorKind, Parser};
+use clap::Parser;
 use once_cell::sync::Lazy;
 use plotline::{
     entity::{application::EntityApplication, repository::InMemoryEntityRepository},
@@ -16,6 +16,7 @@ use std::{
     fs::{read_dir, File, OpenOptions},
     io::{BufReader, BufWriter, Write},
     path::{Path, PathBuf},
+    process,
     str::FromStr,
     sync::Arc,
 };
@@ -86,8 +87,8 @@ where
 {
     match result {
         Err(error) => {
-            error!(error = error.to_string(), "Aborting");
-            clap::Error::raw(ErrorKind::Io, format!("{error}\n")).exit()
+            error!(error = error.to_string(), "Aborting transaction");
+            process::exit(1)
         }
         Ok(value) => value,
     }

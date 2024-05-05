@@ -11,14 +11,10 @@ pub enum Error {
     AlreadyExists,
     #[error("plugin is not of the expected kind")]
     WrongKind,
-    #[error("invalid plugin kind")]
-    NotAPluginKind,
     #[error("field is missing: {0}")]
     MissingField(&'static str),
-    #[error("invalid plugin id")]
-    NotAnId,
-    #[error("invalid plugin version: {0}")]
-    NotAVersion(#[from] semver::Error),
+    #[error("{0}")]
+    Version(#[from] crate::version::Error),
     #[error("{0}")]
     Id(#[from] plotline::id::Error),
     #[error("{0}")]

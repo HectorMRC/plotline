@@ -2,7 +2,7 @@ use plotline::{
     experience::Experience,
     id::Indentify,
     interval::Interval,
-    plugin::{self, PluginError},
+    plugin::{self, OutputError},
 };
 
 /// An entity cannot experience simultaneous events.
@@ -25,10 +25,10 @@ where
         self
     }
 
-    pub fn result(&self) -> std::result::Result<(), PluginError> {
+    pub fn result(&self) -> std::result::Result<(), OutputError> {
         if let Some(conflict) = &self.conflict {
             return Err(
-                plugin::PluginError::new(SIMULTANEITY_ERROR)
+                plugin::OutputError::new(SIMULTANEITY_ERROR)
                     .with_message(
                         format!(
                             "the entity {} would be experiencing the event {} and the event {} (because of experience {}) simultaneously",
@@ -61,7 +61,7 @@ mod tests {
         experience::{Experience, Profile},
         moment::Moment,
         period::Period,
-        plugin::PluginError,
+        plugin::OutputError,
     };
 
     #[test]
@@ -70,7 +70,7 @@ mod tests {
             name: &'a str,
             experience: Experience<Period<Moment>>,
             with: Vec<Experience<Period<Moment>>>,
-            result: std::result::Result<(), PluginError>,
+            result: std::result::Result<(), OutputError>,
         }
 
         vec![
@@ -90,25 +90,25 @@ mod tests {
                 name: "experience with previous overlapping",
                 experience: Experience::fixture([1, 3]),
                 with: vec![Experience::fixture([0, 1]).with_profiles(vec![Profile::fixture()])],
-                result: Err(PluginError::new(SIMULTANEITY_ERROR)),
+                result: Err(OutputError::new(SIMULTANEITY_ERROR)),
             },
             Test {
                 name: "experience with partial overlapping",
                 experience: Experience::fixture([1, 3]),
                 with: vec![Experience::fixture([2, 2]).with_profiles(vec![Profile::fixture()])],
-                result: Err(PluginError::new(SIMULTANEITY_ERROR)),
+                result: Err(OutputError::new(SIMULTANEITY_ERROR)),
             },
             Test {
                 name: "experience with total overlapping",
                 experience: Experience::fixture([1, 3]),
                 with: vec![Experience::fixture([1, 3]).with_profiles(vec![Profile::fixture()])],
-                result: Err(PluginError::new(SIMULTANEITY_ERROR)),
+                result: Err(OutputError::new(SIMULTANEITY_ERROR)),
             },
             Test {
                 name: "experience with next overlapping",
                 experience: Experience::fixture([1, 3]),
                 with: vec![Experience::fixture([3, 4]).with_profiles(vec![Profile::fixture()])],
-                result: Err(PluginError::new(SIMULTANEITY_ERROR)),
+                result: Err(OutputError::new(SIMULTANEITY_ERROR)),
             },
             Test {
                 name: "experience with next",

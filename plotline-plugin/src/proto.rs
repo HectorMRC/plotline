@@ -1,24 +1,24 @@
 use crate::{Error, Result};
 use plotline::id::Indentify;
 use plotline::interval::{Interval, IntervalFactory};
-use plotline::plugin::PluginError;
+use plotline::plugin::OutputError;
 use plotline::{
     entity::Entity,
     event::Event,
     experience::{Experience, Profile},
 };
-use protobuf::MessageField;
 use std::collections::HashMap;
 use std::fmt::Display;
 
-mod proto {
+mod protobuf {
     pub use plotline_proto::model::*;
     pub use plotline_proto::plugin::*;
+    pub use protobuf::MessageField;
 }
 
 /// Returns the proto message for the given [Entity].
-pub fn from_entity(entity: &Entity) -> proto::Entity {
-    proto::Entity {
+pub fn from_entity(entity: &Entity) -> protobuf::Entity {
+    protobuf::Entity {
         id: entity.id().to_string(),
         name: entity.name.to_string(),
         ..Default::default()
@@ -26,7 +26,7 @@ pub fn from_entity(entity: &Entity) -> proto::Entity {
 }
 
 /// Returns the [Entity] contained in the proto message.
-pub fn into_entity(entity: &proto::Entity) -> Result<Entity> {
+pub fn into_entity(entity: &protobuf::Entity) -> Result<Entity> {
     Ok(Entity {
         id: entity.id.clone().try_into()?,
         name: entity.name.clone().try_into()?,
@@ -34,12 +34,12 @@ pub fn into_entity(entity: &proto::Entity) -> Result<Entity> {
 }
 
 /// Returns the proto message for the given [Interval].
-pub fn from_interval<Intv>(interval: &Intv) -> proto::Interval
+pub fn from_interval<Intv>(interval: &Intv) -> protobuf::Interval
 where
     Intv: Interval,
     Intv::Bound: Display,
 {
-    proto::Interval {
+    protobuf::Interval {
         lo: interval.lo().to_string(),
         hi: interval.hi().to_string(),
         ..Default::default()
@@ -47,7 +47,7 @@ where
 }
 
 /// Returns the [Interval] contained in the proto message.
-pub fn into_interval<Intv>(interval: &proto::Interval) -> Result<Intv>
+pub fn into_interval<Intv>(interval: &protobuf::Interval) -> Result<Intv>
 where
     Intv: IntervalFactory,
     Intv::Bound: TryFrom<String>,
@@ -65,21 +65,21 @@ where
 }
 
 /// Returns the proto message for the given [Event].
-pub fn from_event<Intv>(event: &Event<Intv>) -> proto::Event
+pub fn from_event<Intv>(event: &Event<Intv>) -> protobuf::Event
 where
     Intv: Interval,
     Intv::Bound: Display,
 {
-    proto::Event {
+    protobuf::Event {
         id: event.id().to_string(),
         name: event.name.to_string(),
-        interval: MessageField::some(from_interval(&event.interval)),
+        interval: protobuf::MessageField::some(from_interval(&event.interval)),
         ..Default::default()
     }
 }
 
 /// Returns the [Event] contained in the proto message.
-pub fn into_event<Intv>(event: &proto::Event) -> Result<Event<Intv>>
+pub fn into_event<Intv>(event: &protobuf::Event) -> Result<Event<Intv>>
 where
     Intv: IntervalFactory,
     Intv::Bound: TryFrom<String>,
@@ -97,13 +97,13 @@ where
 }
 
 /// Returns the proto message for the given [Profile].
-pub fn from_profile(profile: &Profile) -> proto::Profile {
-    proto::Profile {
-        entity: MessageField::some(from_entity(&profile.entity)),
+pub fn from_profile(profile: &Profile) -> protobuf::Profile {
+    protobuf::Profile {
+        entity: protobuf::MessageField::some(from_entity(&profile.entity)),
         values: profile
             .values
             .iter()
-            .map(|(key, value)| proto::KeyValue {
+            .map(|(key, value)| protobuf::KeyValue {
                 key: key.to_string(),
                 value: value.to_string(),
                 ..Default::default()
@@ -114,7 +114,7 @@ pub fn from_profile(profile: &Profile) -> proto::Profile {
 }
 
 /// Returns the [Profile] contained in the proto message.
-pub fn into_profile(profile: &proto::Profile) -> Result<Profile> {
+pub fn into_profile(profile: &protobuf::Profile) -> Result<Profile> {
     let Some(proto_entity) = &profile.entity.0 else {
         return Err(Error::MissingField("entity"));
     };
@@ -132,22 +132,22 @@ pub fn into_profile(profile: &proto::Profile) -> Result<Profile> {
 }
 
 /// Returns the proto message for the given [Experience].
-pub fn from_experience<Intv>(experience: &Experience<Intv>) -> proto::Experience
+pub fn from_experience<Intv>(experience: &Experience<Intv>) -> protobuf::Experience
 where
     Intv: Interval,
     Intv::Bound: Display,
 {
-    proto::Experience {
+    protobuf::Experience {
         id: experience.id().to_string(),
-        entity: MessageField::some(from_entity(&experience.entity)),
-        event: MessageField::some(from_event(&experience.event)),
+        entity: protobuf::MessageField::some(from_entity(&experience.entity)),
+        event: protobuf::MessageField::some(from_event(&experience.event)),
         profiles: experience.profiles.iter().map(from_profile).collect(),
         ..Default::default()
     }
 }
 
 /// Returns the [Experience] contained in the proto message.
-pub fn into_experience<Intv>(experience: &proto::Experience) -> Result<Experience<Intv>>
+pub fn into_experience<Intv>(experience: &protobuf::Experience) -> Result<Experience<Intv>>
 where
     Intv: IntervalFactory,
     Intv::Bound: TryFrom<String>,
@@ -174,8 +174,8 @@ where
 }
 
 /// Returns the proto message for the given [PluginError].
-pub fn from_error(error: &PluginError) -> proto::PluginError {
-    proto::PluginError {
+pub fn from_error(error: &OutputError) -> protobuf::PluginError {
+    protobuf::PluginError {
         code: error.code.clone(),
         message: error.message.clone(),
         ..Default::default()

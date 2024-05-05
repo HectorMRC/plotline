@@ -107,7 +107,8 @@ where
             .before_save_experience()
             .map(|plugin| plugin.with_subject(&experience).with_timeline(&timeline))
             .execute()
-            .await;
+            .await
+            .result()?;
 
         self.experience_repo.create(&experience).await?;
         Ok(())

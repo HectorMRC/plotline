@@ -3,12 +3,12 @@ use plotline::{
     experience::{query::SelectPreviousExperience, Experience},
     id::{Id, Indentify},
     interval::Interval,
-    plugin::PluginError,
+    plugin::OutputError,
 };
 use std::collections::HashSet;
 
 /// An experience cannot belong to an entity not listed in the previous experience.
-pub const NOT_IN_PREVIOUS_ERROR: &str = "NotInPreviousExperience";
+pub const NOT_IN_PREVIOUS_ERROR: &str = "not_in_previous_experience";
 
 pub struct ExperienceFollowsPrevious<'a, Intv> {
     subject: &'a Experience<Intv>,
@@ -24,7 +24,7 @@ where
         self
     }
 
-    pub fn result(&self) -> std::result::Result<(), PluginError> {
+    pub fn result(&self) -> std::result::Result<(), OutputError> {
         let Some(previous) = self.previous.as_ref() else {
             return Ok(());
         };
@@ -38,7 +38,7 @@ where
         }
 
         Err(
-            PluginError::new(NOT_IN_PREVIOUS_ERROR)
+            OutputError::new(NOT_IN_PREVIOUS_ERROR)
                 .with_message(
                     format!(
                         "the experience belongs to the entity {} which is not listed in the previous experience {}",
@@ -68,7 +68,7 @@ mod tests {
         id::Id,
         moment::Moment,
         period::Period,
-        plugin::PluginError,
+        plugin::OutputError,
     };
 
     #[test]
@@ -77,7 +77,7 @@ mod tests {
             name: &'a str,
             experience: Experience<Period<Moment>>,
             timeline: Vec<Experience<Period<Moment>>>,
-            result: std::result::Result<(), PluginError>,
+            result: std::result::Result<(), OutputError>,
         }
 
         let const_entity = Entity::default().with_id(Id::default());
@@ -87,7 +87,7 @@ mod tests {
                 name: "experience does not belongs to one of previous",
                 experience: Experience::fixture([1, 1]),
                 timeline: vec![Experience::fixture([0, 0])],
-                result: Err(PluginError::new(NOT_IN_PREVIOUS_ERROR)),
+                result: Err(OutputError::new(NOT_IN_PREVIOUS_ERROR)),
             },
             Test {
                 name: "experience belongs to one previous",
