@@ -20,7 +20,6 @@ use std::{
     sync::Arc,
 };
 use tracing::{debug, error, info, warn, Level};
-use tracing_subscriber;
 
 const ENV_PLOTFILE: &str = "PLOTFILE";
 const ENV_PLUGINS: &str = "PLUGINS";
