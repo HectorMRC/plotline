@@ -174,12 +174,11 @@ async fn plugins_from_dir(path: &Path) -> PluginStore<Period<Moment>> {
 
 fn init_tracing(verbose: bool) {
     let max_level = if verbose { Level::INFO } else { Level::ERROR };
-    let format = tracing_subscriber::fmt()
+    tracing_subscriber::fmt()
         .without_time()
         .with_target(false)
-        .with_max_level(max_level);
-
-    format.init();
+        .with_max_level(max_level)
+        .init();
 }
 
 #[tokio::main]
