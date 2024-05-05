@@ -1,11 +1,11 @@
-use std::fmt::Display;
 use prettytable::{format::consts::FORMAT_CLEAN, Table};
+use std::fmt::Display;
 
 /// Prevents a [DisplayTable] to implement [Display] as long as the with_format
 /// method is not called.
 pub struct NoFormatFn;
 
-/// Displays the inner data into a table. 
+/// Displays the inner data into a table.
 pub struct DisplayTable<'a, T, FormatFn> {
     item: &'a T,
     format_fn: FormatFn,

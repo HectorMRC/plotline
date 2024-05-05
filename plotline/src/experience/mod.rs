@@ -14,7 +14,8 @@ use crate::{
     entity::Entity,
     event::Event,
     id::{Id, Indentify},
-    interval::Interval, macros,
+    interval::Interval,
+    macros,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -42,6 +43,11 @@ impl<Intv> Indentify for Experience<Intv> {
 }
 
 impl<Intv> Experience<Intv> {
+    pub fn with_entity(mut self, entity: Entity) -> Self {
+        self.entity = entity;
+        self
+    }
+
     pub fn with_profiles(mut self, profiles: Vec<Profile>) -> Self {
         self.profiles = profiles;
         self

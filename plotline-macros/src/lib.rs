@@ -15,7 +15,7 @@ pub fn plugin(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let plugin_closure = match kind.value {
         PluginKind::BeforeSaveExperience => quote! {
-            |input: plotline_proto::plugin::BeforeSaveExperienceInput| -> plotline_proto::plugin::BeforeSaveExperienceOutput {
+            |input: plotline_proto::plugin::BeforeSaveExperienceInput| {
                 let subject = plotline_plugin::proto::into_experience(&input.subject).unwrap();
                 let timeline = input.timeline.iter()
                     .map(|experience| {
@@ -25,7 +25,12 @@ pub fn plugin(args: TokenStream, input: TokenStream) -> TokenStream {
 
                 match #input_ident(&subject, &timeline) {
                     Ok(()) => Default::default(),
-                    Err(err) => err.into()
+                    Err(err) => plotline_proto::plugin::BeforeSaveExperienceOutput {
+                        error: protobuf::MessageField::some(
+                            plotline_plugin::proto::from_error(&err)
+                        ),
+                        ..Default::default()
+                    }
                 }
             }
         },

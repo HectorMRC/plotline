@@ -1,15 +1,20 @@
 use crate::{Error, Result};
 use plotline::id::Indentify;
 use plotline::interval::{Interval, IntervalFactory};
+use plotline::plugin::PluginError;
 use plotline::{
     entity::Entity,
     event::Event,
     experience::{Experience, Profile},
 };
-use plotline_proto::model as proto;
 use protobuf::MessageField;
 use std::collections::HashMap;
 use std::fmt::Display;
+
+mod proto {
+    pub use plotline_proto::model::*;
+    pub use plotline_proto::plugin::*;
+}
 
 /// Returns the proto message for the given [Entity].
 pub fn from_entity(entity: &Entity) -> proto::Entity {
@@ -166,4 +171,13 @@ where
             .map(into_profile)
             .collect::<Result<Vec<_>>>()?,
     })
+}
+
+/// Returns the proto message for the given [PluginError].
+pub fn from_error(error: &PluginError) -> proto::PluginError {
+    proto::PluginError {
+        code: error.code.clone(),
+        message: error.message.clone(),
+        ..Default::default()
+    }
 }

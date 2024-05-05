@@ -1,5 +1,5 @@
-use std::str::FromStr;
 use crate::Error;
+use std::str::FromStr;
 
 /// A PluginId uniquely identifies a plugin.
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -31,9 +31,9 @@ impl AsRef<str> for PluginId {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
     use super::PluginId;
     use crate::Error;
+    use std::str::FromStr;
 
     #[test]
     fn plugin_id_from_string() {

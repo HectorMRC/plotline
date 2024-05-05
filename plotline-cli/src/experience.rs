@@ -1,7 +1,4 @@
-use crate::{
-    display::DisplayTable,
-    Error, Result,
-};
+use crate::{display::DisplayTable, Error, Result};
 use clap::{Args, Subcommand};
 use plotline::{
     entity::{application::EntityRepository, Entity},

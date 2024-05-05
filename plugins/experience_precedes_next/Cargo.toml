@@ -1,0 +1,19 @@
+[package]
+name = "experience_precedes_next"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+plotline        = { path = "../../plotline" }
+plotline-macros = { path = "../../plotline-macros" }
+plotline-plugin = { path = "../../plotline-plugin" }
+plotline-proto  = { path = "../../plotline-proto" }
+protobuf        = "3.4.0"
+
+[dev-dependencies]
+plotline = { path = "../../plotline", features = ["fixtures"] }
+
+[lib]
+crate-type = ["cdylib"]

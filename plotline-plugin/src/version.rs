@@ -1,5 +1,5 @@
-use std::{fmt::Display, str::FromStr};
 use crate::Error;
+use std::{fmt::Display, str::FromStr};
 
 /// PluginVersion represents the semantic version of a plugin.
 #[derive(Clone)]

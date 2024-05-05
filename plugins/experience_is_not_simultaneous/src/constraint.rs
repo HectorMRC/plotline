@@ -1,9 +1,12 @@
-use crate::error::Error;
-use plotline::{experience::Experience, id::Indentify, interval::Interval, plugin};
+use plotline::{
+    experience::Experience,
+    id::Indentify,
+    interval::Interval,
+    plugin::{self, PluginError},
+};
 
-/// The error code to be thrown when an experiences with an overlapping event
-/// with the subject's one is found.
-pub const SIMULTANEITY_ERROR: &str = "an_entity_cannot_experience_simultaneous_events";
+/// An entity cannot experience simultaneous events.
+pub const SIMULTANEITY_ERROR: &str = "SimultaneousEvents";
 
 pub struct ExperienceIsNotSimultaneous<'a, Intv> {
     subject: &'a Experience<Intv>,
@@ -22,20 +25,19 @@ where
         self
     }
 
-    pub fn result(&self) -> std::result::Result<(), Error> {
+    pub fn result(&self) -> std::result::Result<(), PluginError> {
         if let Some(conflict) = &self.conflict {
             return Err(
-                 plugin::PluginError::new(SIMULTANEITY_ERROR)
+                plugin::PluginError::new(SIMULTANEITY_ERROR)
                     .with_message(
                         format!(
-                            "the entity {} would be experiencing the event {} and the event {} (because of experience {}) simultaneously, which should be impossible.",
+                            "the entity {} would be experiencing the event {} and the event {} (because of experience {}) simultaneously",
                             self.subject.entity.id(),
                             self.subject.event.id(),
                             conflict.event.id(),
                             conflict.id()
                         )
                     )
-                    .into()
             );
         }
 
@@ -55,19 +57,12 @@ impl<'a, Intv> ExperienceIsNotSimultaneous<'a, Intv> {
 #[cfg(test)]
 mod tests {
     use super::{ExperienceIsNotSimultaneous, SIMULTANEITY_ERROR};
-    use crate::error::Error;
     use plotline::{
         experience::{Experience, Profile},
         moment::Moment,
         period::Period,
-        plugin,
+        plugin::PluginError,
     };
-
-    impl PartialEq for Error {
-        fn eq(&self, other: &Self) -> bool {
-            self.0.code == other.0.code
-        }
-    }
 
     #[test]
     fn experience_is_not_simultaneous() {
@@ -75,7 +70,7 @@ mod tests {
             name: &'a str,
             experience: Experience<Period<Moment>>,
             with: Vec<Experience<Period<Moment>>>,
-            result: std::result::Result<(), Error>,
+            result: std::result::Result<(), PluginError>,
         }
 
         vec![
@@ -95,25 +90,25 @@ mod tests {
                 name: "experience with previous overlapping",
                 experience: Experience::fixture([1, 3]),
                 with: vec![Experience::fixture([0, 1]).with_profiles(vec![Profile::fixture()])],
-                result: Err(plugin::PluginError::new(SIMULTANEITY_ERROR).into()),
+                result: Err(PluginError::new(SIMULTANEITY_ERROR)),
             },
             Test {
                 name: "experience with partial overlapping",
                 experience: Experience::fixture([1, 3]),
                 with: vec![Experience::fixture([2, 2]).with_profiles(vec![Profile::fixture()])],
-                result: Err(plugin::PluginError::new(SIMULTANEITY_ERROR).into()),
+                result: Err(PluginError::new(SIMULTANEITY_ERROR)),
             },
             Test {
                 name: "experience with total overlapping",
                 experience: Experience::fixture([1, 3]),
                 with: vec![Experience::fixture([1, 3]).with_profiles(vec![Profile::fixture()])],
-                result: Err(plugin::PluginError::new(SIMULTANEITY_ERROR).into()),
+                result: Err(PluginError::new(SIMULTANEITY_ERROR)),
             },
             Test {
                 name: "experience with next overlapping",
                 experience: Experience::fixture([1, 3]),
                 with: vec![Experience::fixture([3, 4]).with_profiles(vec![Profile::fixture()])],
-                result: Err(plugin::PluginError::new(SIMULTANEITY_ERROR).into()),
+                result: Err(PluginError::new(SIMULTANEITY_ERROR)),
             },
             Test {
                 name: "experience with next",

@@ -7,7 +7,7 @@ use plotline_plugin::PluginKind::BeforeSaveExperience;
 type Intv = Period<Moment>;
 
 #[plotline_macros::plugin(
-    id("experience_is_not_simultaneous"),
+    id("experience_precedes_next"),
     kind(BeforeSaveExperience),
     version("0.1.0")
 )]
@@ -15,15 +15,10 @@ fn main(
     subject: &Experience<Intv>,
     timeline: &[Experience<Intv>],
 ) -> std::result::Result<(), PluginError> {
-    timeline.iter().try_fold(
-        ExperienceIsNotSimultaneous::new(subject),
-        |constraint, experience| {
-            let constraint = constraint.with(experience);
-            constraint.result()?;
+    let constraint = timeline.iter().fold(
+        ExperiencePrecedesNext::new(subject),
+        |constraint, experience| constraint.with(experience),
+    );
 
-            Ok(constraint)
-        },
-    )?;
-
-    Ok(())
+    constraint.result()
 }

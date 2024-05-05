@@ -18,14 +18,14 @@ impl<'a, 'b, Intv> SelectPreviousExperience<'a, 'b, Intv>
 where
     Intv: Interval,
 {
-    pub fn with(mut self, experienced_event: &'b Experience<Intv>) -> Self {
-        self.add(experienced_event);
+    pub fn with(mut self, experience: &'b Experience<Intv>) -> Self {
+        self.add(experience);
         self
     }
 
-    pub fn add(&mut self, experienced_event: &'b Experience<Intv>) {
-        if experienced_event.event.hi() < self.event.lo() {
-            self.previous = cmp::max(self.previous, Some(experienced_event));
+    pub fn add(&mut self, experience: &'b Experience<Intv>) {
+        if experience.event.hi() < self.event.lo() {
+            self.previous = cmp::max(self.previous, Some(experience));
         }
     }
 }

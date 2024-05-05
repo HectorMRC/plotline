@@ -29,6 +29,12 @@ pub struct PluginError {
     pub message: String,
 }
 
+impl PartialEq for PluginError {
+    fn eq(&self, other: &Self) -> bool {
+        self.code == other.code
+    }
+}
+
 impl PluginError {
     pub fn new(code: impl AsRef<str>) -> Self {
         Self {

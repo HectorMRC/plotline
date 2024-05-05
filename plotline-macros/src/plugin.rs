@@ -95,9 +95,7 @@ impl Parse for PluginKindArg {
         let ident = content.parse::<Ident>()?;
         let value = match ident.to_string().as_str() {
             "BeforeSaveExperience" => PluginKind::BeforeSaveExperience,
-            other => return Err(input.error(format!(
-                "unknown plugin kind: {other}"
-            ))),
+            other => return Err(input.error(format!("unknown plugin kind: {other}"))),
         };
 
         Ok(Self { ident, value })

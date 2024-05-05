@@ -5,7 +5,10 @@ all: dist install clean
 
 dist:
 	@rustup target list | grep wasm32-wasi
+	@cargo build --package event_is_not_experienced_more_than_once --target wasm32-wasi --release
+	@cargo build --package experience_follows_previous --target wasm32-wasi --release
 	@cargo build --package experience_is_not_simultaneous --target wasm32-wasi --release
+	@cargo build --package experience_precedes_next --target wasm32-wasi --release
 
 	@mkdir -p /tmp/.plotline/plugins
 

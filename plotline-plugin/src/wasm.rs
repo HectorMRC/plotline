@@ -115,8 +115,12 @@ impl WasmPluginFactory {
         );
 
         let version = PluginVersion::from_str(
-            &WasmPlugin::call::<GetPluginVersion>(VERSION_FUNCTION_KEY, &mut engine.store, &instance)?
-                .version,
+            &WasmPlugin::call::<GetPluginVersion>(
+                VERSION_FUNCTION_KEY,
+                &mut engine.store,
+                &instance,
+            )?
+            .version,
         )?;
 
         Ok(WasmPlugin {
@@ -124,7 +128,7 @@ impl WasmPluginFactory {
             instance,
             id,
             kind,
-            version
+            version,
         })
     }
 
