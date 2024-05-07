@@ -20,9 +20,9 @@ impl Display for RawError {
     }
 }
 
-impl Into<ExecutionError> for RawError {
-    fn into(self) -> ExecutionError {
-        self.0.into()
+impl From<RawError> for ExecutionError {
+    fn from(value: RawError) -> Self {
+        value.0.into()
     }
 }
 
