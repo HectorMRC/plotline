@@ -1,5 +1,30 @@
-/// RunPluginResult represents the output or crashing cause of a plugin.
-pub type RunPluginResult = std::result::Result<Vec<u8>, String>;
+use std::fmt::{Debug, Display};
+use plotline::plugin::ExecutionError;
+
+/// RawResult represents the output of aplugin in binary format.
+pub type RawResult = std::result::Result<Vec<u8>, RawError>;
+
+/// RawError represents an error message comming from a [RawPlugin]
+/// implementation.
+pub struct RawError(String);
+
+impl From<String> for RawError {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl Display for RawError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
+impl Into<ExecutionError> for RawError {
+    fn into(self) -> ExecutionError {
+        self.0.into()
+    }
+}
 
 pub type Result<T> = std::result::Result<T, Error>;
 

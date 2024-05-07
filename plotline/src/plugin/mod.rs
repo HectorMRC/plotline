@@ -41,7 +41,7 @@ where
         self.plugins
             .iter()
             .fold(None, |base, plugin| match (base, plugin.result()) {
-                (Some(base_err), Err(err)) => Some(base_err.push(err)),
+                (Some(base_err), Err(err)) => Some(base_err.join(err)),
                 (None, Err(err)) | (Some(err), Ok(_)) => Some(err),
                 _ => None,
             })

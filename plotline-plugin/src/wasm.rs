@@ -1,4 +1,4 @@
-use crate::{PluginId, PluginKind, PluginVersion, RawPlugin, RunPluginResult};
+use crate::{PluginId, PluginKind, PluginVersion, RawError, RawPlugin, RawResult};
 use byteorder::{LittleEndian, ReadBytesExt};
 use plotline::id::Indentify;
 use plotline_proto::plugin::{GetPluginId, GetPluginKind, GetPluginVersion};
@@ -17,14 +17,11 @@ use wasmer::{
 use wasmer_wasix::{WasiEnv, WasiError, WasiFunctionEnv, WasiRuntimeError};
 
 const PROGRAM_NAME: &str = "plugin";
-
 const ID_FUNCTION_KEY: &str = "id";
 const KIND_FUNCTION_KEY: &str = "kind";
 const VERSION_FUNCTION_KEY: &str = "version";
 const RUN_FUNCTION_KEY: &str = "run";
-
 const MEMORY_KEY: &str = "memory";
-
 const HEAP_START: u32 = 0x110000;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -44,8 +41,7 @@ pub enum Error {
     #[error("{0}")]
     MemoryError(#[from] MemoryError),
     #[error("{0}")]
-    // Boxed because is too large
-    InstantiationError(#[from] Box<InstantiationError>),
+    InstantiationError(#[from] Box<InstantiationError>), // Boxed because is too large
     #[error("{0}")]
     RuntimeError(#[from] RuntimeError),
     #[error("{0}")]
@@ -65,6 +61,12 @@ pub enum Error {
 impl<T> From<PoisonError<T>> for Error {
     fn from(_: PoisonError<T>) -> Self {
         Error::Poison
+    }
+}
+
+impl From<Error> for RawError {
+    fn from(value: Error) -> Self {
+        value.to_string().into()
     }
 }
 
@@ -143,7 +145,7 @@ impl WasmPluginFactory {
     }
 }
 
-/// WasmPlugin implements the [Plugin] trait for any wasm module.
+/// WasmPlugin implements the [RawPlugin] trait for any wasm module.
 pub struct WasmPlugin {
     engine: Arc<Mutex<WasmEngine>>,
     instance: Instance,
@@ -169,8 +171,8 @@ impl RawPlugin for WasmPlugin {
         self.version.clone()
     }
 
-    fn run(&self, input: &[u8]) -> RunPluginResult {
-        self.execute(input).map_err(|err| err.to_string())
+    fn run(&self, input: &[u8]) -> RawResult {
+        self.execute(input).map_err(Into::into)
     }
 }
 

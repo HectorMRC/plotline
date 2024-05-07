@@ -12,8 +12,9 @@ use plotline_proto::plugin::{BeforeSaveExperienceInput, BeforeSaveExperienceOutp
 use protobuf::{Message, MessageField};
 use std::{fmt::Display, ops::Deref};
 
-/// A BeforeSaveExperiencePlugin is a plugin that is executed before saving an
-/// [Experience], determining if the experience is suitable to be saved or not.
+/// A BeforeSaveExperiencePlugin is a [Plugin] that is executed before saving
+/// an [Experience], determining if the experience is suitable to be saved or
+/// not.
 pub struct BeforeSaveExperiencePlugin<'a, Intv> {
     plugin: &'a dyn RawPlugin,
     subject: Option<&'a Experience<Intv>>,

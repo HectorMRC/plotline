@@ -61,6 +61,8 @@ impl Parse for PluginArgs {
         })
     }
 }
+
+/// The id of the plugin.
 pub struct PluginIdArg {
     pub litstr: LitStr,
     pub value: PluginId,
@@ -80,6 +82,7 @@ impl Parse for PluginIdArg {
     }
 }
 
+/// The kind of the plugin.
 pub struct PluginKindArg {
     pub ident: Ident,
     pub value: PluginKind,
@@ -102,6 +105,7 @@ impl Parse for PluginKindArg {
     }
 }
 
+/// The version of the plugin.
 pub struct PluginVersionArg {
     pub litstr: LitStr,
     pub value: PluginVersion,

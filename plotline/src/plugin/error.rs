@@ -3,6 +3,7 @@ use std::fmt::{Debug, Display};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// An Error that specifies the error source.
 #[derive(Debug, thiserror::Error, PartialEq, Eq, Clone)]
 pub enum Error {
     #[error("{plugin}: {error}")]
@@ -20,6 +21,8 @@ pub enum Error {
 }
 
 impl Error {
+    /// Returns a a builder function of [Error::Execution] for an specific
+    /// [PluginId].
     pub fn execution<T>(plugin: PluginId) -> impl FnOnce(T) -> Self
     where
         T: Into<ExecutionError>,
@@ -30,17 +33,8 @@ impl Error {
         }
     }
 
-    pub fn output<T>(plugin: PluginId) -> impl FnOnce(T) -> Self
-    where
-        T: Into<OutputError>,
-    {
-        |value: T| Self::Output {
-            plugin,
-            error: value.into(),
-        }
-    }
-
-    pub fn push(self, tail: Self) -> Self {
+    /// Joins self and tail within a single error instance.
+    pub fn join(self, tail: Self) -> Self {
         Error::Stack(match (self, tail) {
             (Error::Stack(mut head_errors), Error::Stack(tail_errors)) => {
                 head_errors.0.extend(tail_errors.0);
@@ -60,6 +54,7 @@ impl Error {
     }
 }
 
+/// ErrorStack is a collection of errors.
 #[derive(PartialEq, Eq, Clone)]
 pub struct ErrorStack(Vec<Error>);
 

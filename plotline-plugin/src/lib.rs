@@ -24,7 +24,7 @@ pub trait RawPlugin: Indentify<Id = PluginId> + Sync + Send {
     /// Determines the current version of the plugin.
     fn version(&self) -> version::PluginVersion;
     /// Executes the corresponding action passing its input encoded in bytes.
-    fn run(&self, input: &[u8]) -> RunPluginResult;
+    fn run(&self, input: &[u8]) -> RawResult;
 }
 
 /// A PluginFlavor represents a layer of abstraction between the generic form

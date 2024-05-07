@@ -1,3 +1,5 @@
+//! All the conversions between protobuf and the domain.
+
 use crate::{Error, Result};
 use plotline::id::Indentify;
 use plotline::interval::{Interval, IntervalFactory};
