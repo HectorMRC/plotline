@@ -20,7 +20,7 @@ const PROGRAM_NAME: &str = "plugin";
 const ID_FUNCTION_KEY: &str = "id";
 const KIND_FUNCTION_KEY: &str = "kind";
 const VERSION_FUNCTION_KEY: &str = "version";
-const RUN_FUNCTION_KEY: &str = "run";
+const FUNCTION_KEY_RUN: &str = "run";
 const MEMORY_KEY: &str = "memory";
 const HEAP_START: u32 = 0x110000;
 
@@ -80,7 +80,8 @@ pub struct WasmEngine {
 impl WasmEngine {
     pub fn new() -> Result<Self> {
         let mut store = Store::default();
-        let wasi_env = WasiEnv::builder(PROGRAM_NAME).finalize(&mut store)?;
+        let wasi_env = WasiEnv::builder(PROGRAM_NAME)
+            .finalize(&mut store)?;
 
         Ok(Self { store, wasi_env })
     }
@@ -184,7 +185,7 @@ impl WasmPlugin {
         let action = self
             .instance
             .exports
-            .get_typed_function::<u32, u32>(&engine.store, RUN_FUNCTION_KEY)?;
+            .get_typed_function::<u32, u32>(&engine.store, FUNCTION_KEY_RUN)?;
 
         let pointer = action.call(&mut engine.store, HEAP_START)?;
         Self::output(&engine.store, &self.instance, pointer)
@@ -226,7 +227,6 @@ impl WasmPlugin {
             .as_slice()
             .read_u32::<LittleEndian>()?;
 
-        println!(">>>>>>>>>>> {output_len} vs {}", view.data_size());
         Ok(WasmSlice::new(&view, pointer as u64 + 4, output_len as u64)?.read_to_vec()?)
     }
 }
