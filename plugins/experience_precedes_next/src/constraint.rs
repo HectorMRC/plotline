@@ -1,6 +1,5 @@
 use plotline::{
     experience::{query::SelectNextExperience, Experience},
-    id::Indentify,
     interval::Interval,
     plugin::{self, OutputError},
 };
@@ -36,13 +35,9 @@ where
             return Ok(());
         }
 
-        Err(
-            plugin::OutputError::new(NOT_IN_NEXT_ERROR).with_message(format!(
-                "the experience {} belongs to the entity {} which is not listed in the experience",
-                self.subject.id(),
-                next.entity.id(),
-            )),
-        )
+        Err(plugin::OutputError::new(NOT_IN_NEXT_ERROR).with_message(
+            "the experience belongs an entity which is not listed in the next experience",
+        ))
     }
 }
 

@@ -1,5 +1,5 @@
-use std::fmt::{Debug, Display};
 use plotline::plugin::ExecutionError;
+use std::fmt::{Debug, Display};
 
 /// RawResult represents the output of aplugin in binary format.
 pub type RawResult = std::result::Result<Vec<u8>, RawError>;

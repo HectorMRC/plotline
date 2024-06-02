@@ -103,6 +103,7 @@ where
 
         let timeline = experiences.iter().map(Deref::deref).collect::<Vec<_>>();
 
+        println!(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
         self.plugin_factory
             .before_save_experience()
             .map(|plugin| plugin.with_subject(&experience).with_timeline(&timeline))

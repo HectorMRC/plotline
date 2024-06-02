@@ -37,16 +37,9 @@ where
             return Ok(());
         }
 
-        Err(
-            OutputError::new(NOT_IN_PREVIOUS_ERROR)
-                .with_message(
-                    format!(
-                        "the experience belongs to the entity {} which is not listed in the previous experience {}",
-                        self.subject.entity.id(),
-                        previous.id()
-                    )
-                )
-        )
+        Err(OutputError::new(NOT_IN_PREVIOUS_ERROR).with_message(
+            "the experience belongs to an entity which is not listed in the previous experience",
+        ))
     }
 }
 

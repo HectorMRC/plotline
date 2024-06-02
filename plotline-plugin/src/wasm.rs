@@ -226,6 +226,7 @@ impl WasmPlugin {
             .as_slice()
             .read_u32::<LittleEndian>()?;
 
+        println!(">>>>>>>>>>> {output_len} vs {}", view.data_size());
         Ok(WasmSlice::new(&view, pointer as u64 + 4, output_len as u64)?.read_to_vec()?)
     }
 }

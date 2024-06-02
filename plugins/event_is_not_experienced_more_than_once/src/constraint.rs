@@ -1,6 +1,5 @@
 use plotline::{
     experience::Experience,
-    id::Indentify,
     interval::Interval,
     plugin::{self, OutputError},
 };
@@ -24,13 +23,8 @@ where
 
     pub fn result(&self) -> std::result::Result<(), OutputError> {
         if self.already_experienced {
-            return Err(
-                plugin::OutputError::new(ALREADY_EXPERIENCED_ERROR).with_message(format!(
-                    "the entity {} would be experiencing the event {} more than once",
-                    self.subject.entity.id(),
-                    self.subject.event.id(),
-                )),
-            );
+            return Err(plugin::OutputError::new(ALREADY_EXPERIENCED_ERROR)
+                .with_message("the entity would be experiencing the same event more than once"));
         }
 
         Ok(())
