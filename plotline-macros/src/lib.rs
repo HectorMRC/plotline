@@ -95,12 +95,12 @@ pub fn plugin(args: TokenStream, input: TokenStream) -> TokenStream {
                 Message::parse_from_bytes(slice).unwrap()
             };
 
+            #input_fn
+
             let call = #plugin_closure;
             let output = call(input);
 
             #plugin_output
         }
-
-        #input_fn
     })
 }

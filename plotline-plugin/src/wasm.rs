@@ -11,10 +11,9 @@ use std::{
     sync::{Arc, Mutex, PoisonError},
 };
 use wasmer::{
-    CompileError, ExportError, Instance, InstantiationError, MemoryAccessError, MemoryError,
-    Module, RuntimeError, Store, WasmSlice,
+    CompileError, ExportError, Instance, InstantiationError, MemoryAccessError, MemoryError, Module, RuntimeError, Store, WasmSlice
 };
-use wasmer_wasix::{WasiEnv, WasiError, WasiFunctionEnv, WasiRuntimeError};
+use wasmer_wasix::{WasiEnv, WasiError, WasiRuntimeError};
 
 const PROGRAM_NAME: &str = "plugin";
 const ID_FUNCTION_KEY: &str = "id";
@@ -70,66 +69,47 @@ impl From<Error> for RawError {
     }
 }
 
-/// A WasmEngine holds all the information about Wasm that may be shared
-/// between Wasm plugins.
-pub struct WasmEngine {
-    store: Store,
-    wasi_env: WasiFunctionEnv,
-}
-
-impl WasmEngine {
-    pub fn new() -> Result<Self> {
-        let mut store = Store::default();
-        let wasi_env = WasiEnv::builder(PROGRAM_NAME)
-            .finalize(&mut store)?;
-
-        Ok(Self { store, wasi_env })
-    }
-}
-
 /// WasmPluginFactory builds instances of [WasmPlugin] by injecting to it the
 /// same [WasmEngine].
+#[derive(Default)]
 pub struct WasmPluginFactory {
-    engine: Arc<Mutex<WasmEngine>>,
+    store: Arc<Mutex<Store>>,
 }
 
 impl WasmPluginFactory {
-    pub fn new() -> Result<Self> {
-        WasmEngine::new().map(|engine| Self {
-            engine: Arc::new(Mutex::new(engine)),
-        })
-    }
-
     pub fn from_bytes(&self, bytes: &[u8]) -> Result<WasmPlugin> {
-        let mut engine = self.engine.lock().map_err(|_| Error::Poison)?;
-        let module = Module::new(&engine.store, bytes)?;
-        let imports = engine
-            .wasi_env
-            .clone()
-            .import_object(&mut engine.store, &module)?;
+        let mut store = self.store.lock().map_err(|_| Error::Poison)?;
+        let module = Module::new(&store, bytes)?;
 
-        let instance = Instance::new(&mut engine.store, &module, &imports).map_err(Box::new)?;
+        let mut wasi_env = WasiEnv::builder(PROGRAM_NAME)
+            .finalize(&mut store)?;
+
+        let imports = wasi_env
+            .import_object(&mut store, &module)?;
+
+        let instance = Instance::new(&mut store, &module, &imports).map_err(Box::new)?;
+        wasi_env.initialize(&mut store, instance.clone())?;
 
         let id = PluginId::from_str(
-            &WasmPlugin::call::<GetPluginId>(ID_FUNCTION_KEY, &mut engine.store, &instance)?.id,
+            &WasmPlugin::call::<GetPluginId>(ID_FUNCTION_KEY, &mut store, &instance)?.id,
         )?;
 
         let kind = PluginKind::try_from(
-            WasmPlugin::call::<GetPluginKind>(KIND_FUNCTION_KEY, &mut engine.store, &instance)?
+            WasmPlugin::call::<GetPluginKind>(KIND_FUNCTION_KEY, &mut store, &instance)?
                 .kind,
         )?;
 
         let version = PluginVersion::from_str(
             &WasmPlugin::call::<GetPluginVersion>(
                 VERSION_FUNCTION_KEY,
-                &mut engine.store,
+                &mut store,
                 &instance,
             )?
             .version,
         )?;
 
         Ok(WasmPlugin {
-            engine: self.engine.clone(),
+            store: self.store.clone(),
             instance,
             id,
             kind,
@@ -148,7 +128,7 @@ impl WasmPluginFactory {
 
 /// WasmPlugin implements the [RawPlugin] trait for any wasm module.
 pub struct WasmPlugin {
-    engine: Arc<Mutex<WasmEngine>>,
+    store: Arc<Mutex<Store>>,
     instance: Instance,
     id: PluginId,
     kind: PluginKind,
@@ -179,16 +159,16 @@ impl RawPlugin for WasmPlugin {
 
 impl WasmPlugin {
     fn execute(&self, input: &[u8]) -> Result<Vec<u8>> {
-        let mut engine = self.engine.lock()?;
-        Self::input(&mut engine.store, &self.instance, input)?;
+        let mut store = self.store.lock()?;
+        Self::input(&mut store, &self.instance, input)?;
 
         let action = self
             .instance
             .exports
-            .get_typed_function::<u32, u32>(&engine.store, FUNCTION_KEY_RUN)?;
+            .get_typed_function::<u32, u32>(&store, FUNCTION_KEY_RUN)?;
 
-        let pointer = action.call(&mut engine.store, HEAP_START)?;
-        Self::output(&engine.store, &self.instance, pointer)
+        let pointer = action.call(&mut store, HEAP_START)?;
+        Self::output(&store, &self.instance, pointer)
     }
 
     fn call<T>(method: &str, store: &mut Store, instance: &Instance) -> Result<T>
@@ -227,6 +207,7 @@ impl WasmPlugin {
             .as_slice()
             .read_u32::<LittleEndian>()?;
 
+        eprintln!("OUTPUT LEN: {output_len}");
         Ok(WasmSlice::new(&view, pointer as u64 + 4, output_len as u64)?.read_to_vec()?)
     }
 }

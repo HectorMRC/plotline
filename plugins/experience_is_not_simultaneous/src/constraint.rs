@@ -1,6 +1,5 @@
 use plotline::{
     experience::Experience,
-    id::Indentify,
     interval::Interval,
     plugin::{self, OutputError},
 };
@@ -26,19 +25,11 @@ where
     }
 
     pub fn result(&self) -> std::result::Result<(), OutputError> {
-        if let Some(conflict) = &self.conflict {
+        if self.conflict.is_some() {
             return Err(
-                plugin::OutputError::new(SIMULTANEITY_ERROR).with_message(format!(
-                    "the entity {} would be experiencing the event {} and the event {} becaou {}",
-                    // self.subject.entity.id(),
-                    // self.subject.event.id(),
-                    // conflict.event.id(),
-                    // conflict.id()
-                    "6cacd57a-2480-469a-9464-154a1625004e",
-                    "920fef3c-32fd-44d7-a407-d39e623e480e",
-                    "920fef3c-32fd-44d7-a407-d39e623e480e",
-                    "49dd821e-b24e-46ab-99b3-d712ff58e160",
-                )),
+                plugin::OutputError::new(SIMULTANEITY_ERROR).with_message(
+                    "the entity would be experiencing two or more events simultaneously aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                ),
             );
         }
 

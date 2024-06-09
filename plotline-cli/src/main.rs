@@ -141,7 +141,7 @@ enum PluginExtension {
 
 async fn plugins_from_dir(path: &Path) -> PluginStore<Period<Moment>> {
     let mut plugin_store = PluginStore::<Period<Moment>>::default();
-    let wasm_plugin_builder = unwrap_or_exit(WasmPluginFactory::new());
+    let wasm_plugin_builder = WasmPluginFactory::default();
 
     unwrap_or_exit(read_dir(path))
         .filter_map(|path| path.ok())

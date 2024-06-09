@@ -11,7 +11,7 @@ type Intv = Period<Moment>;
     kind(BeforeSaveExperience),
     version("0.1.0")
 )]
-fn main(
+pub fn main(
     subject: &Experience<Intv>,
     timeline: &[Experience<Intv>],
 ) -> std::result::Result<(), OutputError> {
