@@ -28,7 +28,7 @@ where
         if self.conflict.is_some() {
             return Err(
                 plugin::OutputError::new(SIMULTANEITY_ERROR).with_message(
-                    "the entity would be experiencing two or more events simultaneously aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "the entity would be experiencing two or more events simultaneously",
                 ),
             );
         }
