@@ -6,10 +6,10 @@ all: dist install clean
 
 dist:
 	@rustup target list | grep ${WASM_TARGET}
-	# @cargo build --package event_is_not_experienced_more_than_once --target ${WASM_TARGET} --release
-	# @cargo build --package experience_follows_previous --target ${WASM_TARGET} --release
-	@cargo build --package experience_is_not_simultaneous --target ${WASM_TARGET} --release
-	# @cargo build --package experience_precedes_next --target ${WASM_TARGET} --release
+	
+	@for plugin in */; do  \
+		cargo build --package $${plugin///} --target ${WASM_TARGET} --release; \
+    done
 
 	@mkdir -p /tmp/.plotline/plugins
 
