@@ -1,5 +1,4 @@
-use plotline_plugin::{kind::PluginKind, version::PluginVersion, PluginId};
-use std::str::FromStr;
+use plotline_plugin::kind::PluginKind;
 use syn::{
     parse::{Parse, ParseStream},
     Ident, LitStr,
@@ -65,7 +64,6 @@ impl Parse for PluginArgs {
 /// The id of the plugin.
 pub struct PluginIdArg {
     pub litstr: LitStr,
-    pub value: PluginId,
 }
 
 impl Parse for PluginIdArg {
@@ -76,9 +74,7 @@ impl Parse for PluginIdArg {
         let _ = syn::parenthesized!(content in input);
 
         let litstr = content.parse::<LitStr>()?;
-        PluginId::from_str(&litstr.value())
-            .map_err(|err| input.error(err))
-            .map(|value| Self { litstr, value })
+        Ok(Self { litstr })
     }
 }
 
@@ -108,7 +104,6 @@ impl Parse for PluginKindArg {
 /// The version of the plugin.
 pub struct PluginVersionArg {
     pub litstr: LitStr,
-    pub value: PluginVersion,
 }
 
 impl Parse for PluginVersionArg {
@@ -119,8 +114,6 @@ impl Parse for PluginVersionArg {
         let _ = syn::parenthesized!(content in input);
 
         let litstr = content.parse::<LitStr>()?;
-        PluginVersion::from_str(&litstr.value())
-            .map_err(|err| input.error(err))
-            .map(|value| Self { litstr, value })
+        Ok(Self { litstr })
     }
 }
