@@ -1,21 +1,23 @@
 DIR ?= ~/.plotline
 PLUGINS_DIR ?= ${DIR}/plugins
+WASM_TARGET = wasm32-wasi
 
 all: dist install clean
 
 dist:
-	@rustup target list | grep wasm32-wasi
-	@cargo build --package event_is_not_experienced_more_than_once --target wasm32-wasi --release
-	@cargo build --package experience_follows_previous --target wasm32-wasi --release
-	@cargo build --package experience_is_not_simultaneous --target wasm32-wasi --release
-	@cargo build --package experience_precedes_next --target wasm32-wasi --release
+	@rustup target list | grep ${WASM_TARGET}
+	
+	@for plugin in */; do  \
+		cargo build --package $${plugin///} --target ${WASM_TARGET} --release; \
+    done
 
 	@mkdir -p /tmp/.plotline/plugins
 
-	@cp -f ../LICENSE ../target/wasm32-wasi/release/*.wasm /tmp/.plotline/plugins
+	@cp -f ../LICENSE ../target/${WASM_TARGET}/release/*.wasm /tmp/.plotline/plugins
 	@tar -czf plugins.tar.gz -C /tmp/.plotline/plugins .
 	
 	@rm -rf /tmp/.plotline/plugins
+	@rm -rf ../target/${WASM_TARGET}/release/*.wasm
 
 install:
 	@mkdir -p ${PLUGINS_DIR}

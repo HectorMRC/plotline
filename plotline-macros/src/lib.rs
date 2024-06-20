@@ -39,8 +39,7 @@ pub fn plugin(args: TokenStream, input: TokenStream) -> TokenStream {
     let plugin_output = quote! {
         let output_bytes = output.write_to_bytes().unwrap();
         let output_len = (output_bytes.len() as u32).to_le_bytes();
-        let output_bytes = [&output_len[..], &output_bytes].concat();
-        output_bytes.as_ptr()
+        [&output_len[..], &output_bytes].concat()
     };
 
     let plugin_id = id.litstr;
@@ -50,57 +49,85 @@ pub fn plugin(args: TokenStream, input: TokenStream) -> TokenStream {
     TokenStream::from(quote! {
         #[no_mangle]
         fn id() -> *const u8 {
-            use protobuf::Message;
+            let output = {
+                // block is needed to make sure scoped data is released before
+                // returning. Otherwise wasm heap may overflow.
 
-            let output = plotline_proto::plugin::GetPluginId {
-                id: #plugin_id.into(),
-                ..Default::default()
+                use protobuf::Message;
+
+                let output = plotline_proto::plugin::GetPluginId {
+                    id: #plugin_id.into(),
+                    ..Default::default()
+                };
+
+                #plugin_output
             };
 
-            #plugin_output
+            output.as_ptr()
         }
 
         #[no_mangle]
         fn kind() -> *const u8 {
-            use protobuf::{EnumOrUnknown, Message};
+            let output = {
+                // block is needed to make sure scoped data is released before
+                // returning. Otherwise wasm heap may overflow.
 
-            let output = plotline_proto::plugin::GetPluginKind {
-                kind: EnumOrUnknown::new(#plugin_kind.into()),
-                ..Default::default()
+                use protobuf::{EnumOrUnknown, Message};
+
+                let output = plotline_proto::plugin::GetPluginKind {
+                    kind: EnumOrUnknown::new(#plugin_kind.into()),
+                    ..Default::default()
+                };
+
+                #plugin_output
             };
 
-            #plugin_output
+            output.as_ptr()
         }
 
         #[no_mangle]
         fn version() -> *const u8 {
-            use protobuf::{EnumOrUnknown, Message};
+            let output = {
+                // block is needed to make sure scoped data is released before
+                // returning. Otherwise wasm heap may overflow.
 
-            let output = plotline_proto::plugin::GetPluginVersion {
-                version: #plugin_version.into(),
-                ..Default::default()
+                use protobuf::{EnumOrUnknown, Message};
+
+                let output = plotline_proto::plugin::GetPluginVersion {
+                    version: #plugin_version.into(),
+                    ..Default::default()
+                };
+
+                #plugin_output
             };
 
-            #plugin_output
+            output.as_ptr()
         }
 
         #[no_mangle]
         fn run(ptr: u32) -> *const u8 {
-            use protobuf::Message;
+            let output = {
+                // block is needed to make sure scoped data is released before
+                // returning. Otherwise wasm heap may overflow.
+                
+                use protobuf::Message;
 
-            let input = unsafe {
-                let len = *(ptr as *const u32);
-                let bytes = (ptr + 4) as *const u8;
-                let slice = core::slice::from_raw_parts(bytes, len as usize);
-                Message::parse_from_bytes(slice).unwrap()
+                let input = unsafe {
+                    let len = *(ptr as *const u32);
+                    let bytes = (ptr + 4) as *const u8;
+                    let slice = core::slice::from_raw_parts(bytes, len as usize);
+                    Message::parse_from_bytes(slice).unwrap()
+                };
+
+                #input_fn
+
+                let call = #plugin_closure;
+                let output = call(input);
+
+                #plugin_output
             };
 
-            let call = #plugin_closure;
-            let output = call(input);
-
-            #plugin_output
+            output.as_ptr()
         }
-
-        #input_fn
     })
 }
