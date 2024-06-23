@@ -32,13 +32,13 @@ where
 {
     type Bound = <Self as Interval>::Bound;
 
-    fn new(mut lo: Self::Bound, mut hi: Self::Bound) -> Self {
-        if lo > hi {
-            std::mem::swap(&mut lo, &mut hi);
-        }
+    // fn new(mut lo: Self::Bound, mut hi: Self::Bound) -> Self {
+    //     if lo > hi {
+    //         std::mem::swap(&mut lo, &mut hi);
+    //     }
 
-        Self { lo, hi }
-    }
+    //     Self { lo, hi }
+    // }
 }
 
 macros::interval_based_ord_for!(Period<M> where M: Bound);

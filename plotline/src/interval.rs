@@ -3,7 +3,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use std::cmp;
 
-/// A Bound represents the limit of an [Interval].
+/// A Bound represents one of the limits in an [Interval].
 pub trait Bound: Eq + Ord + Clone + Default {}
 impl<T> Bound for T where T: Eq + Ord + Clone + Default {}
 
@@ -31,11 +31,13 @@ pub trait Interval: Eq + Ord + Clone + Default {
     }
 }
 
+/// An IntervalFactory is a source of new intervals for a predefined type of
+/// [Bound].
 pub trait IntervalFactory {
     type Bound: Bound;
 
-    /// Builds an interval with the given boundaries.
-    fn new(lo: Self::Bound, hi: Self::Bound) -> Self;
+    // /// Builds an interval with the given boundaries.
+    // fn new(lo: Self::Bound, hi: Self::Bound) -> Self;
 }
 
 /// A Node is the minimum unit of information in an interval search tree.
@@ -98,8 +100,8 @@ where
         }
     }
 
-    /// Returns true if, and only if, there is an interval in the tree that intersects the
-    /// given one.
+    /// Returns true if, and only if, there is an interval in the tree that
+    /// intersects the given one.
     pub fn _intersects(&self, interval: &Intv) -> bool {
         if self.value.intersects(interval) {
             return true;
@@ -122,7 +124,8 @@ where
         left._intersects(interval)
     }
 
-    /// Calls the given closure for each interval in the tree overlapping the given one.
+    /// Calls the given closure for each interval in the tree overlapping the
+    /// given one.
     pub fn _for_each_intersection<F>(&self, interval: &Intv, mut f: F)
     where
         F: FnMut(&Intv),
