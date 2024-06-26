@@ -1,3 +1,4 @@
+pub mod document;
 pub mod entity;
 pub mod event;
 pub mod experience;
@@ -7,6 +8,8 @@ pub mod moment;
 pub mod name;
 pub mod period;
 pub mod plugin;
+pub mod property;
+pub mod tag;
 
 mod macros;
 #[cfg(feature = "in_memory")]

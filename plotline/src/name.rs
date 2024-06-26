@@ -9,7 +9,7 @@ pub enum Error {
     NotAName,
 }
 
-/// A Name identifies one or more resources.
+/// A Name is a single-line string that identifies one or more resources.
 #[derive(Debug, Clone)]
 pub struct Name<T> {
     name: String,
