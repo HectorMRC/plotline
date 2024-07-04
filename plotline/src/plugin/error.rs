@@ -1,11 +1,11 @@
 use super::PluginId;
 use std::fmt::{Debug, Display};
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, PluginError>;
 
-/// An Error that specifies the error source.
+/// A plugin error that specifies the error source.
 #[derive(Debug, thiserror::Error, PartialEq, Eq, Clone)]
-pub enum Error {
+pub enum PluginError {
     #[error("{plugin}: {error}")]
     Execution {
         plugin: PluginId,
@@ -20,7 +20,7 @@ pub enum Error {
     Stack(ErrorStack),
 }
 
-impl Error {
+impl PluginError {
     /// Returns a a builder function of [Error::Execution] for an specific
     /// [PluginId].
     pub fn execution<T>(plugin: PluginId) -> impl FnOnce(T) -> Self
@@ -35,16 +35,16 @@ impl Error {
 
     /// Joins self and tail within a single error instance.
     pub fn join(self, tail: Self) -> Self {
-        Error::Stack(match (self, tail) {
-            (Error::Stack(mut head_errors), Error::Stack(tail_errors)) => {
+        PluginError::Stack(match (self, tail) {
+            (PluginError::Stack(mut head_errors), PluginError::Stack(tail_errors)) => {
                 head_errors.0.extend(tail_errors.0);
                 head_errors
             }
-            (Error::Stack(mut head_errors), tail_error) => {
+            (PluginError::Stack(mut head_errors), tail_error) => {
                 head_errors.0.push(tail_error);
                 head_errors
             }
-            (head_error, Error::Stack(tail_errors)) => {
+            (head_error, PluginError::Stack(tail_errors)) => {
                 let mut tmp = vec![head_error];
                 tmp.extend(tail_errors.0);
                 ErrorStack(tmp)
@@ -56,7 +56,7 @@ impl Error {
 
 /// ErrorStack is a collection of errors.
 #[derive(PartialEq, Eq, Clone)]
-pub struct ErrorStack(Vec<Error>);
+pub struct ErrorStack(Vec<PluginError>);
 
 impl Debug for ErrorStack {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

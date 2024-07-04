@@ -1,5 +1,10 @@
-use crate::id::Error;
 use std::{fmt::Display, str::FromStr};
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("not a plugin id")]
+    NotAnId
+}
 
 /// A PluginId uniquely identifies a plugin.
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -11,8 +16,7 @@ impl FromStr for PluginId {
     /// A PluginId must consist of a single word string.
     fn from_str(value: &str) -> std::result::Result<Self, Self::Err> {
         let is_invalid_char = |c: char| -> bool {
-            const INVALID_CHARS: [char; 3] = ['\n', '\r', ' '];
-            !c.is_ascii() || INVALID_CHARS.contains(&c)
+            !c.is_ascii() || c.is_whitespace()
         };
 
         if value.is_empty() || value.contains(is_invalid_char) {
@@ -37,8 +41,7 @@ impl AsRef<str> for PluginId {
 
 #[cfg(test)]
 mod tests {
-    use super::PluginId;
-    use crate::id::Error;
+    use super::{PluginId, Error};
     use std::str::FromStr;
 
     #[test]

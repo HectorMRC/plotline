@@ -5,9 +5,10 @@ mod error;
 pub use error::*;
 use tracing::info;
 
-use crate::id::Indentify;
 use futures::future;
 use std::marker::PhantomData;
+
+use crate::id::Indentify;
 
 /// A command represents whatever that can be executed and may
 /// return a value as result.

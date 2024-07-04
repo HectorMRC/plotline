@@ -1,71 +1,18 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt::Display, marker::PhantomData, str::FromStr};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, PartialEq, thiserror::Error)]
 pub enum Error {
-    #[error("invalid name")]
+    #[error("a name cannot be empty or contain more than one line")]
     NotAName,
 }
 
-/// A Name is a single-line string that identifies one or more resources.
-#[derive(Debug, Clone)]
+/// Represents a single-line string that identifies one or more resources.
+#[derive(Debug)]
 pub struct Name<T> {
-    name: String,
+    value: String,
     _marker: PhantomData<T>,
-}
-
-impl<T> Serialize for Name<T> {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.name)
-    }
-}
-
-impl<'de, T> Deserialize<'de> for Name<T> {
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        use serde::de::Error;
-
-        String::deserialize(deserializer)
-            .map(|name| Self {
-                name,
-                _marker: PhantomData,
-            })
-            .map_err(Error::custom)
-    }
-}
-
-impl<T> Eq for Name<T> {}
-impl<T> PartialEq for Name<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-    }
-}
-
-impl<T> AsRef<str> for Name<T> {
-    fn as_ref(&self) -> &str {
-        &self.name
-    }
-}
-
-impl<T> Display for Name<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
-    }
-}
-
-impl<T> TryFrom<String> for Name<T> {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self> {
-        Name::from_str(&value)
-    }
 }
 
 impl<T> FromStr for Name<T> {
@@ -83,19 +30,37 @@ impl<T> FromStr for Name<T> {
         }
 
         Ok(Self {
-            name: value.to_string(),
+            value: value.to_string(),
             _marker: PhantomData,
         })
     }
 }
 
-impl<T> Default for Name<T> {
-    /// Returns the "no name" name.
-    fn default() -> Self {
+impl<T> AsRef<str> for Name<T> {
+    fn as_ref(&self) -> &str {
+        &self.value
+    }
+}
+
+impl<T> Display for Name<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+impl<T> Clone for Name<T> {
+    fn clone(&self) -> Self {
         Self {
-            name: "no name".to_string(),
+            value: self.value.clone(),
             _marker: PhantomData,
         }
+    }
+}
+
+impl<T> Eq for Name<T> {}
+impl<T> PartialEq for Name<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
     }
 }
 
@@ -109,54 +74,54 @@ mod tests {
     fn name_from_string() {
         struct Test<'a> {
             name: &'a str,
-            entity_name: &'a str,
+            name_value: &'a str,
             must_fail: bool,
         }
 
         vec![
             Test {
                 name: "An emty string is not a valid name",
-                entity_name: "",
+                name_value: "",
                 must_fail: true,
             },
             Test {
                 name: "An string with line feed is not a valid name",
-                entity_name: "entity\nname",
+                name_value: "entity\nname",
                 must_fail: true,
             },
             Test {
                 name: "An string with carriage return is not a valid name",
-                entity_name: "entity\rname",
+                name_value: "entity\rname",
                 must_fail: true,
             },
             Test {
                 name: "An string with carriage return plus line feed is not a valid name",
-                entity_name: "entity\r\nname",
+                name_value: "entity\r\nname",
                 must_fail: true,
             },
             Test {
                 name: "An string with line feed plus carriage is not a valid name",
-                entity_name: "entity\n\rname",
+                name_value: "entity\n\rname",
                 must_fail: true,
             },
             Test {
                 name: "A multi word single line string is a valid name",
-                entity_name: "abc 123#[]-_*&^",
+                name_value: "abc 123#[]-_*&^",
                 must_fail: false,
             },
             Test {
                 name: "A single word string is a valid name",
-                entity_name: "abc123#[]-_*&^",
+                name_value: "abc123#[]-_*&^",
                 must_fail: false,
             },
         ]
         .into_iter()
         .for_each(|test| {
-            let result = Name::<()>::from_str(test.entity_name);
+            let result = Name::<()>::from_str(test.name_value);
             assert_eq!(result.is_err(), test.must_fail, "{}", test.name);
 
             match result {
-                Ok(name) => assert_eq!(name.as_ref(), test.entity_name, "{}", test.name),
+                Ok(name) => assert_eq!(name.as_ref(), test.name_value, "{}", test.name),
                 Err(err) => assert!(matches!(err, Error::NotAName), "{}", test.name),
             }
         });
