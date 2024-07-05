@@ -1,10 +1,5 @@
 [workspace]
 members  = [
-    "plotline",
-    # "plotline-cli", 
-    # "plotline-macros",
-    # "plotline-plugin", 
-    # "plotline-proto", 
-    # "plugins/*",
+    "alvidir",
 ]
 resolver = "2"

@@ -3,7 +3,7 @@ authors     = ["Hèctor Morales <hector.morales.carnice@gmail.com>"]
 description = "A plotline manager"
 edition     = "2021"
 license     = "MIT"
-name        = "plotline"
+name        = "alvidir"
 readme      = "../README.md"
 repository  = "https://github.com/hectormrc/plotline"
 version     = "0.1.0"
@@ -20,5 +20,5 @@ trait-variant = "0.1.2"
 fixtures = []
 
 [lib]
-name = "plotline"
+name = "alvidir"
 path = "src/lib.rs"
