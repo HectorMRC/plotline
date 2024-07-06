@@ -1,9 +1,15 @@
 mod syntactic_tree;
 pub use syntactic_tree::*;
 
+mod error;
+pub use error::*;
+
+#[cfg(feature = "proxy")]
+pub mod proxy;
+
 use crate::{graph::DirectedGraphNode, id::Identify, name::Name, property::Property, tag::Tag};
 
-// A private alias for internal usage.
+/// A private alias for internal usage.
 type DocumentId = Name<Document>;
 
 /// Represents a named syntactic tree.
@@ -33,27 +39,27 @@ impl Document {
 impl Identify for Document {
     type Id = Name<Self>;
 
-    fn id(&self) -> &Self::Id {
-        &self.name
+    fn id(&self) -> Self::Id {
+        self.name.clone()
     }
 }
 
 impl DirectedGraphNode for Document {
-    fn tags(&self) -> Vec<Tag> {
+    async fn tags(&self) -> Vec<Tag> {
         self.root
             .as_ref()
             .map(SyntacticTreeNode::tags)
             .unwrap_or_default()
     }
 
-    fn properties(&self) -> Vec<Property<Self::Id>> {
+    async fn properties(&self) -> Vec<Property<Self::Id>> {
         self.root
             .as_ref()
             .map(SyntacticTreeNode::properties)
             .unwrap_or_default()
     }
 
-    fn references(&self) -> Vec<Self::Id> {
+    async fn references(&self) -> Vec<Self::Id> {
         self.root
             .as_ref()
             .map(SyntacticTreeNode::references)

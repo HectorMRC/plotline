@@ -1,4 +1,4 @@
-use std::{fmt::Display, marker::PhantomData, str::FromStr};
+use std::{fmt::Display, hash::Hash, marker::PhantomData, str::FromStr};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -54,6 +54,12 @@ impl<T> Clone for Name<T> {
             value: self.value.clone(),
             _marker: PhantomData,
         }
+    }
+}
+
+impl<T> Hash for Name<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.value.hash(state);
     }
 }
 

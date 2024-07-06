@@ -1,19 +1,10 @@
 use std::vec::IntoIter;
 
-use crate::id::Identify;
 use crate::name::Name;
 use crate::property::Property;
 use crate::tag::Tag;
 
-use super::{Document, DocumentId};
-
-type SyntacticTreeResult<T> = std::result::Result<T, SyntacticTreeError>;
-
-#[derive(Debug, thiserror::Error)]
-enum SyntacticTreeError {
-    #[error("a line cannot contain non-terminal nodes")]
-    NotALineNode,
-}
+use super::{Document, DocumentId, Error, Result};
 
 /// Represents a set of [SyntacticTreeNode]s belonging to the same line in the
 /// [Document].
@@ -33,9 +24,9 @@ impl IntoIterator for Line {
 }
 
 impl Line {
-    fn with_node(mut self, node: SyntacticTreeNode) -> SyntacticTreeResult<Self> {
+    fn with_node(mut self, node: SyntacticTreeNode) -> Result<Self> {
         if !node.is_terminal() {
-            return Err(SyntacticTreeError::NotALineNode);
+            return Err(Error::NotALineNode);
         }
 
         self.nodes.push(node);
@@ -125,8 +116,8 @@ impl IntoIterator for Section {
 /// Represents a node in a syntactic tree.
 pub enum SyntacticTreeNode {
     Line(Line),
-    Property(Property<<Document as Identify>::Id>),
-    Reference(Name<Document>),
+    Property(Property<DocumentId>),
+    Reference(DocumentId),
     Section(Section),
     String(String),
     Tag(Tag),
@@ -169,5 +160,46 @@ impl SyntacticTreeNode {
             Self::Reference(name) => vec![name.clone()],
             _ => vec![],
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::document::{Error, Line, Result, Section, SyntacticTreeNode};
+
+    #[test]
+    fn line_with_node() {
+        struct Test {
+            name: &'static str,
+            node: SyntacticTreeNode,
+            result: Result<()>,
+        }
+
+        vec![
+            Test {
+                name: "non terminal node (section) should fail",
+                node: SyntacticTreeNode::Section(Section::default()),
+                result: Err(Error::NotALineNode),
+            },
+            Test {
+                name: "non terminal node (line) should fail",
+                node: SyntacticTreeNode::Line(Line::default()),
+                result: Err(Error::NotALineNode),
+            },
+            Test {
+                name: "terminal node should not fail",
+                node: SyntacticTreeNode::String(String::default()),
+                result: Ok(()),
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            assert_eq!(
+                Line::default().with_node(test.node).map(|_| ()),
+                test.result,
+                "{}",
+                test.name
+            );
+        })
     }
 }

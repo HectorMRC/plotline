@@ -1,6 +1,6 @@
 use super::Interval;
 
-/// Represents the minimum unit of information in an interval search tree.
+/// Represents a node in an interval search tree.
 #[derive(Debug, Clone, PartialEq)]
 struct IntervalSearchTreeNode<Intv>
 where
