@@ -118,9 +118,18 @@ pub enum SyntacticTreeNode {
     Line(Line),
     Property(Property<DocumentId>),
     Reference(DocumentId),
+    // The section node ensures the syntactic tree is standalone, which means
+    // an arbitrary tree can be built without other definitions but its own.
     Section(Section),
     String(String),
     Tag(Tag),
+}
+
+impl Default for SyntacticTreeNode {
+    /// The default [SyntacticTreeNode] is an empty [Section].
+    fn default() -> Self {
+        Self::Section(Default::default())
+    }
 }
 
 impl SyntacticTreeNode {
@@ -135,7 +144,7 @@ impl SyntacticTreeNode {
         }
     }
 
-    pub(crate) fn tags(&self) -> Vec<Tag> {
+    pub(super) fn tags(&self) -> Vec<Tag> {
         match self {
             Self::Line(internal_node) => internal_node.tags(),
             Self::Section(internal_node) => internal_node.tags(),
@@ -144,7 +153,7 @@ impl SyntacticTreeNode {
         }
     }
 
-    pub(crate) fn properties(&self) -> Vec<Property<DocumentId>> {
+    pub(super) fn properties(&self) -> Vec<Property<DocumentId>> {
         match self {
             Self::Line(internal_node) => internal_node.properties(),
             Self::Section(internal_node) => internal_node.properties(),
@@ -153,7 +162,7 @@ impl SyntacticTreeNode {
         }
     }
 
-    pub(crate) fn references(&self) -> Vec<DocumentId> {
+    pub(super) fn references(&self) -> Vec<DocumentId> {
         match self {
             Self::Line(internal_node) => internal_node.references(),
             Self::Section(internal_node) => internal_node.references(),

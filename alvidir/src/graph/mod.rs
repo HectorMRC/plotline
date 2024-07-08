@@ -1,48 +1,40 @@
 mod error;
-use std::collections::HashMap;
-
 pub use error::*;
 
-use crate::{id::Identify, property::Property, tag::Tag};
+use crate::{property::Property, tag::Tag};
+
+pub mod application;
+pub mod directed;
 
 #[trait_make::make]
-pub trait DirectedGraphNode: Identify {
-    /// Retrives all the tags in the node.
+pub trait Node {
+    /// The type to reference other nodes.
+    type Edge;
+
+    /// Returns all tags of the node.
     async fn tags(&self) -> Vec<Tag>;
-    /// Retrives all the properties of the node.
-    async fn properties(&self) -> Vec<Property<Self::Id>>;
-    /// Retrives all the references to other nodes.
-    async fn references(&self) -> Vec<Self::Id>;
-}
-
-/// Represents an arbitrary directed graph.
-struct DirectedGraph<Node>
-where 
-    Node: DirectedGraphNode
-{
-    /// All the nodes in the graph.
-    nodes: HashMap<Node::Id, Node>,
-}
-
-impl<Node> DirectedGraph<Node>
-where 
-    Node: DirectedGraphNode,
-{
-    pub fn with_node(mut self, node: Node) -> Self {
-        self.nodes.insert(node.id(), node);
-        self
-    }
+    /// Returns all properties of the node.
+    async fn properties(&self) -> Vec<Property<Self::Edge>>;
+    /// Returns all edges of the nodes.
+    async fn edges(&self) -> Vec<Self::Edge>;
 }
 
 #[cfg(any(test, features = "fixtures"))]
 pub mod fixtures {
-    use crate::id::Identify;
+    use std::str::FromStr;
 
-    use super::DirectedGraphNode;
+    use crate::{
+        id::Identify,
+        name::Name,
+        property::{Property, PropertyValue},
+        tag::Tag,
+    };
 
-    pub struct FakeDirectedGraphNode(usize);
+    use super::Node;
 
-    impl Identify for FakeDirectedGraphNode {
+    pub struct FakeNode(usize);
+
+    impl Identify for FakeNode {
         type Id = usize;
 
         fn id(&self) -> Self::Id {
@@ -50,31 +42,22 @@ pub mod fixtures {
         }
     }
 
-    impl DirectedGraphNode for FakeDirectedGraphNode {
-        async fn tags(&self) -> Vec<crate::tag::Tag> {
-            todo!()
+    impl Node for FakeNode {
+        type Edge = <Self as Identify>::Id;
+
+        async fn tags(&self) -> Vec<Tag> {
+            vec![Tag::from_str("fake").unwrap()]
         }
 
-        async fn properties(&self) -> Vec<crate::property::Property<Self::Id>> {
-            todo!()
+        async fn properties(&self) -> Vec<Property<Self::Edge>> {
+            vec![Property {
+                name: Name::from_str("fake").unwrap(),
+                value: PropertyValue::String("fake".to_string()),
+            }]
         }
 
-        async fn references(&self) -> Vec<Self::Id> {
-            todo!()
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::graph::{fixtures::FakeDirectedGraphNode, Result};
-
-    #[test]
-    fn add_node() {
-        struct Test {
-            name: &'static str,
-            node: FakeDirectedGraphNode,
-            result: Result<()>,
+        async fn edges(&self) -> Vec<Self::Edge> {
+            vec![0]
         }
     }
 }

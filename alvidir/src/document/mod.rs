@@ -4,20 +4,17 @@ pub use syntactic_tree::*;
 mod error;
 pub use error::*;
 
-#[cfg(feature = "proxy")]
-pub mod proxy;
-
-use crate::{graph::DirectedGraphNode, id::Identify, name::Name, property::Property, tag::Tag};
+use crate::{graph::Node, id::Identify, name::Name, property::Property, tag::Tag};
 
 /// A private alias for internal usage.
-type DocumentId = Name<Document>;
+type DocumentId = <Document as Identify>::Id;
 
 /// Represents a named syntactic tree.
 pub struct Document {
     /// The name of the document.
-    pub name: Name<Self>,
+    name: Name<Self>,
     /// The syntactic tree representing the document's content.
-    pub root: Option<SyntacticTreeNode>,
+    root: SyntacticTreeNode,
 }
 
 impl Document {
@@ -31,7 +28,7 @@ impl Document {
 
     /// Sets the given [SyntacticTreeNode] as the root of the document.
     pub fn with_root(mut self, root: SyntacticTreeNode) -> Self {
-        self.root = Some(root);
+        self.root = root;
         self
     }
 }
@@ -44,25 +41,18 @@ impl Identify for Document {
     }
 }
 
-impl DirectedGraphNode for Document {
+impl Node for Document {
+    type Edge = <Self as Identify>::Id;
+
     async fn tags(&self) -> Vec<Tag> {
-        self.root
-            .as_ref()
-            .map(SyntacticTreeNode::tags)
-            .unwrap_or_default()
+        self.root.tags()
     }
 
-    async fn properties(&self) -> Vec<Property<Self::Id>> {
-        self.root
-            .as_ref()
-            .map(SyntacticTreeNode::properties)
-            .unwrap_or_default()
+    async fn properties(&self) -> Vec<Property<Self::Edge>> {
+        self.root.properties()
     }
 
-    async fn references(&self) -> Vec<Self::Id> {
-        self.root
-            .as_ref()
-            .map(SyntacticTreeNode::references)
-            .unwrap_or_default()
+    async fn edges(&self) -> Vec<Self::Edge> {
+        self.root.references()
     }
 }

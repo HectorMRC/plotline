@@ -9,20 +9,14 @@ repository  = "https://github.com/hectormrc/plotline"
 version     = "0.1.0"
 
 [dependencies]
-futures    = {workspace = true}
 thiserror  = {workspace = true}
-tokio      = {workspace = true}
 tracing    = {workspace = true}
 trait-make = {workspace = true}
 
 [features]
-default = ["proxy"]
 # The fixtures feature enables the "fixture" constructor for structs as well as
 # fake implementations for traits.
 fixtures = []
-# The proxy feature enables all the proxies between model objects and the 
-# repository
-proxy = []
 
 [lib]
 name = "alvidir"

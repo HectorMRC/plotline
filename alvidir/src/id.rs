@@ -1,8 +1,8 @@
 use std::hash::Hash;
 
-/// Qualifies an struct of being uniquely identifiable.
+/// Qualifies an entity of being uniquely identifiable.
 pub trait Identify {
-    type Id: Eq + Hash;
+    type Id: Eq + Hash + Clone;
 
     fn id(&self) -> Self::Id;
 }

@@ -70,6 +70,16 @@ impl<T> PartialEq for Name<T> {
     }
 }
 
+impl<T> Name<T> {
+    /// Returns a new name with the same value as the given one.
+    pub fn from<U>(name: Name<U>) -> Self {
+        Self {
+            value: name.value,
+            _marker: PhantomData
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;

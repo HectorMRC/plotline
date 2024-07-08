@@ -1,26 +1,27 @@
-use std::sync::{RwLock, RwLockReadGuard};
+use std::sync::{Arc, RwLock, RwLockReadGuard};
 
+use alvidir::{
+    document::Document, graph::Node, id::Identify, property::Property, tag::Tag,
+};
 use tracing::error;
 
-use crate::{graph::DirectedGraphNode, id::Identify};
-
-use super::{error::Result, Document, DocumentId};
-
+/// Represents the persistency layer between the proxy and the data-source.
 #[trait_make::make]
 pub trait DocumentRepository {
     /// Retrives the [Document] with the given id.
-    async fn find_by_id(&self, id: DocumentId) -> Result<Document>;
+    async fn find_by_id(&self, id: <Document as Identify>::Id) -> anyhow::Result<Document>;
 }
 
+/// Represents an action triggerer.
 pub trait ProxyTrigger {
     /// Returns true if, and only if, the document in the proxy has to be
     /// updated from the repository.
     fn update(&self) -> bool;
 }
 
-struct DocumentProxy<DocumentRepo, Trigger> {
+pub struct DocumentProxy<DocumentRepo, Trigger> {
     /// The repository of documents.
-    pub document_repo: DocumentRepo,
+    pub document_repo: Arc<DocumentRepo>,
     /// Triggers the document to update.
     pub trigger: Trigger,
     /// The cached state of the document.
@@ -31,7 +32,7 @@ impl<DocumentRepo, Trigger> Identify for DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
 {
-    type Id = DocumentId;
+    type Id = <Document as Identify>::Id;
 
     fn id(&self) -> Self::Id {
         match self.document.read() {
@@ -41,21 +42,21 @@ where
     }
 }
 
-impl<DocumentRepo, Trigger> DirectedGraphNode for DocumentProxy<DocumentRepo, Trigger>
+impl<DocumentRepo, Trigger> Node for DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
     Trigger: ProxyTrigger,
 {
-    async fn tags(&self) -> Vec<crate::tag::Tag> {
+    async fn tags(&self) -> Vec<Tag> {
         self.inner().await.tags().await
     }
 
-    async fn properties(&self) -> Vec<crate::property::Property<Self::Id>> {
+    async fn properties(&self) -> Vec<Property<Self::Id>> {
         self.inner().await.properties().await
     }
 
-    async fn references(&self) -> Vec<Self::Id> {
-        self.inner().await.references().await
+    async fn edges(&self) -> Vec<Self::Id> {
+        self.inner().await.edges().await
     }
 }
 
@@ -78,7 +79,7 @@ where
                 );
 
                 poison.into_inner()
-            },
+            }
         }
     }
 }
@@ -99,5 +100,23 @@ where
                 document_id = doc_guard.id().to_string()
             ),
         };
+    }
+}
+
+impl<DocumentRepo, Trigger> DocumentProxy<DocumentRepo, Trigger>
+where
+    Trigger: Default,
+{
+    /// Returns a [DocumentProxy] constructor for a predefined
+    /// [DocumentRepository] and [ProxyTrigger], requiring no more than the
+    /// [Document] to be provided.
+    pub fn builder(document_repo: Arc<DocumentRepo>) -> impl Fn(Document) -> Self {
+        move |document: Document| -> Self {
+            Self {
+                document_repo: document_repo.clone(),
+                trigger: Trigger::default(),
+                document: RwLock::new(document),
+            }
+        }
     }
 }
