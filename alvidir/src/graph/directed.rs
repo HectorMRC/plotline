@@ -35,17 +35,17 @@ impl<T: Identify> DirectedGraph<T> {
 impl<T: Identify> DirectedGraph<T> {
     /// Returns an iterator over all the [DirectedNode]s in the graph.
     pub fn nodes<'a>(&'a self) -> impl Iterator<Item = DirectedNode<'a, T>> {
-        self.nodes.keys().map(|id| DirectedNode {
-            graph: self,
-            id: id.clone(),
-        })
+        self.nodes.keys().cloned().map(|id| self.node(id))
     }
 }
 
 impl<T: Identify> DirectedGraph<T> {
-    /// Returns a [DirectedNode] with the given Id associated to the graph.
+    /// Returns a [DirectedNode] with the given id associated to the graph.
+    ///
+    /// Notice how this method does not care if the given id does actually
+    /// exists in the graph. If it does not, the returned node will be virtual.
     pub fn node<'a>(&'a self, id: T::Id) -> DirectedNode<'a, T> {
-        DirectedNode { graph: &self, id }
+        DirectedNode { graph: self, id }
     }
 }
 
@@ -88,10 +88,7 @@ where
             .map(|property| Property::<Self> {
                 name: Name::from(property.name),
                 value: match property.value {
-                    PropertyValue::Edge(id) => PropertyValue::Edge(Self {
-                        graph: self.graph,
-                        id,
-                    }),
+                    PropertyValue::Edge(id) => PropertyValue::Edge(self.graph.node(id)),
                     PropertyValue::String(s) => PropertyValue::String(s),
                 },
             })
@@ -106,16 +103,12 @@ where
         node.edges()
             .await
             .into_iter()
-            .map(|id| DirectedNode {
-                graph: self.graph,
-                id,
-            })
+            .map(|id| self.graph.node(id))
             .collect()
     }
 }
 
 impl<'a, T: Identify> DirectedNode<'a, T> {
-    pub fn builder(graph: &'a DirectedGraph<'a,T>) -> Fn()
     /// Returns the content of the node if, and only if, the node is not
     /// virtual.
     pub fn value(&self) -> Option<&T> {
