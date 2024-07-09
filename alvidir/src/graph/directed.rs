@@ -32,11 +32,7 @@ impl<T: Identify> DirectedGraph<T> {
     }
 }
 
-impl<T> DirectedGraph<T>
-where
-    T: Identify,
-    T::Id: Clone,
-{
+impl<T: Identify> DirectedGraph<T> {
     /// Returns an iterator over all the [DirectedNode]s in the graph.
     pub fn nodes<'a>(&'a self) -> impl Iterator<Item = DirectedNode<'a, T>> {
         self.nodes.keys().map(|id| DirectedNode {
