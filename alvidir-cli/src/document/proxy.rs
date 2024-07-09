@@ -1,8 +1,6 @@
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 
-use alvidir::{
-    document::Document, graph::Node, id::Identify, property::Property, tag::Tag,
-};
+use alvidir::{document::Document, graph::Node, id::Identify, property::Property, tag::Tag};
 use tracing::error;
 
 /// Represents the persistency layer between the proxy and the data-source.
@@ -19,10 +17,12 @@ pub trait ProxyTrigger {
     fn update(&self) -> bool;
 }
 
+/// A control access layer for a [Document] from a [DocumentRepository] which
+/// is orchestrated by a [ProxyTrigger].
 pub struct DocumentProxy<DocumentRepo, Trigger> {
     /// The repository of documents.
     pub document_repo: Arc<DocumentRepo>,
-    /// Triggers the document to update.
+    /// The trigger that orchestrates the proxy.
     pub trigger: Trigger,
     /// The cached state of the document.
     pub document: RwLock<Document>,
@@ -47,15 +47,17 @@ where
     DocumentRepo: DocumentRepository,
     Trigger: ProxyTrigger,
 {
+    type Edge = <Self as Identify>::Id;
+
     async fn tags(&self) -> Vec<Tag> {
         self.inner().await.tags().await
     }
 
-    async fn properties(&self) -> Vec<Property<Self::Id>> {
+    async fn properties(&self) -> Vec<Property<Self::Edge>> {
         self.inner().await.properties().await
     }
 
-    async fn edges(&self) -> Vec<Self::Id> {
+    async fn edges(&self) -> Vec<Self::Edge> {
         self.inner().await.edges().await
     }
 }

@@ -34,21 +34,18 @@ pub struct DocumentCommand {
     command: Option<DocumentSubCommand>,
 }
 
-pub struct DocumentCli<Node>
-where
-    Node: Identify,
-{
-    pub graph_app: GraphApplication<Node>,
+pub struct DocumentCli<T: Identify> {
+    pub graph_app: GraphApplication<T>,
 }
 
-impl<Node> DocumentCli<Node>
+impl<T> DocumentCli<T>
 where 
-    Node: Node,
-    Node::Id: Display + FromStr + Clone,
-    <Node::Id as FromStr>::Err: 'static + std::error::Error + Sync + Send,
+    T: Identify + Node,
+    T::Id: Display + FromStr + Clone,
+    <T::Id as FromStr>::Err: 'static + std::error::Error + Sync + Send,
 {
     pub async fn execute(&self, cli: DocumentCommand) -> anyhow::Result<()> {
-        let doc_name = cli.document.map(|s| Node::Id::from_str(&s)).transpose()?;
+        let doc_name = cli.document.map(|s| T::Id::from_str(&s)).transpose()?;
         if let Some(command) = cli.command {
             return self.execute_subcommand(command, doc_name).await;
         }
@@ -59,7 +56,7 @@ where
     async fn execute_subcommand(
         &self,
         subcommand: DocumentSubCommand,
-        doc_name: Option<Node::Id>,
+        doc_name: Option<T::Id>,
     ) -> anyhow::Result<()> {
         match subcommand {
             DocumentSubCommand::List => {

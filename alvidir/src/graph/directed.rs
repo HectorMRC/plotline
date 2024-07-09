@@ -115,7 +115,9 @@ where
 }
 
 impl<'a, T: Identify> DirectedNode<'a, T> {
-    /// Returns the content of the node if, and only if, the node is not virtual.
+    pub fn builder(graph: &'a DirectedGraph<'a,T>) -> Fn()
+    /// Returns the content of the node if, and only if, the node is not
+    /// virtual.
     pub fn value(&self) -> Option<&T> {
         self.graph.nodes.get(&self.id)
     }

@@ -6,6 +6,7 @@ use crate::{property::Property, tag::Tag};
 pub mod application;
 pub mod directed;
 
+/// Represents an arbitrary node
 #[trait_make::make]
 pub trait Node {
     /// The type to reference other nodes.
