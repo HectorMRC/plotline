@@ -11,13 +11,13 @@ pub trait DocumentRepository {
 
 /// Represents a [DocumentProxy] orchestrator.
 pub trait ProxyTrigger {
-    /// Returns true if, and only if, the document in the proxy has to be
-    /// updated from the repository.
+    /// Returns true if, and only if, the document in the proxy has to be updated from the
+    /// repository.
     fn update(&self) -> bool;
 }
 
-/// A control access layer for a [Document] from a [DocumentRepository] which
-/// is orchestrated by a [ProxyTrigger].
+/// A control access layer for a [Document] from a [DocumentRepository] which is orchestrated by a
+/// [ProxyTrigger].
 pub struct DocumentProxy<DocumentRepo, Trigger> {
     /// The repository of documents.
     document_repo: Arc<DocumentRepo>,
@@ -97,9 +97,8 @@ impl<DocumentRepo, Trigger> DocumentProxy<DocumentRepo, Trigger>
 where
     Trigger: Default,
 {
-    /// Returns a [DocumentProxy] constructor for a predefined
-    /// [DocumentRepository] and [ProxyTrigger], requiring no more than the
-    /// [Document] to be provided.
+    /// Returns a [DocumentProxy] constructor for a predefined [DocumentRepository] and
+    /// [ProxyTrigger], requiring no more than the [Document] to be provided.
     pub fn builder(document_repo: Arc<DocumentRepo>) -> impl Fn(Document) -> Self {
         move |document: Document| -> Self {
             Self {

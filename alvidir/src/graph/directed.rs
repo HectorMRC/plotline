@@ -24,8 +24,7 @@ impl<T: Identify> FromIterator<T> for DirectedGraph<T> {
 }
 
 impl<T: Identify> DirectedGraph<T> {
-    /// Inserts the given node into the graph, overwriting any previous value
-    /// with the same id.
+    /// Inserts the given node into the graph, overwriting any previous value with the same id.
     pub fn with_node(mut self, node: T) -> Self {
         self.nodes.insert(node.id(), node);
         self
@@ -42,8 +41,8 @@ impl<T: Identify> DirectedGraph<T> {
 impl<T: Identify> DirectedGraph<T> {
     /// Returns a [DirectedNode] with the given id associated to the graph.
     ///
-    /// Notice how this method does not ensures the given id does exists in the
-    /// graph. If it does not, the returned node is virtual.
+    /// Notice how this method does not ensures the given id does exists in the graph. If it does
+    /// not, the returned node is virtual.
     pub fn node<'a>(&'a self, id: T::Id) -> DirectedNode<'a, T> {
         DirectedNode { graph: self, id }
     }
@@ -109,8 +108,7 @@ where
 }
 
 impl<'a, T: Identify> DirectedNode<'a, T> {
-    /// Returns the content of the node if, and only if, the node is not
-    /// virtual.
+    /// Returns the content of the node if, and only if, the node is not virtual.
     pub fn value(&self) -> Option<&T> {
         self.graph.nodes.get(&self.id)
     }

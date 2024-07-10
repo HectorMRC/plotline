@@ -9,10 +9,7 @@ use alvidir::{
     name::Name,
 };
 use alvidir_cli::{
-    document::DocumentCli,
-    node::NodeCli,
-    CliCommand,
-    repository::LocalDocumentRepository
+    document::DocumentCli, node::NodeCli, repository::LocalDocumentRepository, CliCommand,
 };
 use clap::Parser;
 use ignore::{DirEntry, Walk};

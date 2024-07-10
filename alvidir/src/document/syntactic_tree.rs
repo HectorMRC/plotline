@@ -6,8 +6,7 @@ use crate::tag::Tag;
 
 use super::{Document, DocumentId, Error, Result};
 
-/// Represents a set of [SyntacticTreeNode]s belonging to the same line in the
-/// [Document].
+/// Represents a set of [SyntacticTreeNode]s belonging to the same line in the [Document].
 #[derive(Default)]
 pub struct Line {
     /// The [SyntacticTreeNode]s contained in the line.
@@ -58,8 +57,7 @@ impl Line {
     }
 }
 
-/// Represents a set of [SyntacticTreeNode]s that shares the same scope in the
-/// [Document].
+/// Represents a set of [SyntacticTreeNode]s that shares the same scope in the [Document].
 #[derive(Default)]
 pub struct Section {
     /// The [Name] of the section, if any.
@@ -118,8 +116,8 @@ pub enum SyntacticTreeNode {
     Line(Line),
     Property(Property<DocumentId>),
     Reference(DocumentId),
-    // The section node ensures the syntactic tree is standalone, which means
-    // an arbitrary tree can be built without other definitions but its own.
+    // The section node ensures the syntactic tree is standalone, which means an arbitrary tree can
+    // be built without other definitions but its own.
     Section(Section),
     String(String),
     Tag(Tag),
@@ -133,11 +131,11 @@ impl Default for SyntacticTreeNode {
 }
 
 impl SyntacticTreeNode {
-    /// Returns true if, and only if, the node does not support children nodes,
-    /// becoming a leaf of the syntactic tree.
+    /// Returns true if, and only if, the node does not support children nodes, becoming a leaf of
+    /// the syntactic tree.
     fn is_terminal(&self) -> bool {
-        // using a match forces the developer to always determine if an arm is
-        // terminal or not when adding it
+        // using a match forces the developer to always determine if an arm is terminal or not when
+        // adding it
         match self {
             Self::Property(_) | Self::Reference(_) | Self::String(_) | Self::Tag(_) => true,
             Self::Section(_) | Self::Line(_) => false,
@@ -174,7 +172,10 @@ impl SyntacticTreeNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::document::{syntactic_tree::{Line, Section, SyntacticTreeNode}, Error, Result};
+    use crate::document::{
+        syntactic_tree::{Line, Section, SyntacticTreeNode},
+        Error, Result,
+    };
 
     #[test]
     fn line_with_node() {

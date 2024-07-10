@@ -60,8 +60,8 @@ where
         }
     }
 
-    /// Returns true if, and only if, there is an interval in the tree that
-    /// intersects the given one.
+    /// Returns true if, and only if, there is an interval in the tree that intersects the given
+    /// one.
     fn intersects(&self, interval: &Intv) -> bool {
         if self.value.intersects(interval) {
             return true;
@@ -84,8 +84,7 @@ where
         left.intersects(interval)
     }
 
-    /// Calls the given closure for each interval in the tree overlapping the
-    /// given one.
+    /// Calls the given closure for each interval in the tree overlapping the given one.
     fn for_each_intersection<F>(&self, interval: &Intv, mut f: F)
     where
         F: FnMut(&Intv),
