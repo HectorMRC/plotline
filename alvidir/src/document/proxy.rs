@@ -1,16 +1,15 @@
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 
-use alvidir::{document::Document, graph::Node, id::Identify, property::Property, tag::Tag};
-use tracing::error;
+use crate::{document::Document, graph::Node, id::Identify, property::Property, tag::Tag};
 
-/// Represents the persistency layer between the proxy and the data-source.
+/// Represents the persistency layer for [Document]s.
 #[trait_make::make]
 pub trait DocumentRepository {
     /// Retrives the [Document] with the given id.
-    async fn find_by_id(&self, id: <Document as Identify>::Id) -> anyhow::Result<Document>;
+    async fn find_by_id(&self, id: <Document as Identify>::Id) -> Option<Document>;
 }
 
-/// Represents an action triggerer.
+/// Represents a [DocumentProxy] orchestrator.
 pub trait ProxyTrigger {
     /// Returns true if, and only if, the document in the proxy has to be
     /// updated from the repository.
@@ -21,11 +20,11 @@ pub trait ProxyTrigger {
 /// is orchestrated by a [ProxyTrigger].
 pub struct DocumentProxy<DocumentRepo, Trigger> {
     /// The repository of documents.
-    pub document_repo: Arc<DocumentRepo>,
+    document_repo: Arc<DocumentRepo>,
     /// The trigger that orchestrates the proxy.
-    pub trigger: Trigger,
+    trigger: Trigger,
     /// The cached state of the document.
-    pub document: RwLock<Document>,
+    document: RwLock<Document>,
 }
 
 impl<DocumentRepo, Trigger> Identify for DocumentProxy<DocumentRepo, Trigger>
@@ -74,14 +73,7 @@ where
 
         match self.document.read() {
             Ok(doc_guard) => doc_guard,
-            Err(poison) => {
-                error!(
-                    error = "poisoned document",
-                    document_id = poison.get_ref().id().to_string()
-                );
-
-                poison.into_inner()
-            }
+            Err(poison) => poison.into_inner(),
         }
     }
 }
@@ -95,13 +87,9 @@ where
             return;
         };
 
-        match self.document_repo.find_by_id(doc_guard.id()).await {
-            Ok(document) => *doc_guard = document,
-            Err(error) => error!(
-                error = error.to_string(),
-                document_id = doc_guard.id().to_string()
-            ),
-        };
+        if let Some(doc) = self.document_repo.find_by_id(doc_guard.id()).await {
+            *doc_guard = doc;
+        }
     }
 }
 
@@ -119,6 +107,19 @@ where
                 trigger: Trigger::default(),
                 document: RwLock::new(document),
             }
+        }
+    }
+}
+
+#[cfg(any(test, features = "fixtures"))]
+pub mod fixtures {
+    use super::ProxyTrigger;
+
+    pub struct FakeTrigger(pub bool);
+
+    impl ProxyTrigger for FakeTrigger {
+        fn update(&self) -> bool {
+            self.0
         }
     }
 }

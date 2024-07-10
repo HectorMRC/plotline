@@ -6,5 +6,4 @@ resolver = "2"
 
 [workspace.dependencies]
 thiserror  = "1.0"
-tracing    = "0.1"
 trait-make = "0.1"

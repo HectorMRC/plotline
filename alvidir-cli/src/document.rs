@@ -1,13 +1,4 @@
-mod repository;
-pub use repository::*;
-
-mod proxy;
-pub use proxy::*;
-
-mod trigger;
-pub use trigger::*;
-
-use std::{fmt::Display, io::Write, str::FromStr, time::SystemTime};
+use std::{fmt::Display, str::FromStr, sync::Arc, time::SystemTime};
 
 use alvidir::{graph::{application::GraphApplication, Node}, id::Identify};
 use clap::{Args, Subcommand};
@@ -17,9 +8,6 @@ use tracing::{error, info};
 #[derive(Subcommand)]
 #[clap(subcommand_negates_reqs = true, subcommand_precedence_over_arg = true)]
 enum DocumentSubCommand {
-    /// List all documents.
-    #[command(alias("ls"))]
-    List,
     /// Open all documents.
     Open,
 }
@@ -35,7 +23,7 @@ pub struct DocumentCommand {
 }
 
 pub struct DocumentCli<T: Identify> {
-    pub graph_app: GraphApplication<T>,
+    pub graph_app: Arc<GraphApplication<T>>,
 }
 
 impl<T> DocumentCli<T>
@@ -59,12 +47,6 @@ where
         doc_name: Option<T::Id>,
     ) -> anyhow::Result<()> {
         match subcommand {
-            DocumentSubCommand::List => {
-                let mut stdout = std::io::stdout().lock();
-                for node in self.graph_app.graph.nodes() {
-                    writeln!(stdout, "{}", node.id())?;
-                }
-            }
             DocumentSubCommand::Open => {
                 let Some(doc_name) = doc_name else {
                     return Err(

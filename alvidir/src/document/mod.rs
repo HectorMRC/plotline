@@ -1,10 +1,12 @@
-mod syntactic_tree;
-pub use syntactic_tree::*;
+use syntactic_tree::SyntacticTreeNode;
+
+use crate::{graph::Node, id::Identify, name::Name, property::Property, tag::Tag};
+
+pub mod proxy;
+pub mod syntactic_tree;
 
 mod error;
 pub use error::*;
-
-use crate::{graph::Node, id::Identify, name::Name, property::Property, tag::Tag};
 
 /// A private alias for internal usage.
 type DocumentId = <Document as Identify>::Id;

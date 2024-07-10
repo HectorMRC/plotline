@@ -42,8 +42,8 @@ impl<T: Identify> DirectedGraph<T> {
 impl<T: Identify> DirectedGraph<T> {
     /// Returns a [DirectedNode] with the given id associated to the graph.
     ///
-    /// Notice how this method does not care if the given id does actually
-    /// exists in the graph. If it does not, the returned node will be virtual.
+    /// Notice how this method does not ensures the given id does exists in the
+    /// graph. If it does not, the returned node is virtual.
     pub fn node<'a>(&'a self, id: T::Id) -> DirectedNode<'a, T> {
         DirectedNode { graph: self, id }
     }

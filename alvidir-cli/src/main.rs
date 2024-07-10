@@ -1,13 +1,18 @@
-use std::{ffi::OsString, path::PathBuf, str::FromStr, sync::Arc};
+use std::{ffi::OsString, io, path::PathBuf, str::FromStr, sync::Arc};
 
 use alvidir::{
-    document::Document,
-    graph::{application::GraphApplication, DirectedGraph},
+    document::{
+        proxy::{DocumentProxy, ProxyTrigger},
+        Document,
+    },
+    graph::{application::GraphApplication, directed::DirectedGraph},
     name::Name,
 };
 use alvidir_cli::{
-    document::{AlwaysTrigger, DocumentCli, DocumentProxy, LocalDocumentRepository},
+    document::DocumentCli,
+    node::NodeCli,
     CliCommand,
+    repository::LocalDocumentRepository
 };
 use clap::Parser;
 use ignore::{DirEntry, Walk};
@@ -54,7 +59,7 @@ struct Cli {
     )]
     file_regex: String,
 
-    /// Do not print progress bars.
+    /// Print info logs though stderr.
     #[arg(global = true, short, long)]
     verbose: bool,
 }
@@ -65,6 +70,7 @@ fn init_tracing(verbose: bool) {
         .without_time()
         .with_target(false)
         .with_max_level(max_level)
+        .with_writer(io::stderr)
         .init();
 }
 
@@ -131,21 +137,37 @@ async fn main() -> anyhow::Result<()> {
     });
 
     // TODO: use proper insertion with contrain checking
-    let graph = DirectedGraph::from_iter(
-        Walk::new(&args.context)
-            .into_iter()
-            .filter_map(errorless_entry(&args))
-            .filter(entry_matching_regex(&args))
-            .filter_map(entry_into_name(&args))
-            .map(Document::new)
-            .map(DocumentProxy::<_, AlwaysTrigger>::builder(document_repo)),    
-    );
+    let graph_app = Arc::new(GraphApplication {
+        graph: DirectedGraph::from_iter(
+            Walk::new(&args.context)
+                .into_iter()
+                .filter_map(errorless_entry(&args))
+                .filter(entry_matching_regex(&args))
+                .filter_map(entry_into_name(&args))
+                .map(Document::new)
+                .map(DocumentProxy::<_, AlwaysTrigger>::builder(document_repo)),
+        ),
+    });
 
     let document_cli = DocumentCli {
-        graph_app: GraphApplication { graph },
+        graph_app: graph_app.clone(),
+    };
+
+    let node_cli = NodeCli {
+        graph_app: graph_app,
     };
 
     match args.command {
         CliCommand::Document(command) => document_cli.execute(command).await,
+        CliCommand::Node(command) => node_cli.execute(command).await,
+    }
+}
+
+#[derive(Default)]
+struct AlwaysTrigger;
+
+impl ProxyTrigger for AlwaysTrigger {
+    fn update(&self) -> bool {
+        true
     }
 }

@@ -174,7 +174,7 @@ impl SyntacticTreeNode {
 
 #[cfg(test)]
 mod tests {
-    use crate::document::{Error, Line, Result, Section, SyntacticTreeNode};
+    use crate::document::{syntactic_tree::{Line, Section, SyntacticTreeNode}, Error, Result};
 
     #[test]
     fn line_with_node() {
