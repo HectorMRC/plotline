@@ -1,6 +1,9 @@
 use std::{fmt::Display, str::FromStr, sync::Arc, time::SystemTime};
 
-use alvidir::{graph::{application::GraphApplication, Node}, id::Identify};
+use alvidir::{
+    graph::{application::GraphApplication, Node},
+    id::Identify,
+};
 use clap::{Args, Subcommand};
 use tokio::{fs::File, process::Command};
 use tracing::{error, info};
@@ -15,7 +18,7 @@ enum DocumentSubCommand {
 #[derive(Args)]
 #[command(arg_required_else_help = true)]
 pub struct DocumentCommand {
-    /// The id of the document.
+    /// The document name.
     document: Option<String>,
     /// The action to perform.
     #[command(subcommand)]
@@ -27,8 +30,8 @@ pub struct DocumentCli<T: Identify> {
 }
 
 impl<T> DocumentCli<T>
-where 
-    T: Identify + Node,
+where
+    T: Identify + Node + From<T::Id>,
     T::Id: Display + FromStr + Clone,
     <T::Id as FromStr>::Err: 'static + std::error::Error + Sync + Send,
 {
@@ -53,7 +56,7 @@ where
                         clap::Error::new(clap::error::ErrorKind::MissingRequiredArgument).into(),
                     );
                 };
-                
+
                 let opened_at = SystemTime::now();
 
                 let mut cmd = Command::new("vim")
@@ -68,17 +71,23 @@ where
                 }
 
                 let file = File::open(doc_name.to_string()).await?;
-                
+
                 let created_at = file.metadata().await?.created()?;
                 if created_at > opened_at {
                     info!(path = doc_name.to_string(), "document created");
-                    // self.graph_app.graph = self.graph_app.graph.with_node();
+                    return self
+                        .graph_app
+                        .insert_node()
+                        .with_node(T::from(doc_name))
+                        .execute()
+                        .await
+                        .map_err(Into::into);
                 }
 
                 let updated_at = file.metadata().await?.modified()?;
                 if updated_at < opened_at {
                     info!(path = doc_name.to_string(), "document modified");
-                    return self.graph_app.check(doc_name).await.map_err(Into::into);
+                    // return self.graph_app.check(doc_name).await.map_err(Into::into);
                 }
 
                 info!(path = doc_name.to_string(), "document not modified");

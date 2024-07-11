@@ -13,6 +13,6 @@ pub struct LocalDocumentRepository<'a> {
 
 impl<'a> DocumentRepository for LocalDocumentRepository<'a> {
     async fn find_by_id(&self, _id: <Document as Identify>::Id) -> Option<Document> {
-        todo!()     
+        unimplemented!() 
     }
 }

@@ -159,12 +159,3 @@ async fn main() -> anyhow::Result<()> {
         CliCommand::Node(command) => node_cli.execute(command).await,
     }
 }
-
-#[derive(Default)]
-struct AlwaysTrigger;
-
-impl ProxyTrigger for AlwaysTrigger {
-    fn update(&self) -> bool {
-        true
-    }
-}

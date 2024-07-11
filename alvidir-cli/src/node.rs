@@ -14,7 +14,7 @@ enum NodeSubCommand {
 #[derive(Args)]
 #[command(arg_required_else_help = true)]
 pub struct NodeCommand {
-    /// The id of the node.
+    /// The node id.
     node: Option<String>,
     /// The action to perform.
     #[command(subcommand)]

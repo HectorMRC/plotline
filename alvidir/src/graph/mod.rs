@@ -3,9 +3,6 @@ use crate::{property::Property, tag::Tag};
 pub mod application;
 pub mod directed;
 
-mod error;
-pub use error::*;
-
 /// Represents an arbitrary node
 #[trait_make::make]
 pub trait Node {
