@@ -1,6 +1,6 @@
 [workspace]
 members  = [
-    "alvidir", "alvidir-cli",
+    "alvidir",
 ]
 resolver = "2"
 

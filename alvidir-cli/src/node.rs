@@ -1,7 +1,11 @@
 use std::{fmt::Display, io::Write, str::FromStr, sync::Arc};
 
-use alvidir::{graph::{application::GraphApplication, Node}, id::Identify};
+use alvidir::{
+    graph::{application::GraphApplication, Node},
+    id::Identify,
+};
 use clap::{Args, Subcommand};
+use tracing::error;
 
 #[derive(Subcommand)]
 #[clap(subcommand_negates_reqs = true, subcommand_precedence_over_arg = true)]
@@ -25,9 +29,8 @@ pub struct NodeCli<T: Identify> {
     pub graph_app: Arc<GraphApplication<T>>,
 }
 
-
 impl<T> NodeCli<T>
-where 
+where
     T: Identify + Node,
     T::Id: Display + FromStr + Clone,
     <T::Id as FromStr>::Err: 'static + std::error::Error + Sync + Send,
@@ -49,9 +52,15 @@ where
         match subcommand {
             NodeSubCommand::List => {
                 let mut stdout = std::io::stdout().lock();
-                for node in self.graph_app.graph.nodes() {
-                    writeln!(stdout, "{}", node.id())?;
+                match self.graph_app.graph.read() {
+                    Ok(graph) => graph,
+                    Err(poison) => {
+                        error!("the graph has been poisoned");
+                        poison.into_inner()
+                    }
                 }
+                .nodes()
+                .try_for_each(|node| writeln!(stdout, "{}", node.id()))?;
             }
         };
 

@@ -1,12 +1,15 @@
 use std::sync::{Arc, RwLock, RwLockReadGuard};
 
-use crate::{document::Document, graph::Node, id::Identify, property::Property, tag::Tag};
+use crate::{graph::Node, id::Identify};
 
 /// Represents the persistency layer for [Document]s.
 #[trait_make::make]
 pub trait DocumentRepository {
+    /// The document type retrived by the repository.
+    type Document: Identify + Node<Edge = <Self::Document as Identify>::Id>;
+
     /// Retrives the [Document] with the given id.
-    async fn find_by_id(&self, id: <Document as Identify>::Id) -> Option<Document>;
+    async fn find_by_id(&self, id: <Self::Document as Identify>::Id) -> Option<Self::Document>;
 }
 
 /// Represents a [DocumentProxy] orchestrator.
@@ -18,20 +21,23 @@ pub trait ProxyTrigger {
 
 /// A control access layer for a [Document] from a [DocumentRepository] which is orchestrated by a
 /// [ProxyTrigger].
-pub struct DocumentProxy<DocumentRepo, Trigger> {
+pub struct DocumentProxy<DocumentRepo, Trigger>
+where 
+    DocumentRepo: DocumentRepository
+{
     /// The repository of documents.
     document_repo: Arc<DocumentRepo>,
+    /// The cached state of the document.
+    document: RwLock<DocumentRepo::Document>,
     /// The trigger that orchestrates the proxy.
     trigger: Trigger,
-    /// The cached state of the document.
-    document: RwLock<Document>,
 }
 
 impl<DocumentRepo, Trigger> Identify for DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
 {
-    type Id = <Document as Identify>::Id;
+    type Id = <DocumentRepo::Document as Identify>::Id;
 
     fn id(&self) -> Self::Id {
         match self.document.read() {
@@ -48,14 +54,6 @@ where
 {
     type Edge = <Self as Identify>::Id;
 
-    async fn tags(&self) -> Vec<Tag> {
-        self.inner().await.tags().await
-    }
-
-    async fn properties(&self) -> Vec<Property<Self::Edge>> {
-        self.inner().await.properties().await
-    }
-
     async fn edges(&self) -> Vec<Self::Edge> {
         self.inner().await.edges().await
     }
@@ -66,7 +64,7 @@ where
     DocumentRepo: DocumentRepository,
     Trigger: ProxyTrigger,
 {
-    async fn inner(&self) -> RwLockReadGuard<Document> {
+    async fn inner(&self) -> RwLockReadGuard<DocumentRepo::Document> {
         if self.trigger.update() {
             self.update().await;
         }
@@ -95,12 +93,13 @@ where
 
 impl<DocumentRepo, Trigger> DocumentProxy<DocumentRepo, Trigger>
 where
+    DocumentRepo: DocumentRepository,
     Trigger: Default,
 {
     /// Returns a [DocumentProxy] constructor for a predefined [DocumentRepository] and
     /// [ProxyTrigger], requiring no more than the [Document] to be provided.
-    pub fn builder(document_repo: Arc<DocumentRepo>) -> impl Fn(Document) -> Self {
-        move |document: Document| -> Self {
+    pub fn builder(document_repo: Arc<DocumentRepo>) -> impl Fn(DocumentRepo::Document) -> Self {
+        move |document| -> Self {
             Self {
                 document_repo: document_repo.clone(),
                 trigger: Trigger::default(),
@@ -110,7 +109,7 @@ where
     }
 }
 
-#[cfg(any(test, features = "fixtures"))]
+#[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
     use super::ProxyTrigger;
 

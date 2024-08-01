@@ -75,13 +75,13 @@ where
                 let created_at = file.metadata().await?.created()?;
                 if created_at > opened_at {
                     info!(path = doc_name.to_string(), "document created");
-                    return self
-                        .graph_app
+                    self.graph_app
                         .insert_node()
                         .with_node(T::from(doc_name))
                         .execute()
-                        .await
-                        .map_err(Into::into);
+                        .await;
+
+                    return Ok(());
                 }
 
                 let updated_at = file.metadata().await?.modified()?;

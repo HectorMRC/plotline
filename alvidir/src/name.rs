@@ -70,12 +70,18 @@ impl<T> PartialEq for Name<T> {
     }
 }
 
+impl<T> PartialEq<&str> for Name<T> {
+    fn eq(&self, other: &&str) -> bool {
+        &self.value == other
+    }
+}
+
 impl<T> Name<T> {
     /// Returns a new name with the same value as the given one.
     pub fn from<U>(name: Name<U>) -> Self {
         Self {
             value: name.value,
-            _marker: PhantomData
+            _marker: PhantomData,
         }
     }
 }

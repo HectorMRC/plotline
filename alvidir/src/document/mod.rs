@@ -1,6 +1,6 @@
 use syntactic_tree::SyntacticTreeNode;
 
-use crate::{graph::Node, id::Identify, name::Name, property::Property, tag::Tag};
+use crate::{graph::Node, id::Identify, name::Name};
 
 pub mod proxy;
 pub mod syntactic_tree;
@@ -19,6 +19,28 @@ pub struct Document {
     root: SyntacticTreeNode,
 }
 
+impl Identify for Document {
+    type Id = Name<Self>;
+
+    fn id(&self) -> Self::Id {
+        self.name.clone()
+    }
+}
+
+impl Node for Document {
+    type Edge = <Self as Identify>::Id;
+
+    async fn edges(&self) -> Vec<Self::Edge> {
+        self.root.references()
+    }
+}
+
+impl From<Name<Self>> for Document {
+    fn from(name: Name<Self>) -> Self {
+        Self::new(name)
+    }
+}
+
 impl Document {
     /// Returns a new document with the given name.
     pub fn new(name: Name<Self>) -> Self {
@@ -32,29 +54,5 @@ impl Document {
     pub fn with_root(mut self, root: SyntacticTreeNode) -> Self {
         self.root = root;
         self
-    }
-}
-
-impl Identify for Document {
-    type Id = Name<Self>;
-
-    fn id(&self) -> Self::Id {
-        self.name.clone()
-    }
-}
-
-impl Node for Document {
-    type Edge = <Self as Identify>::Id;
-
-    async fn tags(&self) -> Vec<Tag> {
-        self.root.tags()
-    }
-
-    async fn properties(&self) -> Vec<Property<Self::Edge>> {
-        self.root.properties()
-    }
-
-    async fn edges(&self) -> Vec<Self::Edge> {
-        self.root.references()
     }
 }

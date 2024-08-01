@@ -1,15 +1,15 @@
-use std::{ffi::OsString, io, path::PathBuf, str::FromStr, sync::Arc};
+use std::{ffi::OsString, io, marker::PhantomData, path::PathBuf, str::FromStr, sync::Arc};
 
 use alvidir::{
     document::{
-        proxy::{DocumentProxy, ProxyTrigger},
+        proxy::DocumentProxy,
         Document,
     },
     graph::{application::GraphApplication, directed::DirectedGraph},
     name::Name,
 };
 use alvidir_cli::{
-    document::DocumentCli, node::NodeCli, repository::LocalDocumentRepository, CliCommand,
+    document::DocumentCli, node::NodeCli, repository::LocalDocumentRepository, trigger::AlwaysTrigger, CliCommand
 };
 use clap::Parser;
 use ignore::{DirEntry, Walk};
@@ -134,8 +134,8 @@ async fn main() -> anyhow::Result<()> {
     });
 
     // TODO: use proper insertion with contrain checking
-    let graph_app = Arc::new(GraphApplication {
-        graph: DirectedGraph::from_iter(
+    let graph_app = Arc::new(GraphApplication::new(
+        DirectedGraph::from_iter(
             Walk::new(&args.context)
                 .into_iter()
                 .filter_map(errorless_entry(&args))
@@ -144,14 +144,16 @@ async fn main() -> anyhow::Result<()> {
                 .map(Document::new)
                 .map(DocumentProxy::<_, AlwaysTrigger>::builder(document_repo)),
         ),
-    });
+    ));
 
     let document_cli = DocumentCli {
         graph_app: graph_app.clone(),
+        node_builder: |doc: Document| DocumentProxy::<_, AlwaysTrigger>::builder(document_repo)(doc),
+        marker: PhantomData,
     };
 
     let node_cli = NodeCli {
-        graph_app: graph_app,
+        graph_app,
     };
 
     match args.command {
