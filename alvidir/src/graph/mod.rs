@@ -7,7 +7,7 @@ pub trait Node {
     /// The type to reference other nodes.
     type Edge;
 
-    /// Returns all the edges of the nodes.
+    /// Returns all the edges of the node.
     async fn edges(&self) -> Vec<Self::Edge>;
 }
 
