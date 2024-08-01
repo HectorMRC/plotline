@@ -28,7 +28,7 @@ pub mod fixtures {
         type Id = &'static str;
 
         fn id(&self) -> Self::Id {
-            self.id.clone()
+            self.id
         }
     }
 
