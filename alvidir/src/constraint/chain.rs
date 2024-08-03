@@ -48,7 +48,8 @@ impl<Cnst> LiFoConstraintChain<Cnst, InfallibleConstraint<Cnst::Source, Cnst::Er
 where
     Cnst: Constraint,
 {
-    /// Creates a new chain containing the given constraint.
+    /// Creates a new constrain chain with the given one, having [InfallibleConstraint] as the head
+    /// of self.
     pub fn new(schema: Cnst) -> Self {
         Self {
             head: Default::default(),
@@ -83,4 +84,10 @@ impl<Src, Err> Constraint for InfallibleConstraint<Src, Err> {
     fn must_match(&self, source: Self::Source) -> Result<Self::Source, Self::Error> {
         Ok(source)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn lifo_constraint_chain() {}
 }

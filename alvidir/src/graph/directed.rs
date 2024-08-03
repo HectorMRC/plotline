@@ -11,6 +11,14 @@ pub struct DirectedGraph<T: Identify> {
     nodes: HashMap<T::Id, T>,
 }
 
+impl<T: Identify> Default for DirectedGraph<T> {
+    fn default() -> Self {
+        Self {
+            nodes: Default::default(),
+        }
+    }
+}
+
 impl<T: Identify> FromIterator<T> for DirectedGraph<T> {
     /// Returns a [DirectedGraph] resulting from all the nodes in the given iterator.
     ///
@@ -104,7 +112,37 @@ mod tests {
     };
 
     #[tokio::test]
-    async fn directed_graph_should_be_traversable() {
+    async fn only_non_existent_nodes_must_be_virtual() {
+        let graph = DirectedGraph::default().with_node(FakeNode {
+            id: "node_1",
+            edges: vec![Edge::new("node_1"), Edge::new("node_2")],
+        });
+
+        let node_1 = graph.node("node_1");
+        assert!(
+            !node_1.is_virtual(),
+            "an existing node in the graph must not be virtual"
+        );
+
+        let edges_1 = node_1.edges().await;
+        assert_eq!(edges_1.len(), 2);
+        assert!(
+            !edges_1[0].node.is_virtual(),
+            "an existing refered node in the graph must not be virtual"
+        );
+        assert!(
+            edges_1[1].node.is_virtual(),
+            "a non-existent refered node in the graph must be virtual"
+        );
+
+        assert!(
+            graph.node("node_3").is_virtual(),
+            "a non-existent node in the graph must be virtual"
+        )
+    }
+
+    #[tokio::test]
+    async fn directed_graph_must_be_traversable() {
         let graph = DirectedGraph::from_iter(vec![
             FakeNode {
                 id: "node_1",
