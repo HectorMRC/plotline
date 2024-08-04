@@ -13,7 +13,7 @@ pub trait ProxyTrigger {
     fn update(&self) -> bool;
 }
 
-/// An access control layer for a [Document] from a [DocumentRepository] which is orchestrated by a
+/// An access control layer for a document from a [DocumentRepository] which is orchestrated by a
 /// [ProxyTrigger].
 pub struct DocumentProxy<DocumentRepo, Trigger>
 where 
@@ -120,6 +120,13 @@ pub mod fixtures {
             }
 
             unimplemented!()
+        }
+    }
+
+    impl ProxyTriggerMock {
+        pub fn with_update_fn(mut self, f: fn() -> bool) -> Self {
+            self.update_fn = Some(f);
+            self
         }
     }
 }
