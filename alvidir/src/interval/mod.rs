@@ -1,21 +1,21 @@
 mod search_tree;
 
 /// Represents one of the limits in an [Interval].
-trait Bound: Eq + Ord + Clone {}
-impl<T> Bound for T where T: Eq + Ord + Clone {}
+trait Bound: Eq + Ord {}
+impl<T> Bound for T where T: Eq + Ord {}
 
 /// Represents whatever delimited by two bounds.
 trait Interval: Eq + Ord {
     type Bound: Bound;
 
     /// Retrives the lowest bound in the interval.
-    fn lo(&self) -> &Self::Bound;
+    fn lo(&self) -> Self::Bound;
 
     /// Retrives the higher bound in the interval.
-    fn hi(&self) -> &Self::Bound;
+    fn hi(&self) -> Self::Bound;
 
     /// Returns true if, and only if, the given bound is in self.
-    fn contains(&self, bound: &Self::Bound) -> bool {
+    fn contains(&self, bound: Self::Bound) -> bool {
         self.lo() <= bound && bound <= self.hi()
     }
 
@@ -30,27 +30,97 @@ trait Interval: Eq + Ord {
 
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
-    use super::Interval;
+    use std::fmt::Debug;
 
-    /// Implements the [Interval] trait for a pair of [usize]s.
-    #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
-    pub struct FakeInterval([usize; 2]);
+    use super::{Bound, Interval};
 
-    impl Interval for FakeInterval {
-        type Bound = usize;
+    /// A mock implementation for the [Interval] trait.
+    #[derive(Default, Clone, PartialOrd, Ord)]
+    pub struct IntervalMock<Bound> {
+        lo_fn: Option<fn() -> Bound>,
+        hi_fn: Option<fn() -> Bound>,
+    }
 
-        fn lo(&self) -> &Self::Bound {
-            &self.0[0]
-        }
+    impl<B: Bound + Debug> Debug for IntervalMock<B> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let mut debug = f.debug_struct("IntervalMock");
 
-        fn hi(&self) -> &Self::Bound {
-            &self.0[1]
+            if self.lo_fn.is_some() {
+                debug.field("lo", &self.lo());
+            }
+
+            if self.hi_fn.is_some() {
+                debug.field("hi", &self.hi());
+            }
+
+            debug.finish()
         }
     }
 
-    impl From<[usize; 2]> for FakeInterval {
-        fn from(value: [usize; 2]) -> Self {
-            Self(value)
+    impl<B: PartialEq> Eq for IntervalMock<B> {}
+    impl<B: PartialEq> PartialEq for IntervalMock<B> {
+        fn eq(&self, other: &Self) -> bool {
+            if !(self.lo_fn.is_some() == other.lo_fn.is_some()
+                && self.hi_fn.is_some() == other.hi_fn.is_some())
+            {
+                return false;
+            }
+
+            if let (Some(self_lo_fn), Some(other_lo_fn)) = (self.lo_fn, other.lo_fn) {
+                if self_lo_fn() != other_lo_fn() {
+                    return false;
+                }
+            }
+
+            if let (Some(self_hi_fn), Some(other_hi_fn)) = (self.hi_fn, other.hi_fn) {
+                if self_hi_fn() != other_hi_fn() {
+                    return false;
+                }
+            }
+
+            true
         }
     }
+
+    impl<B: Bound> Interval for IntervalMock<B> {
+        type Bound = B;
+
+        fn lo(&self) -> Self::Bound {
+            if let Some(lo_fn) = self.lo_fn {
+                return lo_fn();
+            }
+
+            unimplemented!()
+        }
+
+        fn hi(&self) -> Self::Bound {
+            if let Some(hi_fn) = self.hi_fn {
+                return hi_fn();
+            }
+
+            unimplemented!()
+        }
+    }
+
+    impl<Bound> IntervalMock<Bound> {
+        pub fn with_lo_fn(mut self, f: fn() -> Bound) -> Self {
+            self.lo_fn = Some(f);
+            self
+        }
+
+        pub fn with_hi_fn(mut self, f: fn() -> Bound) -> Self {
+            self.hi_fn = Some(f);
+            self
+        }
+    }
+
+    macro_rules! interval_mock {
+        ($lo:tt, $hi:tt) => {
+            IntervalMock::default()
+                .with_lo_fn(|| $lo)
+                .with_hi_fn(|| $hi)
+        };
+    }
+
+    pub(crate) use interval_mock;
 }

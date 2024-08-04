@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 
 use crate::{id::Identify, name::Name};
 
@@ -19,7 +19,10 @@ impl<T: Identify> Default for DirectedGraph<T> {
     }
 }
 
-impl<T: Identify> FromIterator<T> for DirectedGraph<T> {
+impl<T: Identify> FromIterator<T> for DirectedGraph<T>
+where 
+    T::Id: Hash
+{
     /// Returns a [DirectedGraph] resulting from all the nodes in the given iterator.
     ///
     /// Notice how this method does not check if there are repeated ids. In the case of
@@ -31,7 +34,10 @@ impl<T: Identify> FromIterator<T> for DirectedGraph<T> {
     }
 }
 
-impl<T: Identify> DirectedGraph<T> {
+impl<T: Identify> DirectedGraph<T>
+where 
+    T::Id: Hash
+{
     /// Inserts the given node into the graph, overwriting any previous value with the same id.
     pub fn with_node(mut self, node: T) -> Self {
         self.nodes.insert(node.id(), node);
@@ -39,7 +45,10 @@ impl<T: Identify> DirectedGraph<T> {
     }
 }
 
-impl<T: Identify> DirectedGraph<T> {
+impl<T: Identify> DirectedGraph<T>
+where
+    T::Id: Clone,
+{
     /// Returns an iterator over all the existing [DirectedNode]s in the graph.
     pub fn nodes<'a>(&'a self) -> impl Iterator<Item = DirectedNode<'a, T>> {
         self.nodes.keys().cloned().map(|id| self.node(id))
@@ -63,7 +72,10 @@ pub struct DirectedNode<'a, T: Identify> {
     id: T::Id,
 }
 
-impl<'a, T: Identify> Identify for DirectedNode<'a, T> {
+impl<'a, T: Identify> Identify for DirectedNode<'a, T>
+where
+    T::Id: Clone,
+{
     type Id = T::Id;
 
     fn id(&self) -> Self::Id {
@@ -74,6 +86,7 @@ impl<'a, T: Identify> Identify for DirectedNode<'a, T> {
 impl<'a, T> Node for DirectedNode<'a, T>
 where
     T: Identify + Node<Edge = Edge<T::Id>>,
+    T::Id: Hash,
 {
     type Edge = Edge<Self>;
 
@@ -90,7 +103,10 @@ where
     }
 }
 
-impl<'a, T: Identify> DirectedNode<'a, T> {
+impl<'a, T: Identify> DirectedNode<'a, T>
+where 
+    T::Id: Hash
+{
     /// Returns the content of the node if, and only if, the node is not virtual.
     pub fn value(&self) -> Option<&T> {
         self.graph.nodes.get(&self.id)
@@ -98,7 +114,7 @@ impl<'a, T: Identify> DirectedNode<'a, T> {
 
     /// Returns true if, and only if, the node does not exists in the graph.
     pub fn is_virtual(&self) -> bool {
-        self.value().is_none()
+        !self.graph.nodes.contains_key(&self.id)
     }
 }
 
@@ -107,16 +123,22 @@ mod tests {
     use std::str::FromStr;
 
     use crate::{
-        graph::{directed::DirectedGraph, edge::Edge, fixtures::FakeNode, Node},
+        graph::{
+            directed::DirectedGraph,
+            edge::Edge,
+            fixtures::{node_mock, NodeMock},
+            Node,
+        },
         name::Name,
     };
 
     #[tokio::test]
     async fn only_non_existent_nodes_must_be_virtual() {
-        let graph = DirectedGraph::default().with_node(FakeNode {
-            id: "node_1",
-            edges: vec![Edge::new("node_1"), Edge::new("node_2")],
-        });
+        let graph = DirectedGraph::default().with_node(node_mock!(
+            "node_1",
+            Edge::new("node_1"),
+            Edge::new("node_2")
+        ));
 
         let node_1 = graph.node("node_1");
         assert!(
@@ -144,21 +166,13 @@ mod tests {
     #[tokio::test]
     async fn directed_graph_must_be_traversable() {
         let graph = DirectedGraph::from_iter(vec![
-            FakeNode {
-                id: "node_1",
-                edges: vec![Edge::new("node_2")],
-            },
-            FakeNode {
-                id: "node_2",
-                edges: vec![Edge::new("node_3")],
-            },
-            FakeNode {
-                id: "node_3",
-                edges: vec![
-                    Edge::new("node_1").with_name(Some(Name::from_str("next").unwrap())),
-                    Edge::new("node_2").with_name(Some(Name::from_str("previous").unwrap())),
-                ],
-            },
+            node_mock!("node_1", Edge::new("node_2")),
+            node_mock!("node_2", Edge::new("node_3")),
+            node_mock!(
+                "node_3",
+                Edge::new("node_1").with_name(Some(Name::from_str("next").unwrap())),
+                Edge::new("node_2").with_name(Some(Name::from_str("previous").unwrap()))
+            ),
         ]);
 
         let edges_1 = graph.node("node_1").edges().await;

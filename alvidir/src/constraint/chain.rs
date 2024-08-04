@@ -43,7 +43,7 @@ where
         }
     }
 }
-
+    
 impl<Cnst> LiFoConstraintChain<Cnst, InfallibleConstraint<Cnst::Source, Cnst::Error>>
 where
     Cnst: Constraint,

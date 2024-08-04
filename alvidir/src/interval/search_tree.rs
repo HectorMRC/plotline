@@ -28,7 +28,7 @@ where
     /// Creates a new node containing the given interval.
     fn new(interval: Intv) -> Self {
         Self {
-            max: interval.hi().clone(),
+            max: interval.hi(),
             value: interval,
             left: Default::default(),
             right: Default::default(),
@@ -43,8 +43,8 @@ where
 
     /// Adds the given interval in the tree rooted by self.
     fn insert(&mut self, interval: Intv) {
-        if self.max < interval.hi().clone() {
-            self.max = interval.hi().clone();
+        if self.max < interval.hi() {
+            self.max = interval.hi();
         }
 
         if interval.lo() < self.value.lo() {
@@ -77,7 +77,7 @@ where
             return continue_right();
         };
 
-        if left.max < interval.lo().clone() {
+        if left.max < interval.lo() {
             return continue_right();
         }
 
@@ -106,7 +106,7 @@ where
                 return;
             };
 
-            if left.max < interval.lo().clone() {
+            if left.max < interval.lo() {
                 return;
             }
 
@@ -138,55 +138,58 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::interval::{fixtures::FakeInterval, search_tree::IntervalSearchTreeNode};
+    use crate::interval::{
+        fixtures::{interval_mock, IntervalMock},
+        search_tree::IntervalSearchTreeNode,
+    };
 
     #[test]
     fn intersects_with_tree() {
         struct Test<'a> {
             name: &'a str,
-            tree: IntervalSearchTreeNode<FakeInterval>,
-            query: FakeInterval,
+            tree: IntervalSearchTreeNode<IntervalMock<usize>>,
+            query: IntervalMock<usize>,
             intersects: bool,
         }
 
         vec![
             Test {
                 name: "no intersaction",
-                tree: IntervalSearchTreeNode::new([0, 2].into()),
-                query: [3, 3].into(),
+                tree: IntervalSearchTreeNode::new(interval_mock!(0, 2)),
+                query: interval_mock!(3, 3),
                 intersects: false,
             },
             Test {
                 name: "left-hand intersaction",
-                tree: IntervalSearchTreeNode::new([0, 2].into()),
-                query: [1, 3].into(),
+                tree: IntervalSearchTreeNode::new(interval_mock!(0, 2)),
+                query: interval_mock!(1, 3),
                 intersects: true,
             },
             Test {
                 name: "right-hand intersaction",
-                tree: IntervalSearchTreeNode::new([2, 4].into()),
-                query: [0, 3].into(),
+                tree: IntervalSearchTreeNode::new(interval_mock!(2, 4)),
+                query: interval_mock!(0, 3),
                 intersects: true,
             },
             Test {
                 name: "superset intersaction",
-                tree: IntervalSearchTreeNode::new([0, 3].into()),
-                query: [1, 2].into(),
+                tree: IntervalSearchTreeNode::new(interval_mock!(0, 3)),
+                query: interval_mock!(1, 2),
                 intersects: true,
             },
             Test {
                 name: "subset intersaction",
-                tree: IntervalSearchTreeNode::new([1, 2].into()),
-                query: [0, 3].into(),
+                tree: IntervalSearchTreeNode::new(interval_mock!(1, 2)),
+                query: interval_mock!(0, 3),
                 intersects: true,
             },
             Test {
                 name: "complex tree",
-                tree: IntervalSearchTreeNode::new([5, 6].into())
-                    .with_interval([0, 4].into())
-                    .with_interval([2, 6].into())
-                    .with_interval([7, 9].into()),
-                query: [1, 2].into(),
+                tree: IntervalSearchTreeNode::new(interval_mock!(5, 6))
+                    .with_interval(interval_mock!(0, 4))
+                    .with_interval(interval_mock!(2, 6))
+                    .with_interval(interval_mock!(7, 9)),
+                query: interval_mock!(1, 2),
                 intersects: true,
             },
         ]
@@ -205,27 +208,31 @@ mod tests {
     fn for_each_intersection_in_tree() {
         struct Test<'a> {
             name: &'a str,
-            tree: IntervalSearchTreeNode<FakeInterval>,
-            query: FakeInterval,
-            output: Vec<FakeInterval>,
+            tree: IntervalSearchTreeNode<IntervalMock<usize>>,
+            query: IntervalMock<usize>,
+            output: Vec<IntervalMock<usize>>,
         }
 
         vec![
             Test {
                 name: "no intersactions",
-                tree: IntervalSearchTreeNode::new([1, 2].into()),
-                query: [0, 0].into(),
+                tree: IntervalSearchTreeNode::new(interval_mock!(1, 2)),
+                query: interval_mock!(0, 0),
                 output: Vec::default(),
             },
             Test {
                 name: "multiple intersactions",
-                tree: IntervalSearchTreeNode::new([5, 6].into())
-                    .with_interval([0, 2].into())
-                    .with_interval([3, 3].into())
-                    .with_interval([5, 9].into())
-                    .with_interval([6, 6].into()),
-                query: [3, 5].into(),
-                output: vec![[5, 6].into(), [3, 3].into(), [5, 9].into()],
+                tree: IntervalSearchTreeNode::new(interval_mock!(5, 6))
+                    .with_interval(interval_mock!(0, 2))
+                    .with_interval(interval_mock!(3, 3))
+                    .with_interval(interval_mock!(5, 9))
+                    .with_interval(interval_mock!(6, 6)),
+                query: interval_mock!(3, 5),
+                output: vec![
+                    interval_mock!(5, 6),
+                    interval_mock!(3, 3),
+                    interval_mock!(5, 9),
+                ],
             },
         ]
         .into_iter()
@@ -234,10 +241,24 @@ mod tests {
             test.tree
                 .for_each_intersection(&test.query, |interval| intervals.push(interval.clone()));
 
-            assert_eq!(intervals.len(), test.output.len(), "{}", test.name,);
-            test.output
-                .into_iter()
-                .for_each(|interval| assert!(intervals.contains(&interval), "{}", test.name));
+            assert_eq!(
+                intervals.len(),
+                test.output.len(),
+                "{}: got intersection = {:?}, want = {:?}",
+                test.name,
+                intervals,
+                test.output
+            );
+
+            test.output.iter().for_each(|interval| {
+                assert!(
+                    intervals.contains(interval),
+                    "{}: interval = {:?} does not exists in {:?}",
+                    test.name,
+                    interval,
+                    intervals
+                )
+            });
         })
     }
 }

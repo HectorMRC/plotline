@@ -16,7 +16,7 @@ trait-make = {workspace = true}
 tokio = { version = "1.39", features = ["full"]}
 
 [features]
-# Enables the "fixture" constructor for structs as well as fake implementations
+# Enables the "fixture" constructor for structs as well as mock implementations
 # for traits.
 fixtures = []
 
