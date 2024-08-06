@@ -11,7 +11,7 @@ pub trait DocumentRepository {
     type Document;
 
     /// Retrives the document with the given id.
-    async fn find_by_id(&self, id: <Self::Document as Identify>::Id) -> Option<Self::Document>
+    async fn find_by_id(&self, id: &<Self::Document as Identify>::Id) -> Option<Self::Document>
     where
         Self::Document: Identify;
 }

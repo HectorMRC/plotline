@@ -35,12 +35,12 @@ where
     Cnst: Constraint,
 {
     /// Chains the given constraint with self.
-    pub fn chain<Tail>(self, schema: Tail) -> LiFoConstraintChain<Tail, Self>
+    pub fn chain<Tail>(self, constraint: Tail) -> LiFoConstraintChain<Tail, Self>
     where
         Tail: Constraint<Source = Cnst::Source, Error = Cnst::Error>,
     {
         LiFoConstraintChain {
-            constraint: schema,
+            constraint,
             head: self,
         }
     }
@@ -52,10 +52,10 @@ where
 {
     /// Creates a new constrain chain with the given one, having [InfallibleConstraint] as the head
     /// of self.
-    pub fn new(schema: Cnst) -> Self {
+    pub fn new(constraint: Cnst) -> Self {
         Self {
             head: Default::default(),
-            constraint: schema,
+            constraint,
         }
     }
 }
@@ -90,6 +90,66 @@ impl<Src, Err> Constraint for InfallibleConstraint<Src, Err> {
 
 #[cfg(test)]
 mod tests {
+    use crate::constraint::Constraint;
+
+    use super::LiFoConstraintChain;
+
+    struct MustContains(char);
+
+    impl Constraint for MustContains {
+        type Source = &'static str;
+        type Error = &'static str;
+
+        fn matches(&self, source: &Self::Source) -> bool {
+            source.contains(self.0)
+        }
+
+        fn must_match(&self, source: Self::Source) -> Result<Self::Source, Self::Error> {
+            if source.contains(self.0) {
+                return Ok(source);
+            }
+
+            Err("the string does not contains the expected char")
+        }
+    }
+
     #[test]
-    fn lifo_constraint_chain() {}
+    fn lifo_constraint_chain_must_run_all_constraint() {
+        let constraint = LiFoConstraintChain::new(MustContains('a'))
+            .chain(MustContains('1'))
+            .chain(MustContains('ش'));
+
+        struct Test {
+            name: &'static str,
+            subject: &'static str,
+            matches: bool,
+        }
+
+        vec![
+            Test {
+                name: "subject failing all constraints should fail",
+                subject: "hello world",
+                matches: false,
+            },
+            Test {
+                name: "subject failing one single constraint should fail",
+                subject: "a1",
+                matches: false,
+            },
+            Test {
+                name: "subject fulfilling all constraints should success",
+                subject: "a1ش",
+                matches: true,
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            let matches = constraint.matches(&test.subject);
+            assert_eq!(
+                matches, test.matches,
+                "{} got matches = {matches}, want {}",
+                test.name, test.matches
+            )
+        })
+    }
 }

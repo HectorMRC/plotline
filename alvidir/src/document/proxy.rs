@@ -18,9 +18,12 @@ pub trait ProxyTrigger {
 pub struct DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
+    DocumentRepo::Document: Identify,
 {
     /// The repository of documents.
     document_repo: Arc<DocumentRepo>,
+    /// The id of the document being cached.
+    document_id: <DocumentRepo::Document as Identify>::Id,
     /// The cached state of the document.
     document: RwLock<DocumentRepo::Document>,
     /// The trigger that orchestrates the proxy.
@@ -79,19 +82,20 @@ where
     DocumentRepo::Document: Identify,
 {
     async fn update(&self) {
-        let Ok(mut doc_guard) = self.document.write() else {
+        let Some(doc) = self.document_repo.find_by_id(&self.document_id).await else {
             return;
         };
 
-        if let Some(doc) = self.document_repo.find_by_id(doc_guard.id()).await {
+        if let Ok(mut doc_guard) = self.document.write() {
             *doc_guard = doc;
-        }
+        };
     }
 }
 
 impl<DocumentRepo, Trigger> DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
+    DocumentRepo::Document: Identify,
     Trigger: Default,
 {
     /// Returns a [DocumentProxy] constructor for a predefined [DocumentRepository] and
@@ -100,8 +104,9 @@ where
         move |document| -> Self {
             Self {
                 document_repo: document_repo.clone(),
-                trigger: Trigger::default(),
+                document_id: document.id(),
                 document: RwLock::new(document),
+                trigger: Trigger::default(),
             }
         }
     }

@@ -55,7 +55,7 @@ where
     T::Id: Clone,
 {
     /// Returns an iterator over all the existing [DirectedNode]s in the graph.
-    pub fn nodes<'a>(&'a self) -> impl Iterator<Item = DirectedNode<'a, T>> {
+    pub fn nodes(&self) -> impl Iterator<Item = DirectedNode<'_, T>> {
         self.nodes.keys().cloned().map(|id| self.node(id))
     }
 }
@@ -65,7 +65,7 @@ impl<T: Identify> DirectedGraph<T> {
     ///
     /// Notice how this method does not ensures the given id does exists in the graph. If it does
     /// not, the returned node is virtual.
-    pub fn node<'a>(&'a self, id: T::Id) -> DirectedNode<'a, T> {
+    pub fn node(&self, id: T::Id) -> DirectedNode<'_, T> {
         DirectedNode { graph: self, id }
     }
 }
