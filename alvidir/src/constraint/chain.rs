@@ -114,7 +114,7 @@ mod tests {
     }
 
     #[test]
-    fn lifo_constraint_chain_must_run_all_constraint() {
+    fn lifo_constraint_chain_must_run_all_constraints() {
         let constraint = LiFoConstraintChain::new(MustContains('a'))
             .chain(MustContains('1'))
             .chain(MustContains('ش'));
