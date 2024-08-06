@@ -1,8 +1,8 @@
 mod search_tree;
 
 /// Represents one of the limits in an [Interval].
-trait Bound: Eq + Ord {}
-impl<T> Bound for T where T: Eq + Ord {}
+trait Bound: Ord {}
+impl<T> Bound for T where T: Ord {}
 
 /// Represents whatever delimited by two bounds.
 trait Interval: Eq + Ord {
@@ -86,19 +86,11 @@ pub mod fixtures {
         type Bound = B;
 
         fn lo(&self) -> Self::Bound {
-            if let Some(lo_fn) = self.lo_fn {
-                return lo_fn();
-            }
-
-            unimplemented!()
+            self.lo_fn.expect("lo method must be set")()
         }
 
         fn hi(&self) -> Self::Bound {
-            if let Some(hi_fn) = self.hi_fn {
-                return hi_fn();
-            }
-
-            unimplemented!()
+            self.hi_fn.expect("hi method must be set")()
         }
     }
 

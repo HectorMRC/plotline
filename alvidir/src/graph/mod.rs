@@ -13,8 +13,6 @@ pub trait Node {
 
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
-    use std::hash::Hash;
-
     use crate::id::Identify;
 
     use super::{edge::Edge, Node};
@@ -26,7 +24,7 @@ pub mod fixtures {
         pub edges_fn: Option<fn() -> Vec<Edge<Id>>>,
     }
 
-    impl<Id: Eq + Hash> Identify for NodeMock<Id> {
+    impl<Id> Identify for NodeMock<Id> {
         type Id = Id;
 
         fn id(&self) -> Self::Id {
@@ -38,15 +36,11 @@ pub mod fixtures {
         }
     }
 
-    impl<Id: Eq + Hash> Node for NodeMock<Id> {
+    impl<Id> Node for NodeMock<Id> {
         type Edge = Edge<<Self as Identify>::Id>;
 
         async fn edges(&self) -> Vec<Self::Edge> {
-            if let Some(edges_fn) = self.edges_fn {
-                return edges_fn();
-            }
-
-            unimplemented!()
+            self.edges_fn.expect("edges method must be set")()
         }
     }
 

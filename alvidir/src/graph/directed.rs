@@ -19,9 +19,10 @@ impl<T: Identify> Default for DirectedGraph<T> {
     }
 }
 
-impl<T: Identify> FromIterator<T> for DirectedGraph<T>
+impl<T> FromIterator<T> for DirectedGraph<T>
 where 
-    T::Id: Hash
+    T: Identify,
+    T::Id: Eq + Hash,
 {
     /// Returns a [DirectedGraph] resulting from all the nodes in the given iterator.
     ///
@@ -34,9 +35,10 @@ where
     }
 }
 
-impl<T: Identify> DirectedGraph<T>
+impl<T> DirectedGraph<T> 
 where 
-    T::Id: Hash
+    T: Identify,
+    T::Id: Eq + Hash,
 {
     /// Inserts the given node into the graph, overwriting any previous value with the same id.
     pub fn with_node(mut self, node: T) -> Self {
@@ -45,8 +47,9 @@ where
     }
 }
 
-impl<T: Identify> DirectedGraph<T>
+impl<T> DirectedGraph<T>
 where
+    T: Identify,
     T::Id: Clone,
 {
     /// Returns an iterator over all the existing [DirectedNode]s in the graph.
@@ -72,8 +75,9 @@ pub struct DirectedNode<'a, T: Identify> {
     id: T::Id,
 }
 
-impl<'a, T: Identify> Identify for DirectedNode<'a, T>
+impl<'a, T> Identify for DirectedNode<'a, T>
 where
+    T: Identify,
     T::Id: Clone,
 {
     type Id = T::Id;
@@ -86,7 +90,7 @@ where
 impl<'a, T> Node for DirectedNode<'a, T>
 where
     T: Identify + Node<Edge = Edge<T::Id>>,
-    T::Id: Hash,
+    T::Id: Eq + Hash,
 {
     type Edge = Edge<Self>;
 
@@ -103,9 +107,10 @@ where
     }
 }
 
-impl<'a, T: Identify> DirectedNode<'a, T>
+impl<'a, T> DirectedNode<'a, T> 
 where 
-    T::Id: Hash
+    T: Identify,
+    T::Id: Eq + Hash,
 {
     /// Returns the content of the node if, and only if, the node is not virtual.
     pub fn value(&self) -> Option<&T> {

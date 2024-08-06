@@ -1,6 +1,6 @@
 pub mod chain;
 
-/// Defines the structure and validation rules for an specific source.
+/// Represents whatever rule that must be satisfied by a specific source.
 pub trait Constraint {
     /// The type over which the constraint applies.
     type Source;

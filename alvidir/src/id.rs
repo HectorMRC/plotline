@@ -1,6 +1,6 @@
 /// Qualifies an entity of being uniquely identifiable.
 pub trait Identify {
-    type Id: Eq;
+    type Id;
 
     fn id(&self) -> Self::Id;
 }

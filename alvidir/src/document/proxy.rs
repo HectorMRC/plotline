@@ -8,16 +8,16 @@ use super::DocumentRepository;
 
 /// Represents a [DocumentProxy] orchestrator.
 pub trait ProxyTrigger {
-    /// Returns true if, and only if, the document in the proxy has to be updated from the
+    /// Returns true if, and only if, the document in the proxy has to be loaded from the
     /// repository.
-    fn update(&self) -> bool;
+    fn load(&self) -> bool;
 }
 
 /// An access control layer for a document from a [DocumentRepository] which is orchestrated by a
 /// [ProxyTrigger].
 pub struct DocumentProxy<DocumentRepo, Trigger>
-where 
-    DocumentRepo: DocumentRepository
+where
+    DocumentRepo: DocumentRepository,
 {
     /// The repository of documents.
     document_repo: Arc<DocumentRepo>,
@@ -60,7 +60,7 @@ where
     Trigger: ProxyTrigger,
 {
     async fn inner(&self) -> RwLockReadGuard<DocumentRepo::Document> {
-        if self.trigger.update() {
+        if self.trigger.load() {
             self.update().await;
         }
 
@@ -109,23 +109,19 @@ pub mod fixtures {
     use super::ProxyTrigger;
 
     /// A mock implementation for the [ProxyTrigger] trait.
-    pub struct ProxyTriggerMock{
-        pub update_fn: Option<fn() -> bool>
+    pub struct ProxyTriggerMock {
+        pub load_fn: Option<fn() -> bool>,
     }
 
     impl ProxyTrigger for ProxyTriggerMock {
-        fn update(&self) -> bool {
-            if let Some(update_fn) = self.update_fn {
-                return update_fn();
-            }
-
-            unimplemented!()
+        fn load(&self) -> bool {
+            self.load_fn.expect("load method must be set")()
         }
     }
 
     impl ProxyTriggerMock {
-        pub fn with_update_fn(mut self, f: fn() -> bool) -> Self {
-            self.update_fn = Some(f);
+        pub fn with_load_fn(mut self, f: fn() -> bool) -> Self {
+            self.load_fn = Some(f);
             self
         }
     }
