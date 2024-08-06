@@ -30,6 +30,7 @@ where
 impl<DocumentRepo, Trigger> Identify for DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
+    DocumentRepo::Document: Identify,
 {
     type Id = <DocumentRepo::Document as Identify>::Id;
 
@@ -44,7 +45,7 @@ where
 impl<DocumentRepo, Trigger> Node for DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
-    DocumentRepo::Document: Node<Edge = <DocumentRepo::Document as Identify>::Id>,
+    DocumentRepo::Document: Identify + Node<Edge = <DocumentRepo::Document as Identify>::Id>,
     Trigger: ProxyTrigger,
 {
     type Edge = <Self as Identify>::Id;
@@ -57,6 +58,7 @@ where
 impl<DocumentRepo, Trigger> DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
+    DocumentRepo::Document: Identify,
     Trigger: ProxyTrigger,
 {
     async fn inner(&self) -> RwLockReadGuard<DocumentRepo::Document> {
@@ -74,6 +76,7 @@ where
 impl<DocumentRepo, Trigger> DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
+    DocumentRepo::Document: Identify,
 {
     async fn update(&self) {
         let Ok(mut doc_guard) = self.document.write() else {

@@ -1,3 +1,5 @@
+//! Definitions for creating and managing arbitrary constraints.
+
 pub mod chain;
 
 /// Represents whatever rule that must be satisfied by a specific source.

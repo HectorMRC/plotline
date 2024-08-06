@@ -1,3 +1,5 @@
+//! Edges to establish relations between the nodes in a graph.
+
 use crate::name::Name;
 
 /// Represents an unidirectional relation between two nodes in a graph.

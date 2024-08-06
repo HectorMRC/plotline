@@ -1,3 +1,5 @@
+//! A directed graph implementation.
+
 use std::{collections::HashMap, hash::Hash};
 
 use crate::{id::Identify, name::Name};
@@ -20,7 +22,7 @@ impl<T: Identify> Default for DirectedGraph<T> {
 }
 
 impl<T> FromIterator<T> for DirectedGraph<T>
-where 
+where
     T: Identify,
     T::Id: Eq + Hash,
 {
@@ -35,8 +37,8 @@ where
     }
 }
 
-impl<T> DirectedGraph<T> 
-where 
+impl<T> DirectedGraph<T>
+where
     T: Identify,
     T::Id: Eq + Hash,
 {
@@ -107,8 +109,8 @@ where
     }
 }
 
-impl<'a, T> DirectedNode<'a, T> 
-where 
+impl<'a, T> DirectedNode<'a, T>
+where
     T: Identify,
     T::Id: Eq + Hash,
 {

@@ -1,3 +1,5 @@
+//! Definitions for creating and managing arbitrary intervals.
+
 mod search_tree;
 
 /// Represents one of the limits in an [Interval].

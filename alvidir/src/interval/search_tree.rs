@@ -1,3 +1,5 @@
+//! An interval search tree implementation.
+
 use super::Interval;
 
 /// Represents a node in an interval search tree.

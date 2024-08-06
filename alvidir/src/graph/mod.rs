@@ -1,5 +1,8 @@
+//! Definitions for creating and managing arbitrary graphs.
+
 pub mod directed;
 pub mod edge;
+pub mod view;
 
 /// Represents an arbitrary node
 #[trait_make::make]

@@ -1,3 +1,5 @@
+//! A constraint implementation for statically chaining arbitrary constraints.
+
 use std::marker::PhantomData;
 
 use super::Constraint;
@@ -43,7 +45,7 @@ where
         }
     }
 }
-    
+
 impl<Cnst> LiFoConstraintChain<Cnst, InfallibleConstraint<Cnst::Source, Cnst::Error>>
 where
     Cnst: Constraint,

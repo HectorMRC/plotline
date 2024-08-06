@@ -1,3 +1,5 @@
+//! Definitions for creating and managing arbitrary names.
+
 use std::{fmt::Display, hash::Hash, marker::PhantomData, str::FromStr};
 
 pub type Result<T> = std::result::Result<T, Error>;
