@@ -1,0 +1,25 @@
+[package]
+authors     = ["Hèctor Morales <hector.morales.carnice@gmail.com>"]
+description = "A plotline manager"
+edition     = "2021"
+license     = "MIT"
+name        = "alvidir"
+readme      = "../README.md"
+repository  = "https://github.com/hectormrc/plotline"
+version     = "0.1.0"
+
+[dependencies]
+thiserror  = {workspace = true}
+trait-make = {workspace = true}
+
+[dev-dependencies]
+tokio = { version = "1.39", features = ["full"]}
+
+[features]
+# Enables the "fixture" constructor for structs as well as mock implementations
+# for traits.
+fixtures = []
+
+[lib]
+name = "alvidir"
+path = "src/lib.rs"
