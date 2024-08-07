@@ -8,10 +8,8 @@ pub mod proxy;
 #[trait_make::make]
 pub trait DocumentRepository {
     /// The document type retrived by the repository.
-    type Document;
+    type Document: Identify;
 
     /// Retrives the document with the given id.
-    async fn find_by_id(&self, id: &<Self::Document as Identify>::Id) -> Option<Self::Document>
-    where
-        Self::Document: Identify;
+    async fn find_by_id(&self, id: &<Self::Document as Identify>::Id) -> Option<Self::Document>;
 }

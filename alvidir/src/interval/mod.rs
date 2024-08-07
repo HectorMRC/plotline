@@ -1,15 +1,17 @@
 //! Definitions for creating and managing arbitrary intervals.
+#[allow(dead_code)]
 
 mod search_tree;
 
 /// Represents one of the limits in an [Interval].
+#[allow(dead_code)]
 trait Bound: Ord {}
 impl<T> Bound for T where T: Ord {}
 
 /// Represents whatever delimited by two bounds.
 trait Interval: Eq + Ord {
     type Bound: Bound;
-
+        
     /// Retrives the lowest bound in the interval.
     fn lo(&self) -> Self::Bound;
 

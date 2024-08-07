@@ -1,6 +1,8 @@
 //! An access control layer for lazy loading and deferred persistence of documents.
 
-use std::sync::{Arc, RwLock, RwLockReadGuard};
+use std::sync::Arc;
+
+use async_std::sync::{RwLock, RwLockReadGuard};
 
 use crate::{graph::Node, id::Identify};
 
@@ -18,7 +20,6 @@ pub trait ProxyTrigger {
 pub struct DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
-    DocumentRepo::Document: Identify,
 {
     /// The repository of documents.
     document_repo: Arc<DocumentRepo>,
@@ -33,22 +34,20 @@ where
 impl<DocumentRepo, Trigger> Identify for DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
-    DocumentRepo::Document: Identify,
+    <DocumentRepo::Document as Identify>::Id: Clone,
 {
     type Id = <DocumentRepo::Document as Identify>::Id;
 
     fn id(&self) -> Self::Id {
-        match self.document.read() {
-            Ok(document) => document.id(),
-            Err(poison) => poison.get_ref().id(),
-        }
+        self.document_id.clone()
     }
 }
 
 impl<DocumentRepo, Trigger> Node for DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
-    DocumentRepo::Document: Identify + Node<Edge = <DocumentRepo::Document as Identify>::Id>,
+    DocumentRepo::Document: Node<Edge = <DocumentRepo::Document as Identify>::Id>,
+    <DocumentRepo::Document as Identify>::Id: Clone,
     Trigger: ProxyTrigger,
 {
     type Edge = <Self as Identify>::Id;
@@ -61,7 +60,6 @@ where
 impl<DocumentRepo, Trigger> DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
-    DocumentRepo::Document: Identify,
     Trigger: ProxyTrigger,
 {
     async fn inner(&self) -> RwLockReadGuard<DocumentRepo::Document> {
@@ -69,25 +67,17 @@ where
             self.update().await;
         }
 
-        match self.document.read() {
-            Ok(doc_guard) => doc_guard,
-            Err(poison) => poison.into_inner(),
-        }
+        self.document.read().await
     }
 }
 
 impl<DocumentRepo, Trigger> DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
-    DocumentRepo::Document: Identify,
 {
     async fn update(&self) {
-        let Some(doc) = self.document_repo.find_by_id(&self.document_id).await else {
-            return;
-        };
-
-        if let Ok(mut doc_guard) = self.document.write() {
-            *doc_guard = doc;
+        if let Some(doc) = self.document_repo.find_by_id(&self.document_id).await {
+            *self.document.write().await = doc;
         };
     }
 }
@@ -95,18 +85,17 @@ where
 impl<DocumentRepo, Trigger> DocumentProxy<DocumentRepo, Trigger>
 where
     DocumentRepo: DocumentRepository,
-    DocumentRepo::Document: Identify,
     Trigger: Default,
 {
     /// Returns a [DocumentProxy] constructor for a predefined [DocumentRepository] and
-    /// [ProxyTrigger], requiring no more than the [Document] to be provided.
+    /// [ProxyTrigger], requiring no more than the document to be provided.
     pub fn builder(document_repo: Arc<DocumentRepo>) -> impl Fn(DocumentRepo::Document) -> Self {
         move |document| -> Self {
             Self {
                 document_repo: document_repo.clone(),
+                trigger: Trigger::default(),
                 document_id: document.id(),
                 document: RwLock::new(document),
-                trigger: Trigger::default(),
             }
         }
     }
