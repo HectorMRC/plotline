@@ -90,34 +90,27 @@ impl<Src, Err> Constraint for InfallibleConstraint<Src, Err> {
 
 #[cfg(test)]
 mod tests {
-    use crate::constraint::Constraint;
+    use crate::constraint::{fixtures::ConstraintMock, Constraint};
 
     use super::LiFoConstraintChain;
 
-    struct MustContains(char);
+    fn must_contain<const C: char>() -> ConstraintMock<&'static str, &'static str> {
+        ConstraintMock::default()
+            .with_matches_fn(|s: &&str| s.contains(C))
+            .with_must_match_fn(|s| {
+                if !s.contains(C) {
+                    return Err("does not contains expected char");
+                }
 
-    impl Constraint for MustContains {
-        type Source = &'static str;
-        type Error = &'static str;
-
-        fn matches(&self, source: &Self::Source) -> bool {
-            source.contains(self.0)
-        }
-
-        fn must_match(&self, source: Self::Source) -> Result<Self::Source, Self::Error> {
-            if source.contains(self.0) {
-                return Ok(source);
-            }
-
-            Err("the string does not contains the expected char")
-        }
+                Ok(s)
+            })
     }
 
     #[test]
     fn lifo_constraint_chain_must_run_all_constraints() {
-        let constraint = LiFoConstraintChain::new(MustContains('a'))
-            .chain(MustContains('1'))
-            .chain(MustContains('ش'));
+        let constraint = LiFoConstraintChain::new(must_contain::<'a'>())
+            .chain(must_contain::<'1'>())
+            .chain(must_contain::<'ش'>());
 
         struct Test {
             name: &'static str,

@@ -31,11 +31,7 @@ pub mod fixtures {
         type Id = Id;
 
         fn id(&self) -> Self::Id {
-            if let Some(id_fn) = self.id_fn {
-                return id_fn();
-            }
-
-            unimplemented!()
+            self.id_fn.expect("id method must be set")()
         }
     }
 
