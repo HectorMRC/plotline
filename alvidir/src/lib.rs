@@ -1,4 +1,4 @@
-pub mod constraint;
+pub mod rule;
 pub mod document;
 pub mod graph;
 pub mod id;

@@ -1,72 +1,72 @@
-//! A constraint implementation for statically chaining arbitrary constraints.
+//! A rule implementation for statically chaining arbitrary rules.
 
 use std::marker::PhantomData;
 
-use super::Constraint;
+use super::Rule;
 
-/// A succession of arbitrary [Constraint]s that must be satisfied as a single one.
-pub struct LiFoConstraintChain<Cnst, Head> {
-    constraint: Cnst,
+/// A succession of arbitrary [Rule]s that must be satisfied as a single one.
+pub struct LiFoRuleChain<Cnst, Head> {
+    rule: Cnst,
     head: Head,
 }
 
-impl<Cnst, Head> Constraint for LiFoConstraintChain<Cnst, Head>
+impl<Cnst, Head> Rule for LiFoRuleChain<Cnst, Head>
 where
-    Head: Constraint<Source = Cnst::Source, Error = Cnst::Error>,
-    Cnst: Constraint,
+    Head: Rule<Source = Cnst::Source, Error = Cnst::Error>,
+    Cnst: Rule,
 {
     type Source = Cnst::Source;
     type Error = Cnst::Error;
 
     fn matches(&self, source: &Self::Source) -> bool {
-        self.constraint.matches(source) && self.head.matches(source)
+        self.rule.matches(source) && self.head.matches(source)
     }
 
     fn must_match(&self, source: Self::Source) -> Result<Self::Source, Self::Error> {
-        self.constraint
+        self.rule
             .must_match(source)
             .and_then(|source| self.head.must_match(source))
     }
 }
 
-impl<Cnst, Head> LiFoConstraintChain<Cnst, Head>
+impl<Cnst, Head> LiFoRuleChain<Cnst, Head>
 where
-    Head: Constraint<Source = Cnst::Source, Error = Cnst::Error>,
-    Cnst: Constraint,
+    Head: Rule<Source = Cnst::Source, Error = Cnst::Error>,
+    Cnst: Rule,
 {
-    /// Chains the given constraint with self.
-    pub fn chain<Tail>(self, constraint: Tail) -> LiFoConstraintChain<Tail, Self>
+    /// Chains the given rule with self.
+    pub fn chain<Tail>(self, rule: Tail) -> LiFoRuleChain<Tail, Self>
     where
-        Tail: Constraint<Source = Cnst::Source, Error = Cnst::Error>,
+        Tail: Rule<Source = Cnst::Source, Error = Cnst::Error>,
     {
-        LiFoConstraintChain {
-            constraint,
+        LiFoRuleChain {
+            rule,
             head: self,
         }
     }
 }
 
-impl<Cnst> LiFoConstraintChain<Cnst, InfallibleConstraint<Cnst::Source, Cnst::Error>>
+impl<Cnst> LiFoRuleChain<Cnst, InfallibleRule<Cnst::Source, Cnst::Error>>
 where
-    Cnst: Constraint,
+    Cnst: Rule,
 {
-    /// Creates a new constrain chain with the given one, having [InfallibleConstraint] as the head
+    /// Creates a new constrain chain with the given one, having [InfallibleRule] as the head
     /// of self.
-    pub fn new(constraint: Cnst) -> Self {
+    pub fn new(rule: Cnst) -> Self {
         Self {
             head: Default::default(),
-            constraint,
+            rule,
         }
     }
 }
 
-/// A [Constraint] implementation that never fails.
-pub struct InfallibleConstraint<Src, Err> {
+/// A [Rule] implementation that never fails.
+pub struct InfallibleRule<Src, Err> {
     source: PhantomData<Src>,
     error: PhantomData<Err>,
 }
 
-impl<Src, Err> Default for InfallibleConstraint<Src, Err> {
+impl<Src, Err> Default for InfallibleRule<Src, Err> {
     fn default() -> Self {
         Self {
             source: PhantomData,
@@ -75,7 +75,7 @@ impl<Src, Err> Default for InfallibleConstraint<Src, Err> {
     }
 }
 
-impl<Src, Err> Constraint for InfallibleConstraint<Src, Err> {
+impl<Src, Err> Rule for InfallibleRule<Src, Err> {
     type Source = Src;
     type Error = Err;
 
@@ -90,12 +90,12 @@ impl<Src, Err> Constraint for InfallibleConstraint<Src, Err> {
 
 #[cfg(test)]
 mod tests {
-    use crate::constraint::{fixtures::ConstraintMock, Constraint};
+    use crate::rule::{fixtures::RuleMock, Rule};
 
-    use super::LiFoConstraintChain;
+    use super::LiFoRuleChain;
 
-    fn must_contain<const C: char>() -> ConstraintMock<&'static str, &'static str> {
-        ConstraintMock::default()
+    fn must_contain<const C: char>() -> RuleMock<&'static str, &'static str> {
+        RuleMock::default()
             .with_matches_fn(|s: &&str| s.contains(C))
             .with_must_match_fn(|s| {
                 if !s.contains(C) {
@@ -107,8 +107,8 @@ mod tests {
     }
 
     #[test]
-    fn lifo_constraint_chain_must_run_all_constraints() {
-        let constraint = LiFoConstraintChain::new(must_contain::<'a'>())
+    fn lifo_rule_chain_must_run_all_rules() {
+        let rule = LiFoRuleChain::new(must_contain::<'a'>())
             .chain(must_contain::<'1'>())
             .chain(must_contain::<'ش'>());
 
@@ -120,24 +120,24 @@ mod tests {
 
         vec![
             Test {
-                name: "subject failing all constraints should fail",
+                name: "subject failing all rules should fail",
                 subject: "hello world",
                 matches: false,
             },
             Test {
-                name: "subject failing one single constraint should fail",
+                name: "subject failing one single rule should fail",
                 subject: "a1",
                 matches: false,
             },
             Test {
-                name: "subject fulfilling all constraints should success",
+                name: "subject fulfilling all rules should success",
                 subject: "a1ش",
                 matches: true,
             },
         ]
         .into_iter()
         .for_each(|test| {
-            let matches = constraint.matches(&test.subject);
+            let matches = rule.matches(&test.subject);
             assert_eq!(
                 matches, test.matches,
                 "{} got matches = {matches}, want {}",
