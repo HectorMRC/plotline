@@ -6,8 +6,6 @@ use crate::{id::Identify, name::Name};
 
 use super::{edge::Edge, Node};
 
-pub mod iterator;
-
 /// Represents an arbitrary directed graph.
 #[derive(Debug)]
 pub struct DirectedGraph<T: Identify> {

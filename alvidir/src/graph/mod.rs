@@ -3,6 +3,7 @@
 #[cfg(feature = "directed-graph")]
 pub mod directed;
 pub mod edge;
+pub mod iterator;
 
 /// Represents an arbitrary node.
 #[trait_make::make]

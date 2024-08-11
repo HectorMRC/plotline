@@ -1,8 +1,8 @@
-//! An [Iterator] implementation for the [DirectedGraph].
+//! An [Iterator] implementation for traversing arbitrary graphs.
 
 use crate::id::Identify;
 
-/// A placeholder for non set generics.
+/// A placeholder for non-set generics.
 pub struct NotSet;
 
 /// An [Iterator] that traverses a graph starting from an specific node.
@@ -40,7 +40,7 @@ impl<T> GraphIterator<T, NotSet> {
     /// Sets the select function for the iterator.
     pub fn with_select<SelectFn>(self, select_fn: SelectFn) -> GraphIterator<T, SelectFn>
     where 
-        SelectFn: Fn(&T) -> T,    
+        SelectFn: Fn(&T) -> Option<T>,    
     {
         GraphIterator {
             next_item: self.next_item,
