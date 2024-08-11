@@ -17,6 +17,12 @@ pub trait Rule {
     fn must_match(&self, source: Self::Source) -> Result<Self::Source, Self::Error>;
 }
 
+/// A [Rule] that only applies under specific conditions of the source.
+pub trait TargetedRule: Rule {
+    /// Returns true if, and only if, the rule applies on the give source.
+    fn applies_on(&self, source: &Self::Source) -> bool;
+}
+
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
     use super::Rule;
