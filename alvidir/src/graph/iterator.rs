@@ -3,7 +3,7 @@
 use crate::id::Identify;
 
 /// A placeholder for non-set generics.
-pub struct NotSet;
+pub struct NotSet;  
 
 /// An [Iterator] that traverses a graph starting from an specific node.
 pub struct GraphIterator<T, SelectFn> {
