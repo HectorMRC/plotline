@@ -4,7 +4,7 @@ pub mod directed;
 pub mod edge;
 pub mod view;
 
-/// Represents an arbitrary node
+/// Represents an arbitrary node.
 #[trait_make::make]
 pub trait Node {
     /// The type to reference other nodes.
