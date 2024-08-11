@@ -9,7 +9,7 @@ trait Bound: Ord {}
 impl<T> Bound for T where T: Ord {}
 
 /// Represents whatever delimited by two bounds.
-trait Interval: Eq + Ord {
+trait Interval: {
     type Bound: Bound;
         
     /// Retrives the lowest bound in the interval.
