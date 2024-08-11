@@ -6,6 +6,8 @@ use crate::{id::Identify, name::Name};
 
 use super::{edge::Edge, Node};
 
+pub mod iterator;
+
 /// Represents an arbitrary directed graph.
 #[derive(Debug)]
 pub struct DirectedGraph<T: Identify> {
@@ -75,6 +77,19 @@ impl<T: Identify> DirectedGraph<T> {
 pub struct DirectedNode<'a, T: Identify> {
     graph: &'a DirectedGraph<T>,
     id: T::Id,
+}
+
+impl<'a, T> Clone for DirectedNode<'a, T>
+where
+    T: Identify,
+    T::Id: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            graph: self.graph,
+            id: self.id.clone(),
+        }
+    }
 }
 
 impl<'a, T> Identify for DirectedNode<'a, T>
