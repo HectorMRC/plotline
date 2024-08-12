@@ -3,7 +3,7 @@
 use crate::id::Identify;
 
 /// A placeholder for non-set generics.
-pub struct NotSet;  
+pub struct NotSet;
 
 /// An [Iterator] that traverses a graph starting from an specific node.
 pub struct GraphIterator<T, SelectFn> {
@@ -39,8 +39,8 @@ impl<T> GraphIterator<T, NotSet> {
 
     /// Sets the select function for the iterator.
     pub fn with_select<SelectFn>(self, select_fn: SelectFn) -> GraphIterator<T, SelectFn>
-    where 
-        SelectFn: Fn(&T) -> Option<T>,    
+    where
+        SelectFn: Fn(&T) -> Option<T>,
     {
         GraphIterator {
             next_item: self.next_item,

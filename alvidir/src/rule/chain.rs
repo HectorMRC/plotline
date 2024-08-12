@@ -39,10 +39,7 @@ where
     where
         Tail: Rule<Source = Cnst::Source, Error = Cnst::Error>,
     {
-        LiFoRuleChain {
-            rule,
-            head: self,
-        }
+        LiFoRuleChain { rule, head: self }
     }
 }
 

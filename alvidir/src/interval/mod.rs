@@ -1,6 +1,5 @@
 //! Definitions for creating and managing arbitrary intervals.
 #[allow(dead_code)]
-
 mod search_tree;
 
 /// Represents one of the limits in an [Interval].
@@ -9,9 +8,9 @@ trait Bound: Ord {}
 impl<T> Bound for T where T: Ord {}
 
 /// Represents whatever delimited by two bounds.
-trait Interval: {
+trait Interval {
     type Bound: Bound;
-        
+
     /// Retrives the lowest bound in the interval.
     fn lo(&self) -> Self::Bound;
 
