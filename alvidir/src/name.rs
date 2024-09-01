@@ -16,6 +16,7 @@ pub enum Error {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Name<T> {
     value: String,
+    #[serde(skip)]
     _marker: PhantomData<T>,
 }
 
