@@ -2,6 +2,8 @@
 
 use std::{fmt::Display, hash::Hash, marker::PhantomData, str::FromStr};
 
+use serde::{Deserialize, Serialize};
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, PartialEq, thiserror::Error)]
@@ -11,7 +13,7 @@ pub enum Error {
 }
 
 /// Represents a single-line string that identifies one or more resources.
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Name<T> {
     value: String,
     _marker: PhantomData<T>,

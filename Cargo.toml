@@ -1,9 +1,8 @@
 [workspace]
-members  = [
-    "alvidir",
-]
+members = ["alvidir"]
 resolver = "2"
 
 [workspace.dependencies]
-thiserror  = "1.0"
+serde = "1.0.209"
+thiserror = "1.0"
 trait-make = "0.1"
