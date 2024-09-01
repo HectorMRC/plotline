@@ -14,6 +14,7 @@ pub enum Error {
 
 /// Represents a single-line string that identifies one or more resources.
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct Name<T> {
     value: String,
     #[serde(skip)]
