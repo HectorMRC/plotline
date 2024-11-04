@@ -1,21 +1,21 @@
-//! Edges to establish relations between the nodes in a graph.
+//! An edge representation for the graph.
 
 use crate::name::Name;
 
-/// Represents an unidirectional relation between two nodes in a graph.
+/// A relation pointing to a node in a graph.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Edge<T> {
+pub struct Edge<Node> {
     /// The name of the edge.
     pub name: Option<Name<Self>>,
     /// The node the edge is refering to.
-    pub node: T,
+    pub node: Node,
 }
 
-impl<T> Edge<T> {
-    pub fn new(value: T) -> Self {
+impl<Node> Edge<Node> {
+    pub fn new(node: Node) -> Self {
         Self {
             name: Default::default(),
-            node: value,
+            node,
         }
     }
 

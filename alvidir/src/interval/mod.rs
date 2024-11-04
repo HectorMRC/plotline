@@ -1,4 +1,5 @@
-//! Definitions for creating and managing arbitrary intervals.
+//! Interval related definitions.
+
 #[allow(dead_code)]
 mod search_tree;
 

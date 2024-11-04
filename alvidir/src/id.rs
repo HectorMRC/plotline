@@ -1,8 +1,8 @@
-//! Definition for qualifying entities of being identifiable.
+//! Identity definition.
 
-/// Qualifies an entity of being uniquely identifiable.
+/// Represents whatever entity it can be uniquely identified.
 pub trait Identify {
     type Id;
 
-    fn id(&self) -> Self::Id;
+    fn id(&self) -> &Self::Id;
 }

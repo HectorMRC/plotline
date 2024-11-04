@@ -1,4 +1,4 @@
-//! Definitions for creating and managing arbitrary names.
+//! Type-constrained name definition.
 
 use std::{fmt::Display, hash::Hash, marker::PhantomData, str::FromStr};
 
@@ -48,12 +48,6 @@ impl<T> AsRef<str> for Name<T> {
     }
 }
 
-impl<T> Display for Name<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.value)
-    }
-}
-
 impl<T> Clone for Name<T> {
     fn clone(&self) -> Self {
         Self {
@@ -63,9 +57,27 @@ impl<T> Clone for Name<T> {
     }
 }
 
+impl<T> Display for Name<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.value.fmt(f)
+    }
+}
+
 impl<T> Hash for Name<T> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.value.hash(state);
+    }
+}
+
+impl<T> PartialOrd for Name<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.value.partial_cmp(&other.value)
+    }
+}
+
+impl<T> Ord for Name<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.value.cmp(&other.value)
     }
 }
 
@@ -76,12 +88,6 @@ impl<T> PartialEq for Name<T> {
     }
 }
 
-impl<T> PartialEq<&str> for Name<T> {
-    fn eq(&self, other: &&str) -> bool {
-        &self.value == other
-    }
-}
-
 impl<T> Name<T> {
     /// Returns a new name with the same value as the given one.
     pub fn from<U>(name: Name<U>) -> Self {
@@ -89,6 +95,11 @@ impl<T> Name<T> {
             value: name.value,
             _marker: PhantomData,
         }
+    }
+
+    /// Extracts a string slice containing the entire name.
+    pub fn as_str(&self) -> &str {
+        self.as_ref()
     }
 }
 
@@ -149,7 +160,7 @@ mod tests {
             assert_eq!(result.is_err(), test.must_fail, "{}", test.name);
 
             match result {
-                Ok(name) => assert_eq!(name.as_ref(), test.name_value, "{}", test.name),
+                Ok(name) => assert_eq!(name.as_str(), test.name_value, "{}", test.name),
                 Err(err) => assert!(matches!(err, Error::NotAName), "{}", test.name),
             }
         });

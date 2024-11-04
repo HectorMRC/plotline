@@ -1,8 +1,9 @@
 [workspace]
-members = ["alvidir"]
+members = ["alvidir", "alvidir-cli"]
 resolver = "2"
 
 [workspace.dependencies]
+log = "0.4.22"
 serde = "1.0.209"
 thiserror = "1.0"
-trait-make = "0.1"
+tracing = "0.1"
