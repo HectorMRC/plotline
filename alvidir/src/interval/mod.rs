@@ -1,4 +1,4 @@
-//! An interval representation.
+//! Interval related definitions.
 
 #[allow(dead_code)]
 mod search_tree;

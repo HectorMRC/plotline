@@ -1,4 +1,4 @@
-//! A graph representation.
+//! Graph related definitions.
 
 use std::collections::BTreeMap;
 
@@ -10,32 +10,13 @@ pub use edge::*;
 mod proxy;
 pub use proxy::*;
 
-/// An arbitrary node.
+/// Represents an arbitrary node in a [`Graph`].
 pub trait Node {
     /// The type to reference other nodes.
     type Edge;
 
     /// Returns all the edges of the node.
     fn edges(&self) -> Vec<Self::Edge>;
-}
-
-/// An entity which value depends on the state of a [`Graph`].
-pub trait FromGraph<T>
-where
-    T: Identify,
-{
-    /// Returns an instance of self resulting from the given [`Graph`].
-    fn from_graph(graph: &Graph<T>) -> Self;
-}
-
-impl<T, U> FromGraph<T> for U
-where
-    T: Identify,
-    U: for<'a> From<&'a Graph<T>>,
-{
-    fn from_graph(graph: &Graph<T>) -> Self {
-        Self::from(graph)
-    }
 }
 
 /// An arbitrary graph.
@@ -82,7 +63,7 @@ where
 }
 
 impl<T: Identify> Graph<T> {
-    /// Returns the [`NodeProxy`] with the given id.
+    /// Returns the [`NodeProxy`] for the given id.
     pub fn node(&self, id: T::Id) -> NodeProxy<'_, T> {
         NodeProxy { graph: self, id }
     }

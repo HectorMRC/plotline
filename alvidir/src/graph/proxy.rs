@@ -1,4 +1,4 @@
-//! A proxy for the nodes in a graph.
+//! A proxy for nodes in a graph.
 
 use crate::{id::Identify, name::Name};
 
@@ -66,7 +66,7 @@ where
         self.graph.nodes.get(&self.id)
     }
 
-    /// Returns true if, and only if, the node does not exists in the graph.
+    /// Returns true if, and only if, the node does not exist in the graph.
     pub fn is_virtual(&self) -> bool {
         !self.graph.nodes.contains_key(&self.id)
     }
@@ -139,9 +139,9 @@ mod tests {
 
         let edges_3 = edges_2[0].node.edges();
         assert_eq!(edges_3.len(), 2);
-        assert_eq!(edges_3[0].name.clone().unwrap().as_str(), "next");
+        assert_eq!(edges_3[0].name.as_ref().unwrap().as_str(), "next");
         assert_eq!(edges_3[0].node.id, "node_1");
-        assert_eq!(edges_3[1].name.clone().unwrap().as_str(), "previous");
+        assert_eq!(edges_3[1].name.as_ref().unwrap().as_str(), "previous");
         assert_eq!(edges_3[1].node.id, "node_2");
     }
 }

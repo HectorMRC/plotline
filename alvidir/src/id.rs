@@ -1,6 +1,6 @@
-//! Identity representation.
+//! Identity definition.
 
-/// Qualifies an entity of being uniquely identifiable.
+/// Represents whatever entity it can be uniquely identified.
 pub trait Identify {
     type Id;
 

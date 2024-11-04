@@ -1,4 +1,4 @@
-//! Definitions for creating and managing arbitrary names.
+//! Type-constrained name definition.
 
 use std::{fmt::Display, hash::Hash, marker::PhantomData, str::FromStr};
 
