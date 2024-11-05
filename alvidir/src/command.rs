@@ -42,7 +42,7 @@ mod tests {
     fn handle_arbitrary_commands() {
         struct Handler;
         impl Handler {
-            fn with_command<Args>(self, _: impl Command<Args, Ctx = Self>) -> Self {
+            fn with_command<M>(self, _: impl Command<M, Ctx = Self>) -> Self {
                 self
             }
         }

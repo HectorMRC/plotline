@@ -1,3 +1,5 @@
+/// Resource definition.
+
 /// Represents a value in a source.
 pub trait Resource {
     /// The type of source the resource is comming from.
