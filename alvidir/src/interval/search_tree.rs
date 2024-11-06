@@ -1,6 +1,6 @@
 //! An interval search tree implementation.
 
-use super::Interval;
+use super::{Interval, IntervalExt};
 
 /// A node in an interval search tree.
 #[derive(Debug, Clone, PartialEq)]

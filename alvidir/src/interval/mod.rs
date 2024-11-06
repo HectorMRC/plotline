@@ -17,7 +17,9 @@ trait Interval {
 
     /// Retrives the higher bound in the interval.
     fn hi(&self) -> Self::Bound;
+}
 
+trait IntervalExt: Interval {
     /// Returns true if, and only if, the given bound is in self.
     fn contains(&self, bound: Self::Bound) -> bool {
         self.lo() <= bound && bound <= self.hi()
@@ -31,6 +33,8 @@ trait Interval {
             || other.contains(self.hi())
     }
 }
+
+impl<T> IntervalExt for T where T: Interval {}
 
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
