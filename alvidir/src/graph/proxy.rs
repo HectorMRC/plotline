@@ -1,23 +1,19 @@
 //! A proxy for nodes in a graph.
 
-use std::marker::PhantomData;
-
 use crate::{deref::TryDeref, id::Identify, resource::Resource};
 
 use super::Graph;
 
 /// A preliminary representation of a node that may, or may not, exist in a [`Graph`].
 #[derive(Debug)]
-pub struct NodeProxy<'a, T: Identify, Edge = <T as Identify>::Id> {
+pub struct NodeProxy<'a, T: Identify> {
     /// The graph in which the id potentially exists.
     pub graph: &'a Graph<T>,
     /// The id of the node.
     pub id: T::Id,
-    /// The type of edge taken byt the proxy.
-    pub edge: PhantomData<Edge>,
 }
 
-impl<T, Edge> Clone for NodeProxy<'_, T, Edge>
+impl<T> Clone for NodeProxy<'_, T>
 where
     T: Identify,
     T::Id: Clone,
@@ -26,7 +22,6 @@ where
         Self {
             graph: self.graph,
             id: self.id.clone(),
-            edge: PhantomData,
         }
     }
 }
@@ -42,7 +37,7 @@ where
     }
 }
 
-impl<T, Edge> TryDeref for NodeProxy<'_, T, Edge>
+impl<T> TryDeref for NodeProxy<'_, T>
 where
     T: Identify,
     T::Id: Ord,
@@ -54,13 +49,16 @@ where
     }
 }
 
-impl<T, Edge> NodeProxy<'_, T, Edge>
+impl<T> NodeProxy<'_, T>
 where
     T: Identify,
     T::Id: Ord + Clone,
-    Edge: Resource<T> + Identify<Id = T::Id>,
 {
-    pub fn edges(&self) -> Vec<Self> {
+    /// Returns a list of all the nodes pointed by the current one.
+    pub fn successors<Edge>(&self) -> Vec<Self>
+    where
+        Edge: Resource<T> + Identify<Id = T::Id>,
+    {
         let Some(node) = self.try_deref() else {
             return Vec::default();
         };
@@ -70,7 +68,6 @@ where
             .map(|edge| Self {
                 graph: self.graph,
                 id: edge.id().clone(),
-                edge: PhantomData,
             })
             .collect()
     }

@@ -1,6 +1,6 @@
 //! Graph related definitions.
 
-use std::{collections::BTreeMap, marker::PhantomData};
+use std::collections::BTreeMap;
 
 use crate::id::Identify;
 
@@ -53,11 +53,7 @@ where
 impl<T: Identify> Graph<T> {
     /// Returns the [`NodeProxy`] for the given id.
     pub fn node(&self, id: T::Id) -> NodeProxy<'_, T> {
-        NodeProxy {
-            graph: self,
-            id,
-            edge: PhantomData,
-        }
+        NodeProxy { graph: self, id }
     }
 }
 
