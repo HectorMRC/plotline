@@ -41,7 +41,7 @@ mod tests {
         let chain = LiFoChain::terminal("").chain(123).chain(true).chain(Foo);
 
         assert_eq!(chain.value, Foo);
-        assert_eq!(chain.head.value, true);
+        assert!(chain.head.value);
         assert_eq!(chain.head.head.value, 123);
         assert_eq!(chain.head.head.head.value, "");
         assert_eq!(chain.head.head.head.head, ());

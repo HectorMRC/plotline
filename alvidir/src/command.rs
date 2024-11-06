@@ -1,23 +1,18 @@
 //! Context-based command definitions.
 
-/// Represents whatever it can be executed under a specific context.
-pub trait Command<M = ()> {
-    /// The type of context under which the command is executed.
-    type Ctx;
-
+/// An entity that can be executed under a specific context.
+pub trait Command<Ctx, Args = ()> {
     /// Performs the command.
-    fn execute(self, ctx: &Self::Ctx);
+    fn execute(self, ctx: &Ctx);
 }
 
 macro_rules! impl_command {
     ($($args:tt),*) => {
-        impl<Ctx, U, $($args),*> Command<(Ctx, $($args,)*)> for U
+        impl<Ctx, U, $($args),*> Command<Ctx, ($($args,)*)> for U
         where
             U: Fn($($args),*),
             $($args: for<'a> From<&'a Ctx>),*
         {
-            type Ctx = Ctx;
-
             fn execute(self, ctx: &Ctx) {
                 (self)($($args::from(ctx)),*);
             }
@@ -42,7 +37,7 @@ mod tests {
     fn handle_arbitrary_commands() {
         struct Handler;
         impl Handler {
-            fn with_command<M>(self, _: impl Command<M, Ctx = Self>) -> Self {
+            fn with_command<M>(self, _: impl Command<Self, M>) -> Self {
                 self
             }
         }

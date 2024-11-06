@@ -12,7 +12,7 @@ pub enum Error {
     NotAName,
 }
 
-/// Represents a single-line string that identifies one or more resources.
+/// A single-line string that identifies one or more resources.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Name<T> {
@@ -71,7 +71,7 @@ impl<T> Hash for Name<T> {
 
 impl<T> PartialOrd for Name<T> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.value.partial_cmp(&other.value)
+        Some(self.cmp(other))
     }
 }
 

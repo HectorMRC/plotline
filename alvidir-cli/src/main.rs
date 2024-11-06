@@ -54,7 +54,6 @@ struct Cli {
 impl Cli {
     fn documents(&self) -> impl Iterator<Item = PathBuf> + '_ {
         Walk::new(&self.context)
-            .into_iter()
             .filter_map(move |entry| {
                 if let Err(err) = &entry {
                     tracing::error!(

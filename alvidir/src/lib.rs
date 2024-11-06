@@ -1,5 +1,6 @@
-mod chain;
-mod command;
+pub mod chain;
+pub mod command;
+pub mod deref;
 pub mod document;
 pub mod graph;
 pub mod id;

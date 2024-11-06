@@ -5,7 +5,7 @@ use std::{
     sync::{Arc, OnceLock},
 };
 
-use crate::{graph::Node, id::Identify, resource::Resource};
+use crate::{deref::TryDeref, id::Identify};
 
 use super::DocumentRepository;
 
@@ -33,24 +33,14 @@ where
     }
 }
 
-impl<DocumentRepo> Node for LazyDocument<DocumentRepo>
-where
-    DocumentRepo: DocumentRepository,
-    <DocumentRepo::Document as Identify>::Id: Resource<Source = DocumentRepo::Document> + Debug,
-{
-    type Edge = <Self as Identify>::Id;
-
-    fn edges(&self) -> Vec<Self::Edge> {
-        self.inner().map(Resource::all).unwrap_or_default()
-    }
-}
-
-impl<DocumentRepo> LazyDocument<DocumentRepo>
+impl<DocumentRepo> TryDeref for LazyDocument<DocumentRepo>
 where
     DocumentRepo: DocumentRepository,
     <DocumentRepo::Document as Identify>::Id: Debug,
 {
-    fn inner(&self) -> Option<&DocumentRepo::Document> {
+    type Target = DocumentRepo::Document;
+
+    fn try_deref(&self) -> Option<&Self::Target> {
         if let doc @ Some(_) = self.document.get() {
             return doc;
         }
@@ -64,7 +54,7 @@ where
             return None;
         }
 
-        self.inner()
+        self.document.get()
     }
 }
 

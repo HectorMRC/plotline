@@ -8,7 +8,7 @@ use alvidir::{document::DocumentRepository, id::Identify};
 /// A file-system document.
 pub struct Document {
     path: PathBuf,
-    file: File,
+    _file: File,
 }
 
 impl Identify for Document {
@@ -28,7 +28,7 @@ pub struct LocalDocumentRepository<'a> {
 impl<'a> DocumentRepository for LocalDocumentRepository<'a> {
     type Document = Document;
 
-    fn find_by_id(&self, id: &<Self::Document as Identify>::Id) -> Option<Self::Document> {
+    fn find_by_id(&self, _id: &<Self::Document as Identify>::Id) -> Option<Self::Document> {
         unimplemented!()
     }
 }

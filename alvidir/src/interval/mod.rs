@@ -3,12 +3,12 @@
 #[allow(dead_code)]
 mod search_tree;
 
-/// Represents one of the limits in an [Interval].
+/// One of the limits in an [Interval].
 #[allow(dead_code)]
 trait Bound: Ord {}
 impl<T> Bound for T where T: Ord {}
 
-/// Represents whatever delimited by two bounds.
+/// A type delimited by two bounds.
 trait Interval {
     type Bound: Bound;
 

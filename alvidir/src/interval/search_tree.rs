@@ -2,7 +2,7 @@
 
 use super::Interval;
 
-/// Represents a node in an interval search tree.
+/// A node in an interval search tree.
 #[derive(Debug, Clone, PartialEq)]
 struct IntervalSearchTreeNode<Intv>
 where

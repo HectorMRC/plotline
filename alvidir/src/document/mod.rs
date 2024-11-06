@@ -4,7 +4,7 @@ use crate::id::Identify;
 
 pub mod lazy;
 
-/// Represents a repository in charge of document's persistance.
+/// A repository in charge of document's persistance.
 pub trait DocumentRepository {
     /// The type of document retrived by the repository.
     type Document: Identify;

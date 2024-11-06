@@ -1,23 +1,11 @@
 //! Graph related definitions.
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, marker::PhantomData};
 
 use crate::id::Identify;
 
-mod edge;
-pub use edge::*;
-
 mod proxy;
 pub use proxy::*;
-
-/// Represents an arbitrary node in a [`Graph`].
-pub trait Node {
-    /// The type to reference other nodes.
-    type Edge;
-
-    /// Returns all the edges of the node.
-    fn edges(&self) -> Vec<Self::Edge>;
-}
 
 /// An arbitrary graph.
 #[derive(Debug)]
@@ -65,58 +53,52 @@ where
 impl<T: Identify> Graph<T> {
     /// Returns the [`NodeProxy`] for the given id.
     pub fn node(&self, id: T::Id) -> NodeProxy<'_, T> {
-        NodeProxy { graph: self, id }
+        NodeProxy {
+            graph: self,
+            id,
+            edge: PhantomData,
+        }
     }
 }
 
-#[cfg(any(test, feature = "fixtures"))]
-pub mod fixtures {
-    use crate::id::Identify;
+// #[cfg(any(test, feature = "fixtures"))]
+// pub mod fixtures {
+//     use crate::id::Identify;
 
-    use super::{edge::Edge, Node};
+//     /// A fake node implementation.
+//     #[derive(Debug, Default)]
+//     pub struct NodeMock<Id: 'static> {
+//         pub id_fn: Option<fn() -> &'static Id>,
+//         pub edges_fn: Option<fn() -> Vec<Id>>,
+//     }
 
-    /// A mock implementation for the [Node] trait.
-    #[derive(Debug, Default)]
-    pub struct NodeMock<Id: 'static> {
-        pub id_fn: Option<fn() -> &'static Id>,
-        pub edges_fn: Option<fn() -> Vec<Edge<Id>>>,
-    }
+//     impl<Id> Identify for NodeMock<Id> {
+//         type Id = Id;
 
-    impl<Id> Identify for NodeMock<Id> {
-        type Id = Id;
+//         fn id(&self) -> &Self::Id {
+//             self.id_fn.expect("id method must be set")()
+//         }
+//     }
 
-        fn id(&self) -> &Self::Id {
-            self.id_fn.expect("id method must be set")()
-        }
-    }
+//     impl<Id> NodeMock<Id> {
+//         pub fn with_id_fn(mut self, f: fn() -> &'static Id) -> Self {
+//             self.id_fn = Some(f);
+//             self
+//         }
 
-    impl<Id> Node for NodeMock<Id> {
-        type Edge = Edge<<Self as Identify>::Id>;
+//         pub fn with_edges_fn(mut self, f: fn() -> Vec<Id>) -> Self {
+//             self.edges_fn = Some(f);
+//             self
+//         }
+//     }
 
-        fn edges(&self) -> Vec<Self::Edge> {
-            self.edges_fn.expect("edges method must be set")()
-        }
-    }
+//     macro_rules! node_mock {
+//         ($id:tt, $($edges:tt)*) => {
+//             NodeMock::default()
+//                 .with_id_fn(|| &$id)
+//                 .with_edges_fn(|| vec![$($edges)*])
+//         };
+//     }
 
-    impl<Id> NodeMock<Id> {
-        pub fn with_id_fn(mut self, f: fn() -> &'static Id) -> Self {
-            self.id_fn = Some(f);
-            self
-        }
-
-        pub fn with_edges_fn(mut self, f: fn() -> Vec<Edge<Id>>) -> Self {
-            self.edges_fn = Some(f);
-            self
-        }
-    }
-
-    macro_rules! node_mock {
-        ($id:tt, $($edges:tt)*) => {
-            NodeMock::default()
-                .with_id_fn(|| &$id)
-                .with_edges_fn(|| vec![$($edges)*])
-        };
-    }
-
-    pub(crate) use node_mock;
-}
+//     pub(crate) use node_mock;
+// }
