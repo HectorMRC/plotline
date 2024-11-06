@@ -111,5 +111,5 @@ async fn main() {
         context: &args.context,
     });
 
-    let graph_app = Graph::from_iter(args.documents().map(LazyDocument::builder(document_repo)));
+    let _graph_app = Graph::from_iter(args.documents().map(LazyDocument::builder(document_repo)));
 }
