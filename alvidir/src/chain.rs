@@ -34,6 +34,7 @@ mod tests {
     use super::LiFoChain;
 
     #[test]
+    #[allow(clippy::unit_cmp)]
     fn lifo_chain_handles_arbitrary_types() {
         #[derive(Debug, PartialEq, Eq)]
         struct Foo;
