@@ -37,6 +37,8 @@ trait IntervalExt: Interval {
 impl<T> IntervalExt for T where T: Interval {}
 
 #[cfg(any(test, feature = "fixtures"))]
+#[allow(unused_imports)]
+#[allow(unused_macros)]
 pub mod fixtures {
     use std::fmt::Debug;
 
