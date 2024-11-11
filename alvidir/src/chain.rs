@@ -1,5 +1,7 @@
 //! Chain of arbitrary types.
 
+use crate::command::Command;
+
 /// A last-in first-out chain.
 #[derive(Debug, Default)]
 pub struct LiFoChain<T, Head> {
@@ -10,6 +12,18 @@ pub struct LiFoChain<T, Head> {
     pub head: Head,
     /// The subject value in this chain's link.
     pub value: T,
+}
+
+impl<T, U, Ctx, TArgs, UArgs> Command<Ctx, (TArgs, UArgs)> for LiFoChain<T, U>
+where
+    T: Command<Ctx, TArgs>,
+    U: Command<Ctx, UArgs, Err = T::Err>,
+{
+    type Err = T::Err;
+
+    fn execute(self, ctx: &Ctx) -> Result<(), Self::Err> {
+        self.value.execute(ctx).and_then(|_| self.head.execute(ctx))
+    }
 }
 
 impl<T> LiFoChain<T, ()> {

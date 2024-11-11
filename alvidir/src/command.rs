@@ -1,20 +1,38 @@
 //! Context-based command definitions.
 
+use std::convert::Infallible;
+
 /// An entity that can be executed under a specific context.
 pub trait Command<Ctx, Args = ()> {
+    type Err;
+
     /// Performs the command.
-    fn execute(self, ctx: &Ctx);
+    fn execute(self, ctx: &Ctx) -> Result<(), Self::Err>;
+}
+
+/// A [`Command`] implementation that does nothing.
+#[derive(Debug, Default)]
+pub struct NoopCommand;
+
+impl<Ctx> Command<Ctx> for NoopCommand {
+    type Err = Infallible;
+
+    fn execute(self, _: &Ctx) -> Result<(), Self::Err> {
+        Ok(())
+    }
 }
 
 macro_rules! impl_command {
     ($($args:tt),*) => {
-        impl<Ctx, U, $($args),*> Command<Ctx, ($($args,)*)> for U
+        impl<T, Ctx, Err, $($args),*> Command<Ctx, (Err, $($args,)*)> for T
         where
-            U: Fn($($args),*),
+            T: Fn($($args),*) -> Result<(), Err>,
             $($args: for<'a> From<&'a Ctx>),*
         {
-            fn execute(self, ctx: &Ctx) {
-                (self)($($args::from(ctx)),*);
+            type Err = Err;
+
+            fn execute(self, ctx: &Ctx) -> Result<(), Self::Err> {
+                (self)($($args::from(ctx)),*)
             }
         }
     };
@@ -31,6 +49,8 @@ impl_command!(A, B, C, D, E, F, G, H);
 
 #[cfg(test)]
 mod tests {
+    use std::convert::Infallible;
+
     use crate::command::Command;
 
     #[test]
@@ -56,9 +76,18 @@ mod tests {
             }
         }
 
-        fn one_command(_: Foo) {}
-        fn another_command(_: Foo, _: Bar) {}
-        fn _not_a_command(_: Foo, _: Bar, _: usize) {}
+        fn one_command(_: Foo) -> Result<(), Infallible> {
+            Ok(())
+        }
+
+        fn another_command(_: Foo, _: Bar) -> Result<(), Infallible> {
+            Ok(())
+        }
+
+        // Not a command because From<&Handler> is not implemented for usize.
+        fn _not_a_command(_: Foo, _: Bar, _: usize) -> Result<(), Infallible> {
+            Ok(())
+        }
 
         Handler
             .with_command(one_command)

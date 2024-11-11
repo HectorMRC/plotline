@@ -48,6 +48,11 @@ where
         self.nodes.insert(node.id().clone(), node);
         self
     }
+
+    /// Inserts the given node into the graph, returning the previous node with that same id, if any.
+    pub fn insert(&mut self, node: T) -> Option<T> {
+        self.nodes.insert(node.id().clone(), node)
+    }
 }
 
 impl<T: Identify> Graph<T> {
