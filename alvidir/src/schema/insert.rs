@@ -2,9 +2,36 @@
 
 use std::cell::RefCell;
 
-use crate::{command::Command, graph::Graph, id::Identify};
+use crate::{
+    chain::LiFoChain,
+    command::{Command, NoopCommand},
+    graph::Graph,
+    id::Identify,
+};
 
-use super::Schema;
+use super::{trigger::WithTrigger, Schema};
+
+/// The context for the before-insertion triggers.
+pub struct NodeToInsert<'a, T>
+where
+    T: Identify,
+{
+    /// The graph in which the node is being inserted.
+    pub graph: &'a Graph<T>,
+    /// The node being inserted into the schema.
+    pub node: RefCell<T>,
+}
+
+/// The context of the after-insertion triggers.
+pub struct InsertedNode<'a, T>
+where
+    T: Identify,
+{
+    /// The schema in which the node has been inserted.
+    pub schema: &'a Schema<T>,
+    /// The id of the inserted node.
+    pub node: T::Id,
+}
 
 /// An insertion transaction for a node into a schema.
 pub struct Insert<T, B, A>
@@ -19,7 +46,7 @@ where
     pub before: B,
     /// The command to execute once the insertion has been performed.
     ///
-    /// If this command fails the transaction IS NOT rollbacked. But the resulting error is still retrived as the transaction's result.
+    /// If this command fails the transaction IS NOT rollbacked. But the resulting error is retrived as the transaction's result.
     pub after: A,
 }
 
@@ -68,24 +95,51 @@ where
     }
 }
 
-/// The context for the before-insertion triggers.
-pub struct NodeToInsert<'a, T>
+impl<T> Insert<T, NoopCommand, NoopCommand>
 where
     T: Identify,
 {
-    /// The graph in which the node is being inserted.
-    pub graph: &'a Graph<T>,
-    /// The node being inserted into the schema.
-    pub node: RefCell<T>,
+    pub fn new(node: T) -> Self {
+        Self {
+            node,
+            before: NoopCommand,
+            after: NoopCommand,
+        }
+    }
+
+    pub fn with_trigger(self) -> WithTrigger<Self> {
+        self.into()
+    }
 }
 
-/// The context of the after-insertion triggers.
-pub struct InsertedNode<'a, T>
+impl<T, B, A> WithTrigger<Insert<T, B, A>>
 where
     T: Identify,
 {
-    /// The schema in which the node has been inserted.
-    pub schema: &'a Schema<T>,
-    /// The id of the inserted node.
-    pub node: T::Id,
+    pub fn before<C>(self, command: C) -> Insert<T, LiFoChain<C, B>, A> {
+        Insert {
+            node: self.inner.node,
+            before: LiFoChain {
+                head: self.inner.before,
+                value: command,
+            },
+            after: self.inner.after,
+        }
+    }
+}
+
+impl<T, B, A> WithTrigger<Insert<T, B, A>>
+where
+    T: Identify,
+{
+    pub fn after<C>(self, command: C) -> Insert<T, B, LiFoChain<C, A>> {
+        Insert {
+            node: self.inner.node,
+            before: self.inner.before,
+            after: LiFoChain {
+                head: self.inner.after,
+                value: command,
+            },
+        }
+    }
 }

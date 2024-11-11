@@ -31,13 +31,14 @@ macro_rules! impl_command {
         {
             type Err = Err;
 
-            fn execute(self, ctx: &Ctx) -> Result<(), Self::Err> {
-                (self)($($args::from(ctx)),*)
+            fn execute(self, _ctx: &Ctx) -> Result<(), Self::Err> {
+                (self)($($args::from(_ctx)),*)
             }
         }
     };
 }
 
+impl_command!();
 impl_command!(A);
 impl_command!(A, B);
 impl_command!(A, B, C);
@@ -84,6 +85,10 @@ mod tests {
             Ok(())
         }
 
+        fn argless_command() -> Result<(), Infallible> {
+            Ok(())
+        }
+
         // Not a command because From<&Handler> is not implemented for usize.
         fn _not_a_command(_: Foo, _: Bar, _: usize) -> Result<(), Infallible> {
             Ok(())
@@ -92,6 +97,7 @@ mod tests {
         Handler
             .with_command(one_command)
             // .with_command(_not_a_command)
-            .with_command(another_command);
+            .with_command(another_command)
+            .with_command(argless_command);
     }
 }
