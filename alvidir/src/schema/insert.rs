@@ -1,4 +1,4 @@
-//! Insertion request.
+//! Insertion transaction.
 
 use std::cell::RefCell;
 
@@ -9,7 +9,7 @@ use crate::{
     id::Identify,
 };
 
-use super::{trigger::WithTrigger, Schema};
+use super::{wrapper::Wrapper, Schema};
 
 /// The context for the before-insertion triggers.
 pub struct NodeToInsert<'a, T>
@@ -107,15 +107,17 @@ where
         }
     }
 
-    pub fn with_trigger(self) -> WithTrigger<Self> {
+    /// Configure triggers for this transaction.
+    pub fn with_trigger(self) -> Wrapper<Self> {
         self.into()
     }
 }
 
-impl<T, B, A> WithTrigger<Insert<T, B, A>>
+impl<T, B, A> Wrapper<Insert<T, B, A>>
 where
     T: Identify,
 {
+    /// Configures the given command as a before insertion trigger.
     pub fn before<C>(self, command: C) -> Insert<T, LiFoChain<C, B>, A> {
         Insert {
             node: self.inner.node,
@@ -128,10 +130,11 @@ where
     }
 }
 
-impl<T, B, A> WithTrigger<Insert<T, B, A>>
+impl<T, B, A> Wrapper<Insert<T, B, A>>
 where
     T: Identify,
 {
+    /// Configures the given command as an after insertion trigger.
     pub fn after<C>(self, command: C) -> Insert<T, B, LiFoChain<C, A>> {
         Insert {
             node: self.inner.node,

@@ -1,7 +1,7 @@
 //! Schema representation.
 
 pub mod insert;
-pub mod trigger;
+pub mod wrapper;
 
 use std::sync::RwLock;
 
