@@ -55,6 +55,17 @@ where
     }
 }
 
+impl<T> Graph<T>
+where
+    T: Identify,
+    T::Id: Ord,
+{
+    /// Removes the node with the given id from the graph, returning it, if any.
+    pub fn remove(&mut self, node_id: &T::Id) -> Option<T> {
+        self.nodes.remove(node_id)
+    }
+}
+
 impl<T: Identify> Graph<T> {
     /// Returns the [`NodeProxy`] for the given id.
     pub fn node(&self, id: T::Id) -> NodeProxy<'_, T> {

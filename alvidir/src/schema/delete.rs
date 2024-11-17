@@ -1,6 +1,4 @@
-//! Insertion transaction.
-
-use std::cell::RefCell;
+//! Deletion transaction.
 
 use crate::{
     chain::LiFoChain,
@@ -11,56 +9,56 @@ use crate::{
 
 use super::{trigger::WithTrigger, Schema};
 
-/// The context for the before-insertion triggers.
-pub struct NodeToInsert<'a, T>
+/// The context for the before-deletion triggers.
+pub struct NodeToDelete<'a, T>
 where
     T: Identify,
 {
-    /// The graph in which the node is being inserted.
+    /// The graph from which the node is being deleted.
     pub graph: &'a Graph<T>,
-    /// The node being inserted into the schema.
-    pub node: RefCell<T>,
+    /// The id of the node to delete.
+    pub node_id: &'a T::Id,
 }
 
-/// The context for the after-insertion triggers.
-pub struct InsertedNode<'a, T>
+/// The context for the after-deletion triggers.
+pub struct DeletedNode<'a, T>
 where
     T: Identify,
 {
     /// The schema in which the node has been inserted.
     pub schema: &'a Schema<T>,
-    /// The id of the inserted node.
-    pub node_id: T::Id,
+    /// The deleted node.
+    pub node: T,
 }
 
-/// An insertion transaction for a node into a schema.
-pub struct Insert<T, B, A>
+/// A deletion transaction for a node from a schema.
+pub struct Delete<T, B, A>
 where
     T: Identify,
 {
-    /// The node being inserted into the schema.
-    pub node: T,
-    /// The command to execute before inserting the node.
+    /// The id of the node being deleted from the schema.
+    pub node_id: T::Id,
+    /// The command to execute before deleting the node.
     ///
     /// If this command fails the whole transaction is aborted.
     pub before: B,
-    /// The command to execute once the insertion has been performed.
+    /// The command to execute once the deletion has been performed.
     ///
     /// If this command fails the transaction IS NOT rollbacked, but the resulting error is retrived as the transaction's result.
     pub after: A,
 }
 
-impl<T, B, A, E> Command<Schema<T>> for Insert<T, B, A>
+impl<T, B, A, E> Command<Schema<T>> for Delete<T, B, A>
 where
     T: 'static + Identify,
-    T::Id: Ord + Clone,
-    B: for<'b> Command<NodeToInsert<'b, T>, Err = E>,
-    A: for<'a> Command<InsertedNode<'a, T>, Err = E>,
+    T::Id: Ord,
+    B: for<'b> Command<NodeToDelete<'b, T>, Err = E>,
+    A: for<'a> Command<DeletedNode<'a, T>, Err = E>,
 {
     type Err = E;
 
     fn execute(self, schema: &Schema<T>) -> Result<(), Self::Err> {
-        let inserted_id = {
+        let deleted_node = {
             let mut graph = match schema.graph.write() {
                 Ok(graph) => graph,
                 Err(poisoned) => {
@@ -69,46 +67,42 @@ where
                 }
             };
 
-            let final_node = {
-                let payload = NodeToInsert {
+            {
+                let payload = NodeToDelete {
                     graph: &graph,
-                    node: RefCell::new(self.node),
+                    node_id: &self.node_id,
                 };
 
                 self.before.execute(&payload)?;
-                payload.node
             }
-            .into_inner();
 
-            let inserted_id = final_node.id().clone();
-            graph.insert(final_node);
-
-            inserted_id
+            graph.remove(&self.node_id)
         };
 
-        let payload = InsertedNode {
-            schema,
-            node_id: inserted_id,
+        let Some(node) = deleted_node else {
+            return Ok(());
         };
+
+        let payload = DeletedNode { schema, node };
 
         self.after.execute(&payload)
     }
 }
 
-impl<T> Insert<T, NoopCommand, NoopCommand>
+impl<T> Delete<T, NoopCommand, NoopCommand>
 where
     T: Identify,
 {
-    pub fn new(node: T) -> Self {
+    pub fn new(node_id: T::Id) -> Self {
         Self {
-            node,
+            node_id,
             before: NoopCommand,
             after: NoopCommand,
         }
     }
 }
 
-impl<T, B, A> Insert<T, B, A>
+impl<T, B, A> Delete<T, B, A>
 where
     T: Identify,
 {
@@ -118,14 +112,14 @@ where
     }
 }
 
-impl<T, B, A> WithTrigger<Insert<T, B, A>>
+impl<T, B, A> WithTrigger<Delete<T, B, A>>
 where
     T: Identify,
 {
     /// Configures the given command as a before insertion trigger.
-    pub fn before<C>(self, command: C) -> Insert<T, LiFoChain<C, B>, A> {
-        Insert {
-            node: self.inner.node,
+    pub fn before<C>(self, command: C) -> Delete<T, LiFoChain<C, B>, A> {
+        Delete {
+            node_id: self.inner.node_id,
             before: LiFoChain {
                 head: self.inner.before,
                 value: command,
@@ -135,14 +129,14 @@ where
     }
 }
 
-impl<T, B, A> WithTrigger<Insert<T, B, A>>
+impl<T, B, A> WithTrigger<Delete<T, B, A>>
 where
     T: Identify,
 {
     /// Configures the given command as an after insertion trigger.
-    pub fn after<C>(self, command: C) -> Insert<T, B, LiFoChain<C, A>> {
-        Insert {
-            node: self.inner.node,
+    pub fn after<C>(self, command: C) -> Delete<T, B, LiFoChain<C, A>> {
+        Delete {
+            node_id: self.inner.node_id,
             before: self.inner.before,
             after: LiFoChain {
                 head: self.inner.after,
