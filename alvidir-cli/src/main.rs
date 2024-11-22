@@ -67,7 +67,7 @@ impl Cli {
             })
             .filter({
                 let pattern =
-                    Regex::new(&self.pattern).expect("pattern must be a valid regular expression");
+                    Regex::new(&self.pattern).expect("pattern should be a valid regular expression");
 
                 move |entry| {
                     let matches = pattern.is_match(&entry.file_name().to_string_lossy());
