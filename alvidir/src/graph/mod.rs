@@ -73,44 +73,70 @@ impl<T: Identify> Graph<T> {
     }
 }
 
-// #[cfg(any(test, feature = "fixtures"))]
-// pub mod fixtures {
-//     use crate::id::Identify;
+#[cfg(any(test, feature = "fixtures"))]
+pub mod fixtures {
+    use crate::{id::Identify, resource::Resource};
 
-//     /// A fake node implementation.
-//     #[derive(Debug, Default)]
-//     pub struct NodeMock<Id: 'static> {
-//         pub id_fn: Option<fn() -> &'static Id>,
-//         pub edges_fn: Option<fn() -> Vec<Id>>,
-//     }
+    /// A fake node implementation.
+    #[derive(Debug, Default)]
+    pub struct FakeNode<Id: 'static> {
+        pub id_fn: Option<fn() -> &'static Id>,
+        pub edges_fn: Option<fn() -> Vec<Id>>,
+    }
 
-//     impl<Id> Identify for NodeMock<Id> {
-//         type Id = Id;
+    impl<Id> Identify for FakeNode<Id> {
+        type Id = Id;
 
-//         fn id(&self) -> &Self::Id {
-//             self.id_fn.expect("id method must be set")()
-//         }
-//     }
+        fn id(&self) -> &Self::Id {
+            self.id_fn.expect("id method should be set")()
+        }
+    }
 
-//     impl<Id> NodeMock<Id> {
-//         pub fn with_id_fn(mut self, f: fn() -> &'static Id) -> Self {
-//             self.id_fn = Some(f);
-//             self
-//         }
+    impl<Id> FakeNode<Id> {
+        pub fn with_id_fn(mut self, f: fn() -> &'static Id) -> Self {
+            self.id_fn = Some(f);
+            self
+        }
 
-//         pub fn with_edges_fn(mut self, f: fn() -> Vec<Id>) -> Self {
-//             self.edges_fn = Some(f);
-//             self
-//         }
-//     }
+        pub fn with_edges_fn(mut self, f: fn() -> Vec<Id>) -> Self {
+            self.edges_fn = Some(f);
+            self
+        }
+    }
 
-//     macro_rules! node_mock {
-//         ($id:tt, $($edges:tt)*) => {
-//             NodeMock::default()
-//                 .with_id_fn(|| &$id)
-//                 .with_edges_fn(|| vec![$($edges)*])
-//         };
-//     }
+    pub struct FakeEdge<T>(T);
 
-//     pub(crate) use node_mock;
-// }
+    impl<T> Resource<FakeNode<T>> for FakeEdge<T>
+    where
+        T: Copy,
+    {
+        fn all(source: &FakeNode<T>) -> Vec<Self>
+        where
+            Self: Sized,
+        {
+            source.edges_fn.expect("edges method should be set")()
+                .iter()
+                .cloned()
+                .map(FakeEdge)
+                .collect()
+        }
+    }
+
+    impl<T> Identify for FakeEdge<T> {
+        type Id = T;
+
+        fn id(&self) -> &Self::Id {
+            &self.0
+        }
+    }
+
+    macro_rules! node_mock {
+        ($id:tt $(,$edges:tt)*) => {
+            FakeNode::default()
+                .with_id_fn(|| &$id)
+                .with_edges_fn(|| vec![$($edges)*])
+        };
+    }
+
+    pub(crate) use node_mock;
+}

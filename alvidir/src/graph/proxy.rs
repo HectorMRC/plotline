@@ -84,67 +84,45 @@ where
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use crate::graph::{fixtures::node_mock, Graph};
+#[cfg(test)]
+mod tests {
+    use crate::graph::{
+        fixtures::{node_mock, FakeEdge, FakeNode},
+        Graph,
+    };
 
-//     #[tokio::test]
-//     async fn only_non_existent_nodes_must_be_virtual() {
-//         let graph = Graph::default().with_node(node_mock!(
-//             "node_1",
-//             Edge::new("node_1"),
-//             Edge::new("node_2")
-//         ));
+    #[tokio::test]
+    async fn non_existent_nodes_must_be_virtual() {
+        let graph = Graph::<FakeNode<usize>>::default();
+        let virtual_node = graph.node(0);
 
-//         let node_1 = graph.node("node_1");
-//         assert!(
-//             !node_1.is_virtual(),
-//             "an existing node in the graph must not be virtual"
-//         );
+        assert!(
+            virtual_node.is_virtual(),
+            "a non-existent node in the graph must be virtual"
+        );
+    }
 
-//         let edges_1 = node_1.edges();
-//         assert_eq!(edges_1.len(), 2);
-//         assert!(
-//             !edges_1[0].node.is_virtual(),
-//             "an existing refered node in the graph must not be virtual"
-//         );
-//         assert!(
-//             edges_1[1].node.is_virtual(),
-//             "a non-existent refered node in the graph must be virtual"
-//         );
+    #[tokio::test]
+    async fn existent_nodes_must_be_non_virtual() {
+        let graph = Graph::default().with_node(node_mock!(0));
 
-//         assert!(
-//             graph.node("node_3").is_virtual(),
-//             "a non-existent node in the graph must be virtual"
-//         )
-//     }
+        let non_virtual_node = graph.node(0);
+        assert!(
+            !non_virtual_node.is_virtual(),
+            "an existing node in the graph must not be virtual"
+        );
+    }
 
-//     #[tokio::test]
-//     async fn graph_must_be_traversable() {
-//         let graph = Graph::from_iter(vec![
-//             node_mock!("node_1", Edge::new("node_2")),
-//             node_mock!("node_2", Edge::new("node_3")),
-//             node_mock!(
-//                 "node_3",
-//                 Edge::new("node_1").with_name(Some(Name::from_str("next").unwrap())),
-//                 Edge::new("node_2").with_name(Some(Name::from_str("previous").unwrap()))
-//             ),
-//         ]);
+    #[tokio::test]
+    async fn graph_must_be_traversable() {
+        let graph = Graph::from_iter(vec![node_mock!(1, 2), node_mock!(2, 1)]);
 
-//         let edges_1 = graph.node("node_1").edges();
-//         assert_eq!(edges_1.len(), 1);
-//         assert!(edges_1[0].name.is_none());
-//         assert_eq!(edges_1[0].node.id, "node_2");
+        let edges_1 = graph.node(1).successors::<FakeEdge<i8>>();
+        assert_eq!(edges_1.len(), 1);
+        assert_eq!(edges_1[0].id, 2);
 
-//         let edges_2 = edges_1[0].node.edges();
-//         assert_eq!(edges_2.len(), 1);
-//         assert_eq!(edges_2[0].node.id, "node_3");
-
-//         let edges_3 = edges_2[0].node.edges();
-//         assert_eq!(edges_3.len(), 2);
-//         assert_eq!(edges_3[0].name.as_ref().unwrap().as_str(), "next");
-//         assert_eq!(edges_3[0].node.id, "node_1");
-//         assert_eq!(edges_3[1].name.as_ref().unwrap().as_str(), "previous");
-//         assert_eq!(edges_3[1].node.id, "node_2");
-//     }
-// }
+        let edges_2 = edges_1[0].successors::<FakeEdge<i8>>();
+        assert_eq!(edges_2.len(), 1);
+        assert_eq!(edges_2[0].id, 1);
+    }
+}
