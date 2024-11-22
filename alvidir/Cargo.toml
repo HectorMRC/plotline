@@ -1,6 +1,6 @@
 [package]
 authors = ["Hèctor Morales <hector.morales.carnice@gmail.com>"]
-description = "A plotline manager"
+description = "A graph-based document manager"
 edition = "2021"
 license = "MIT"
 name = "alvidir"
@@ -17,9 +17,6 @@ tracing.workspace = true
 tokio = { version = "1.39", features = ["full"] }
 
 [features]
-default = ["directed-graph"]
-# Enables all the directed graph features.
-directed-graph = []
 # Enables the "fixture" constructor for structs as well as mock implementations
 # for traits.
 fixtures = []
