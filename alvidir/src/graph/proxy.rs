@@ -87,7 +87,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::graph::{
-        fixtures::{node_mock, FakeEdge, FakeNode},
+        fixtures::{fake_node, FakeEdge, FakeNode},
         Graph,
     };
 
@@ -104,7 +104,7 @@ mod tests {
 
     #[tokio::test]
     async fn existent_nodes_must_be_non_virtual() {
-        let graph = Graph::default().with_node(node_mock!(0));
+        let graph = Graph::default().with_node(fake_node!(0));
 
         let non_virtual_node = graph.node(0);
         assert!(
@@ -115,7 +115,7 @@ mod tests {
 
     #[tokio::test]
     async fn graph_must_be_traversable() {
-        let graph = Graph::from_iter(vec![node_mock!(1, 2), node_mock!(2, 1)]);
+        let graph = Graph::from_iter(vec![fake_node!(1, 2), fake_node!(2, 1)]);
 
         let edges_1 = graph.node(1).successors::<FakeEdge<i8>>();
         assert_eq!(edges_1.len(), 1);
