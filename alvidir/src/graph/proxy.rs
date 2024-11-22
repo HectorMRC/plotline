@@ -91,8 +91,8 @@ mod tests {
         Graph,
     };
 
-    #[tokio::test]
-    async fn non_existent_nodes_must_be_virtual() {
+    #[test]
+    fn non_existent_nodes_must_be_virtual() {
         let graph = Graph::<FakeNode<usize>>::default();
         let virtual_node = graph.node(0);
 
@@ -102,8 +102,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn existent_nodes_must_be_non_virtual() {
+    #[test]
+    fn existent_nodes_must_be_non_virtual() {
         let graph = Graph::default().with_node(fake_node!(0));
 
         let non_virtual_node = graph.node(0);
@@ -113,8 +113,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn graph_must_be_traversable() {
+    #[test]
+    fn graph_must_be_traversable() {
         let graph = Graph::from_iter(vec![fake_node!(1, 2), fake_node!(2, 1)]);
 
         let edges_1 = graph.node(1).successors::<FakeEdge<i8>>();

@@ -11,9 +11,6 @@ version = "0.1.0"
 [dependencies]
 tracing.workspace = true
 
-[dev-dependencies]
-tokio = { version = "1.39", features = ["full"] }
-
 [features]
 # Enables the "fixture" constructor for structs as well as mock implementations
 # for traits.
