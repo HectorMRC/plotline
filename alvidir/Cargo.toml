@@ -9,8 +9,6 @@ repository = "https://github.com/hectormrc/plotline"
 version = "0.1.0"
 
 [dependencies]
-serde = { workspace = true, features = ["derive"] }
-thiserror.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
