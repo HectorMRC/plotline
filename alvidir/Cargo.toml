@@ -1,6 +1,6 @@
 [package]
 authors = ["Hèctor Morales <hector.morales.carnice@gmail.com>"]
-description = "A graph-based document manager"
+description = "A graph-based document manager."
 edition = "2021"
 license = "MIT"
 name = "alvidir"
