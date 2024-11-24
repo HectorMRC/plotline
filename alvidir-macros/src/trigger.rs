@@ -44,15 +44,11 @@ pub fn impl_with_trigger(mut parsed_item: ItemStruct) -> syn::Result<TokenStream
 
     fields.named.push(syn::Field::parse_named.parse2(quote! {
         /// The command to execute before performing the transaction.
-        ///
-        /// If this command fails the whole transaction is aborted.
         pub before: B
     })?);
 
     fields.named.push(syn::Field::parse_named.parse2(quote! {
         /// The command to execute once the transaction is completed.
-        ///
-        /// If this command fails the transaction IS NOT rollbacked, but the resulting error is retrived as the transaction's result.
         pub after: A
     })?);
 
