@@ -54,13 +54,7 @@ where
 
     fn execute(self, schema: &Schema<T>) -> Result<(), Self::Err> {
         let deleted_node = {
-            let mut graph = match schema.graph.write() {
-                Ok(graph) => graph,
-                Err(poisoned) => {
-                    tracing::error!(error = poisoned.to_string(), "posioned graph");
-                    poisoned.into_inner()
-                }
-            };
+            let mut graph = schema.write();
 
             {
                 let payload = NodeToDelete {

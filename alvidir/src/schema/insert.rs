@@ -56,13 +56,7 @@ where
 
     fn execute(self, schema: &Schema<T>) -> Result<(), Self::Err> {
         let inserted_id = {
-            let mut graph = match schema.graph.write() {
-                Ok(graph) => graph,
-                Err(poisoned) => {
-                    tracing::error!(error = poisoned.to_string(), "posioned graph");
-                    poisoned.into_inner()
-                }
-            };
+            let mut graph = schema.write();
 
             let final_node = {
                 let payload = NodeToInsert {
