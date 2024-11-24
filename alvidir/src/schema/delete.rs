@@ -1,5 +1,7 @@
 //! Deletion transaction.
 
+use alvidir_macros::with_trigger;
+
 use crate::{
     chain::LiFoChain,
     command::{Command, NoopCommand},
@@ -32,20 +34,13 @@ where
 }
 
 /// A deletion transaction for a node from a schema.
-pub struct Delete<T, B, A>
+#[with_trigger]
+pub struct Delete<T>
 where
     T: Identify,
 {
     /// The id of the node being deleted from the schema.
     pub node_id: T::Id,
-    /// The command to execute before deleting the node.
-    ///
-    /// If this command fails the whole transaction is aborted.
-    pub before: B,
-    /// The command to execute once the deletion has been performed.
-    ///
-    /// If this command fails the transaction IS NOT rollbacked, but the resulting error is retrived as the transaction's result.
-    pub after: A,
 }
 
 impl<T, B, A, E> Command<Schema<T>> for Delete<T, B, A>
@@ -62,7 +57,7 @@ where
             let mut graph = match schema.graph.write() {
                 Ok(graph) => graph,
                 Err(poisoned) => {
-                    tracing::error!("posioned graph has been recovered");
+                    tracing::error!(error = poisoned.to_string(), "posioned graph");
                     poisoned.into_inner()
                 }
             };
@@ -98,50 +93,6 @@ where
             node_id,
             before: NoopCommand,
             after: NoopCommand,
-        }
-    }
-}
-
-impl<T, B, A> Delete<T, B, A>
-where
-    T: Identify,
-{
-    /// Configure triggers for this transaction.
-    pub fn with_trigger(self) -> WithTrigger<Self> {
-        self.into()
-    }
-}
-
-impl<T, B, A> WithTrigger<Delete<T, B, A>>
-where
-    T: Identify,
-{
-    /// Configures the given command as a before insertion trigger.
-    pub fn before<C>(self, command: C) -> Delete<T, LiFoChain<C, B>, A> {
-        Delete {
-            node_id: self.inner.node_id,
-            before: LiFoChain {
-                head: self.inner.before,
-                value: command,
-            },
-            after: self.inner.after,
-        }
-    }
-}
-
-impl<T, B, A> WithTrigger<Delete<T, B, A>>
-where
-    T: Identify,
-{
-    /// Configures the given command as an after insertion trigger.
-    pub fn after<C>(self, command: C) -> Delete<T, B, LiFoChain<C, A>> {
-        Delete {
-            node_id: self.inner.node_id,
-            before: self.inner.before,
-            after: LiFoChain {
-                head: self.inner.after,
-                value: command,
-            },
         }
     }
 }

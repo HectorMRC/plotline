@@ -2,7 +2,7 @@
 
 pub mod delete;
 pub mod insert;
-mod trigger;
+pub mod trigger;
 
 use std::sync::RwLock;
 
