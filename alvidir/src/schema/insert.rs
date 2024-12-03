@@ -1,4 +1,4 @@
-//! Insertion transaction.
+//! Insert transaction.
 
 use std::cell::RefCell;
 
@@ -13,23 +13,23 @@ use crate::{
 
 use super::{trigger::WithTrigger, Schema};
 
-/// The context for the before-insertion triggers.
+/// The context for triggers before insertion.
 pub struct NodeToInsert<'a, T>
 where
     T: Identify,
 {
-    /// The graph in which the node is being inserted.
+    /// The graph the node is being inserted to.
     pub graph: &'a Graph<T>,
     /// The node being inserted into the schema.
     pub node: RefCell<T>,
 }
 
-/// The context for the after-insertion triggers.
+/// The context for triggers after insertion.
 pub struct InsertedNode<'a, T>
 where
     T: Identify,
 {
-    /// The schema in which the node has been inserted.
+    /// The schema the node has beem inserted to.
     pub schema: &'a Schema<T>,
     /// The id of the inserted node.
     pub node_id: T::Id,

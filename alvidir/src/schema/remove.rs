@@ -1,4 +1,4 @@
-//! Deletion transaction.
+//! Remove transaction.
 
 use alvidir_macros::with_trigger;
 
@@ -11,53 +11,53 @@ use crate::{
 
 use super::{trigger::WithTrigger, Schema};
 
-/// The context for the before-deletion triggers.
-pub struct NodeToDelete<'a, T>
+/// The context for trigers before removal.
+pub struct NodeToRemove<'a, T>
 where
     T: Identify,
 {
-    /// The graph from which the node is being deleted.
+    /// The graph the node is being removed from.
     pub graph: &'a Graph<T>,
-    /// The id of the node to delete.
+    /// The id of the node to remove.
     pub node_id: &'a T::Id,
 }
 
-/// The context for the after-deletion triggers.
-pub struct DeletedNode<'a, T>
+/// The context for triggers after removal.
+pub struct RemovedNode<'a, T>
 where
     T: Identify,
 {
-    /// The schema in which the node has been inserted.
+    /// The schema the node has been removed from.
     pub schema: &'a Schema<T>,
-    /// The deleted node.
+    /// The removed node.
     pub node: T,
 }
 
-/// A deletion transaction for a node from a schema.
+/// A remove transaction for a node from a schema.
 #[with_trigger]
-pub struct Delete<T>
+pub struct Remove<T>
 where
     T: Identify,
 {
-    /// The id of the node being deleted from the schema.
+    /// The id of the node being removed from the schema.
     pub node_id: T::Id,
 }
 
-impl<T, B, A, E> Command<Schema<T>> for Delete<T, B, A>
+impl<T, B, A, E> Command<Schema<T>> for Remove<T, B, A>
 where
     T: 'static + Identify,
     T::Id: Ord,
-    B: for<'b> Command<NodeToDelete<'b, T>, Err = E>,
-    A: for<'a> Command<DeletedNode<'a, T>, Err = E>,
+    B: for<'b> Command<NodeToRemove<'b, T>, Err = E>,
+    A: for<'a> Command<RemovedNode<'a, T>, Err = E>,
 {
     type Err = E;
 
     fn execute(self, schema: &Schema<T>) -> Result<(), Self::Err> {
-        let deleted_node = {
+        let removed_node = {
             let mut graph = schema.write();
 
             {
-                let payload = NodeToDelete {
+                let payload = NodeToRemove {
                     graph: &graph,
                     node_id: &self.node_id,
                 };
@@ -68,17 +68,17 @@ where
             graph.remove(&self.node_id)
         };
 
-        let Some(node) = deleted_node else {
+        let Some(node) = removed_node else {
             return Ok(());
         };
 
-        let payload = DeletedNode { schema, node };
+        let payload = RemovedNode { schema, node };
 
         self.after.execute(&payload)
     }
 }
 
-impl<T> Delete<T, NoopCommand, NoopCommand>
+impl<T> Remove<T, NoopCommand, NoopCommand>
 where
     T: Identify,
 {
