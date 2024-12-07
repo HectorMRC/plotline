@@ -3,7 +3,7 @@
 use std::convert::Infallible;
 
 /// An entity that can be executed under a specific context.
-pub trait Command<Ctx, Args = ()> {
+pub trait Command<Ctx, Args> {
     type Err;
 
     /// Performs the command.
@@ -14,7 +14,7 @@ pub trait Command<Ctx, Args = ()> {
 #[derive(Debug, Default)]
 pub struct NoopCommand;
 
-impl<Ctx> Command<Ctx> for NoopCommand {
+impl<Ctx> Command<Ctx, ()> for NoopCommand {
     type Err = Infallible;
 
     fn execute(self, _: &Ctx) -> Result<(), Self::Err> {

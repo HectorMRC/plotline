@@ -45,12 +45,12 @@ where
     pub node: T,
 }
 
-impl<T, B, A, E> Command<Schema<T>> for Insert<T, B, A>
+impl<T, B, A, E, BArgs, AArgs> Command<Schema<T>, (BArgs, AArgs)> for Insert<T, B, A>
 where
     T: 'static + Identify,
     T::Id: Ord + Clone,
-    B: for<'b> Command<NodeToInsert<'b, T>, Err = E>,
-    A: for<'a> Command<InsertedNode<'a, T>, Err = E>,
+    B: for<'b> Command<NodeToInsert<'b, T>, BArgs, Err = E>,
+    A: for<'a> Command<InsertedNode<'a, T>, AArgs, Err = E>,
 {
     type Err = E;
 
@@ -96,3 +96,14 @@ where
         }
     }
 }
+
+// impl<T> Schema<T>
+// where
+//     T: Identify
+// {
+//     pub fn insert<B, A>(&self, node: T) -> Insert<T, B, A> {
+//         let insert = Insert::new(node);
+//         self.triggers.iter().filter_map(|trigger| trigger.downcast_ref::<>())
+//         insert
+//     }
+// }

@@ -43,12 +43,12 @@ where
     pub node_id: T::Id,
 }
 
-impl<T, B, A, E> Command<Schema<T>> for Remove<T, B, A>
+impl<T, B, A, E, BArgs, AArgs> Command<Schema<T>, (BArgs, AArgs)> for Remove<T, B, A>
 where
     T: 'static + Identify,
     T::Id: Ord,
-    B: for<'b> Command<NodeToRemove<'b, T>, Err = E>,
-    A: for<'a> Command<RemovedNode<'a, T>, Err = E>,
+    B: for<'b> Command<NodeToRemove<'b, T>, BArgs, Err = E>,
+    A: for<'a> Command<RemovedNode<'a, T>, AArgs, Err = E>,
 {
     type Err = E;
 

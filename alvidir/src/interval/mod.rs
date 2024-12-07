@@ -3,7 +3,7 @@
 #[allow(dead_code)]
 mod search_tree;
 
-/// One of the limits in an [Interval].
+/// One of the limits in an [`Interval`].
 #[allow(dead_code)]
 trait Bound: Ord {}
 impl<T> Bound for T where T: Ord {}
@@ -44,7 +44,7 @@ pub mod fixtures {
 
     use super::{Bound, Interval};
 
-    /// A mock implementation for the [Interval] trait.
+    /// A mock implementation for the [`Interval`] trait.
     #[derive(Default, Clone, PartialOrd, Ord)]
     pub struct IntervalMock<Bound> {
         lo_fn: Option<fn() -> Bound>,
