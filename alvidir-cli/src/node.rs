@@ -19,6 +19,8 @@ struct NodeSaveArgs {
 #[derive(Subcommand)]
 #[clap(subcommand_negates_reqs = true, subcommand_precedence_over_arg = true)]
 enum NodeSubCommand {
+    /// Deletes a node.
+    Delete,
     /// List all nodes.
     #[command(alias("ls"))]
     List,
@@ -52,6 +54,7 @@ where
         let _node_id = command.node.map(|id| T::Id::from_str(&id)).transpose()?;
 
         match command.subcommand {
+            NodeSubCommand::Delete => todo!(),
             NodeSubCommand::List => {
                 let mut stdout = io::stdout().lock();
                 self.schema
