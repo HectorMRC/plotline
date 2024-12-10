@@ -1,7 +1,7 @@
 //! Schema representation.
 
-pub mod insert;
-pub mod remove;
+pub mod delete;
+pub mod save;
 pub mod trigger;
 
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};

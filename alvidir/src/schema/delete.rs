@@ -1,4 +1,4 @@
-//! Remove transaction.
+//! Delete transaction.
 
 use alvidir_macros::with_trigger;
 
@@ -11,62 +11,62 @@ use crate::{
 
 use super::{trigger::WithTrigger, Schema};
 
-/// The context for trigers before removal.
-pub struct NodeToRemove<'a, T>
+/// The context for trigers before delete.
+pub struct NodeToDelete<'a, T>
 where
     T: Identify,
 {
-    /// The graph the node is being removed from.
+    /// The graph the node is being deleted from.
     pub graph: &'a Graph<T>,
-    /// The id of the node to remove.
+    /// The id of the node to delete.
     pub node_id: &'a T::Id,
 }
 
-/// The context for triggers after removal.
-pub struct RemovedNode<'a, T>
+/// The context for triggers after delete.
+pub struct DeletedNode<'a, T>
 where
     T: Identify,
 {
-    /// The schema the node has been removed from.
+    /// The schema the node has been deleted from.
     pub schema: &'a Schema<T>,
-    /// The removed node.
+    /// The deleted node.
     pub node: T,
 }
 
-/// A remove transaction for a node from a schema.
+/// A delete transaction for a node from a schema.
 #[with_trigger]
-pub struct Remove<T>
+pub struct Delete<T>
 where
     T: Identify,
 {
-    /// The id of the node being removed from the schema.
+    /// The id of the node being deleted from the schema.
     pub node_id: T::Id,
 }
 
-impl<T, B, A, E, BArgs, AArgs> Command<Schema<T>, (BArgs, AArgs)> for Remove<T, B, A>
+impl<T, B, A, E, BArgs, AArgs> Command<Schema<T>, (BArgs, AArgs)> for Delete<T, B, A>
 where
     T: 'static + Identify,
     T::Id: Ord,
-    B: for<'b> Command<NodeToRemove<'b, T>, BArgs, Err = E>,
-    A: for<'a> Command<RemovedNode<'a, T>, AArgs, Err = E>,
+    B: for<'b> Command<NodeToDelete<'b, T>, BArgs, Err = E>,
+    A: for<'a> Command<DeletedNode<'a, T>, AArgs, Err = E>,
 {
     type Err = E;
 
-    /// Executes the [`Remove`] transaction.
+    /// Executes the [`Delete`] transaction.
     ///
     /// ### Before
-    /// Before performing the removal this transaction executes the before command.
+    /// Before performing the delete this transaction executes the before command.
     /// If the before command fails, the whole transaction is aborted and the trigger's error is returned as the transaction's result.
     ///
     /// ### After
-    /// Once the removal has been completed, this transaction executes the after command.
+    /// Once the delete has been completed, this transaction executes the after command.
     /// If the after command fails the transaction __DOES NOT__ rollback, but the resulting error is retrived as the transaction's result.
     fn execute(self, schema: &Schema<T>) -> Result<(), Self::Err> {
-        let removed_node = {
+        let deleted_node = {
             let mut graph = schema.write();
 
             {
-                let payload = NodeToRemove {
+                let payload = NodeToDelete {
                     graph: &graph,
                     node_id: &self.node_id,
                 };
@@ -77,17 +77,17 @@ where
             graph.remove(&self.node_id)
         };
 
-        let Some(node) = removed_node else {
+        let Some(node) = deleted_node else {
             return Ok(());
         };
 
-        let payload = RemovedNode { schema, node };
+        let payload = DeletedNode { schema, node };
 
         self.after.execute(&payload)
     }
 }
 
-impl<T> Remove<T, NoopCommand, NoopCommand>
+impl<T> Delete<T, NoopCommand, NoopCommand>
 where
     T: Identify,
 {
