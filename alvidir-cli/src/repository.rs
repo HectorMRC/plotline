@@ -42,6 +42,7 @@ impl<'a> DocumentRepository for LocalDocumentRepository<'a> {
 }
 
 impl<'a> LocalDocumentRepository<'a> {
+    /// Returns an iterator of [`LazyDocument`].
     pub fn all(self: &Arc<Self>) -> impl Iterator<Item = LazyDocument<Self>> + '_ {
         Walk::new(&self.context)
             .filter_map(move |entry| {

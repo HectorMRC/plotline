@@ -52,14 +52,14 @@ where
 {
     type Err = E;
 
-    /// Executes the [`Insert`] transaction.
+    /// Executes the [`Remove`] transaction.
     ///
     /// ### Before
-    /// Before performing the deletion this transaction executes the before command.
+    /// Before performing the removal this transaction executes the before command.
     /// If the before command fails, the whole transaction is aborted and the trigger's error is returned as the transaction's result.
     ///
     /// ### After
-    /// Once the deletion has been completed, this transaction executes the after command.
+    /// Once the removal has been completed, this transaction executes the after command.
     /// If the after command fails the transaction __DOES NOT__ rollback, but the resulting error is retrived as the transaction's result.
     fn execute(self, schema: &Schema<T>) -> Result<(), Self::Err> {
         let removed_node = {

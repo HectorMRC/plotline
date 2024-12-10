@@ -68,10 +68,8 @@ fn main() -> Result<()> {
         pattern: Regex::new(&args.pattern).expect("pattern should be a valid regular expression"),
     });
 
-    let schema = Arc::new(
-        Graph::from_iter(document_repo.all()).into(),
-    );
-    
+    let schema = Arc::new(Graph::from_iter(document_repo.all()).into());
+
     let node_cli = NodeCli { schema };
 
     match args.subcommand {
