@@ -3,6 +3,7 @@ members = ["alvidir", "alvidir-cli", "alvidir-macros"]
 resolver = "2"
 
 [workspace.dependencies]
+alvidir.path = "alvidir"
 alvidir-macros.path = "alvidir-macros"
 log = "0.4.22"
 serde = "1.0.215"

@@ -1,6 +1,6 @@
 //! Graph related definitions.
 
-use std::collections::BTreeMap;
+use std::collections::{btree_map::Values, BTreeMap};
 
 use crate::id::Identify;
 
@@ -9,7 +9,10 @@ pub use proxy::*;
 
 /// An arbitrary graph.
 #[derive(Debug)]
-pub struct Graph<T: Identify> {
+pub struct Graph<T>
+where
+    T: Identify,
+{
     /// All the nodes in the graph.
     nodes: BTreeMap<T::Id, T>,
 }
@@ -35,6 +38,19 @@ where
         Self {
             nodes: BTreeMap::from_iter(nodes.into_iter().map(|node| (node.id().clone(), node))),
         }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a Graph<T>
+where
+    T: Identify,
+{
+    type Item = &'a T;
+
+    type IntoIter = Values<'a, T::Id, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.nodes.values()
     }
 }
 

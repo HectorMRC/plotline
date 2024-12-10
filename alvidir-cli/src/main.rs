@@ -6,14 +6,14 @@ use std::{
 };
 
 use alvidir::graph::Graph;
-use alvidir_cli::{repository::LocalDocumentRepository, CliCommand};
+use alvidir_cli::{node::NodeCli, repository::LocalDocumentRepository, CliCommand};
 use anyhow::Result;
 use clap::Parser;
 use regex::Regex;
 use tracing::Level;
 
-/// Matches any filename ending with '.md'
-const DEFAULT_FILE_PATTERN: &str = "^.*\\.md$";
+/// Matches any filename.
+const DEFAULT_FILE_PATTERN: &str = ".*";
 
 static DEFAULT_CONTEXT_PATH: LazyLock<OsString> = LazyLock::new(|| {
     std::env::current_dir()
@@ -30,7 +30,7 @@ static DEFAULT_CONTEXT_PATH: LazyLock<OsString> = LazyLock::new(|| {
 )]
 struct Cli {
     #[command(subcommand)]
-    command: CliCommand,
+    subcommand: CliCommand,
 
     /// The base directory.
     #[arg(
@@ -47,6 +47,8 @@ struct Cli {
         default_value = &*DEFAULT_FILE_PATTERN,
         default_missing_value = "always",
         global = true,
+        short,
+        long
     )]
     pattern: String,
 }
@@ -66,7 +68,13 @@ fn main() -> Result<()> {
         pattern: Regex::new(&args.pattern).expect("pattern should be a valid regular expression"),
     });
 
-    let _graph_app = Graph::from_iter(document_repo.all());
+    let schema = Arc::new(
+        Graph::from_iter(document_repo.all()).into(),
+    );
+    
+    let node_cli = NodeCli { schema };
 
-    Ok(())
+    match args.subcommand {
+        CliCommand::Node(command) => node_cli.execute(command),
+    }
 }

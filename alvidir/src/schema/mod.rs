@@ -4,7 +4,7 @@ pub mod insert;
 pub mod remove;
 pub mod trigger;
 
-use std::sync::{RwLock, RwLockWriteGuard};
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::{graph::Graph, id::Identify};
 
@@ -32,6 +32,17 @@ impl<T> Schema<T>
 where
     T: Identify,
 {
+    /// Returns a [`RwLockReadGuard`] of the inner graph even if the [`RwLock`] was poisoned.
+    pub fn read(&self) -> RwLockReadGuard<'_, Graph<T>> {
+        match self.graph.read() {
+            Ok(graph) => graph,
+            Err(poisoned) => {
+                tracing::error!(error = poisoned.to_string(), "posioned graph");
+                poisoned.into_inner()
+            }
+        }
+    }
+
     /// Returns a [`RwLockWriteGuard`] of the inner graph even if the [`RwLock`] was poisoned.
     pub fn write(&self) -> RwLockWriteGuard<'_, Graph<T>> {
         match self.graph.write() {
