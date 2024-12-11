@@ -33,7 +33,7 @@ pub struct LocalDocumentRepository<'a> {
     pub pattern: Regex,
 }
 
-impl<'a> DocumentRepository for LocalDocumentRepository<'a> {
+impl DocumentRepository for LocalDocumentRepository<'_> {
     type Document = Document;
 
     fn find_by_id(&self, _id: &<Self::Document as Identify>::Id) -> Option<Self::Document> {
@@ -41,10 +41,10 @@ impl<'a> DocumentRepository for LocalDocumentRepository<'a> {
     }
 }
 
-impl<'a> LocalDocumentRepository<'a> {
+impl LocalDocumentRepository<'_> {
     /// Returns an iterator of [`LazyDocument`].
     pub fn all(self: &Arc<Self>) -> impl Iterator<Item = LazyDocument<Self>> + '_ {
-        Walk::new(&self.context)
+        Walk::new(self.context)
             .filter_map(move |entry| {
                 if let Err(err) = &entry {
                     tracing::error!(
@@ -65,7 +65,7 @@ impl<'a> LocalDocumentRepository<'a> {
             .filter_map(move |entry| {
                 let path = entry
                     .path()
-                    .strip_prefix(&self.context)
+                    .strip_prefix(self.context)
                     .map(ToOwned::to_owned);
 
                 if let Err(err) = &path {
