@@ -23,4 +23,10 @@ pub mod fixtures {
             &self.value
         }
     }
+
+    impl<T> IndentifyMock<T> {
+        pub fn new(value: T) -> Self {
+            Self { value }
+        }
+    }
 }

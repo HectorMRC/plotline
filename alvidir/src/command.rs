@@ -3,7 +3,7 @@
 use std::convert::Infallible;
 
 /// An entity that can be executed under a specific context.
-pub trait Command<Ctx, Args> {
+pub trait Command<Ctx, Args = ()> {
     type Err;
 
     /// Performs the command.
@@ -11,7 +11,7 @@ pub trait Command<Ctx, Args> {
 }
 
 /// An entity that can be executed by reference under a specific context.
-pub trait CommandRef<Ctx, Args> {
+pub trait CommandRef<Ctx, Args = ()> {
     type Err;
 
     /// Performs the command.
@@ -22,7 +22,7 @@ pub trait CommandRef<Ctx, Args> {
 #[derive(Debug, Default)]
 pub struct NoopCommand;
 
-impl<Ctx> Command<Ctx, ()> for NoopCommand {
+impl<Ctx> Command<Ctx> for NoopCommand {
     type Err = Infallible;
 
     fn execute(self, _: &Ctx) -> Result<(), Self::Err> {
@@ -55,6 +55,19 @@ impl_command!(A, B, C, D, E);
 impl_command!(A, B, C, D, E, F);
 impl_command!(A, B, C, D, E, F, G);
 impl_command!(A, B, C, D, E, F, G, H);
+
+impl<'a, T, Ctx, Err> Command<Ctx> for T
+where 
+    T: IntoIterator<Item = &'a dyn CommandRef<Ctx, Err = Err>>,
+    Ctx: 'a,
+    Err: 'a
+{
+    type Err = Err;
+
+    fn execute(self, ctx: &Ctx) -> Result<(), Self::Err> {
+        self.into_iter().try_for_each(|trigger| trigger.execute(ctx))
+    }
+}
 
 #[cfg(test)]
 mod tests {

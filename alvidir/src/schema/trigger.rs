@@ -38,7 +38,7 @@ impl<Cmd, M> From<Cmd> for Trigger<Cmd, M> {
     }
 }
 
-impl<Cmd, Ctx, Args, Err> Command<Ctx, ()> for Trigger<Cmd, (Ctx, Args, Err)>
+impl<Cmd, Ctx, Args, Err> Command<Ctx> for Trigger<Cmd, (Ctx, Args, Err)>
 where
     Cmd: CommandRef<Ctx, Args, Err = Err>,
 {

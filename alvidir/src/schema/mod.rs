@@ -85,7 +85,7 @@ where
         Args: 'static,
         Err: 'static,
     {
-        let trigger: Box<dyn Command<Ctx, (), Err = Err>> = Box::new(Trigger::from(trigger));
+        let trigger: Box<dyn Command<Ctx, Err = Err>> = Box::new(Trigger::from(trigger));
         self.triggers.push(Box::new(trigger));
         self
     }
@@ -105,21 +105,21 @@ where
     }
 
     /// Returns an iterator over the triggers in the schema implementing the corresponding command.
-    pub fn triggers<Ctx, Err>(&self) -> impl Iterator<Item = &dyn Command<Ctx, (), Err = Err>>
+    pub fn triggers<Ctx, Err>(&self) -> impl Iterator<Item = &dyn Command<Ctx, Err = Err>>
     where
         Ctx: 'static,
         Err: 'static,
     {
         self.triggers
             .iter()
-            .filter_map(|trigger| trigger.downcast_ref::<Box<dyn Command<Ctx, (), Err = Err>>>())
+            .filter_map(|trigger| trigger.downcast_ref::<Box<dyn Command<Ctx, Err = Err>>>())
             .map(AsRef::as_ref)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::convert::Infallible;
+    use std::{convert::Infallible, marker::PhantomData};
 
     use crate::{graph::Graph, id::fixtures::IndentifyMock, schema::Schema};
 
@@ -134,8 +134,8 @@ mod tests {
         }
 
         struct Bar;
-        struct ContextBar;
-        impl From<&ContextBar> for Bar {
+        struct ContextBar<'a>(PhantomData<&'a ()>);
+        impl<'a> From<&ContextBar<'a>> for Bar {
             fn from(_: &ContextBar) -> Self {
                 Bar
             }
