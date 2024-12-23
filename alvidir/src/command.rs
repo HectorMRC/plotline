@@ -2,7 +2,7 @@
 
 use std::convert::Infallible;
 
-/// An entity that can be executed under a specific context.
+/// An entity that can be executed by value under a specific context.
 pub trait Command<Ctx, Args = ()> {
     type Err;
 
@@ -18,15 +18,15 @@ pub trait CommandRef<Ctx, Args = ()> {
     fn execute(&self, ctx: &Ctx) -> Result<(), Self::Err>;
 }
 
-/// A [`Command`] implementation that does nothing.
-#[derive(Debug, Default)]
-pub struct NoopCommand;
+impl<T, Cmd, Ctx, Err> Command<Ctx> for T
+where 
+    T: IntoIterator<Item = Cmd>,
+    Cmd: CommandRef<Ctx, Err = Err>,
+{
+    type Err = Err;
 
-impl<Ctx> Command<Ctx> for NoopCommand {
-    type Err = Infallible;
-
-    fn execute(self, _: &Ctx) -> Result<(), Self::Err> {
-        Ok(())
+    fn execute(self, ctx: &Ctx) -> Result<(), Self::Err> {
+        self.into_iter().try_for_each(|trigger| trigger.execute(ctx))
     }
 }
 
@@ -56,16 +56,15 @@ impl_command!(A, B, C, D, E, F);
 impl_command!(A, B, C, D, E, F, G);
 impl_command!(A, B, C, D, E, F, G, H);
 
-impl<'a, T, Ctx, Err> Command<Ctx> for T
-where 
-    T: IntoIterator<Item = &'a dyn CommandRef<Ctx, Err = Err>>,
-    Ctx: 'a,
-    Err: 'a
-{
-    type Err = Err;
+/// A [`Command`] implementation that does nothing.
+#[derive(Debug, Default)]
+pub struct NoopCommand;
 
-    fn execute(self, ctx: &Ctx) -> Result<(), Self::Err> {
-        self.into_iter().try_for_each(|trigger| trigger.execute(ctx))
+impl<Ctx> Command<Ctx> for NoopCommand {
+    type Err = Infallible;
+
+    fn execute(self, _: &Ctx) -> Result<(), Self::Err> {
+        Ok(())
     }
 }
 

@@ -12,7 +12,7 @@ use std::{
 use trigger::{OnContext, Trigger};
 
 use crate::{
-    command::{Command, CommandRef},
+    command::CommandRef,
     graph::Graph,
     id::Identify,
 };
@@ -85,7 +85,7 @@ where
         Args: 'static,
         Err: 'static,
     {
-        let trigger: Box<dyn Command<Ctx, Err = Err>> = Box::new(Trigger::from(trigger));
+        let trigger: Box<dyn CommandRef<Ctx, Err = Err>> = Box::new(Trigger::from(trigger));
         self.triggers.push(Box::new(trigger));
         self
     }
@@ -105,14 +105,14 @@ where
     }
 
     /// Returns an iterator over the triggers in the schema implementing the corresponding command.
-    pub fn triggers<Ctx, Err>(&self) -> impl Iterator<Item = &dyn Command<Ctx, Err = Err>>
+    pub fn triggers<Ctx, Err>(&self) -> impl Iterator<Item = &dyn CommandRef<Ctx, Err = Err>>
     where
         Ctx: 'static,
         Err: 'static,
     {
         self.triggers
             .iter()
-            .filter_map(|trigger| trigger.downcast_ref::<Box<dyn Command<Ctx, Err = Err>>>())
+            .filter_map(|trigger| trigger.downcast_ref::<Box<dyn CommandRef<Ctx, Err = Err>>>())
             .map(AsRef::as_ref)
     }
 }

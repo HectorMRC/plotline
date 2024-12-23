@@ -3,7 +3,7 @@
 use std::marker::PhantomData;
 
 use crate::{
-    command::{Command, CommandRef},
+    command::CommandRef,
     id::Identify,
 };
 
@@ -20,7 +20,7 @@ impl<T> From<T> for WithTrigger<T> {
     }
 }
 
-/// Wraps the trigger's [`CommandRef`] into an argless implementation of [`Command`].
+/// Wraps the trigger's [`CommandRef`] into an argless implementation of [`CommandRef`].
 ///
 /// This wraper is useful when downcasting triggers from `Box<dyn Any>`.
 /// It allows selecting all the triggers for a specific context and error type, no matter the arguments.
@@ -38,13 +38,13 @@ impl<Cmd, M> From<Cmd> for Trigger<Cmd, M> {
     }
 }
 
-impl<Cmd, Ctx, Args, Err> Command<Ctx> for Trigger<Cmd, (Ctx, Args, Err)>
+impl<Cmd, Ctx, Args, Err> CommandRef<Ctx> for Trigger<Cmd, (Ctx, Args, Err)>
 where
     Cmd: CommandRef<Ctx, Args, Err = Err>,
 {
     type Err = Err;
 
-    fn execute(self, ctx: &Ctx) -> Result<(), Self::Err> {
+    fn execute(&self, ctx: &Ctx) -> Result<(), Self::Err> {
         self.command.execute(ctx)
     }
 }

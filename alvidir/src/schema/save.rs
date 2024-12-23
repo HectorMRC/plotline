@@ -1,12 +1,12 @@
 //! Save transaction.
 
-use std::cell::RefCell;
+use std::{cell::RefCell, marker::PhantomData};
 
 use alvidir_macros::with_trigger;
 
 use crate::{
     chain::LiFoChain,
-    command::{Command, NoopCommand},
+    command::{Command, CommandRef, NoopCommand},
     graph::Graph,
     id::Identify,
 };
@@ -91,17 +91,17 @@ where
 }
 
 /// A placeholder for types that are yet to be difined.
-pub struct Unknown;
+pub struct Unknown<T>(PhantomData<T>);
 
-impl Default for Save<Unknown, NoopCommand, NoopCommand> {
+impl<T> Default for Save<Unknown<T>, NoopCommand, NoopCommand> {
     fn default() -> Self {
-        Save::new(Unknown)
+        Save::new(Unknown(PhantomData))
     }
 }
 
-impl<B, A> Save<Unknown, B, A> {
+impl<T, B, A> Save<Unknown<T>, B, A> {
     /// Converts self into a save transaction for the given node. 
-    pub fn with_node<T>(self, node: T) -> Save<T, B, A> {
+    pub fn with_node(self, node: T) -> Save<T, B, A> {
         Save {
             node,
             before: self.before,
@@ -121,38 +121,36 @@ impl<T> Save<T, NoopCommand, NoopCommand> {
     }
 }
 
-// impl<'a, T, Err> From<&'a Schema<T>> for Save<Unknown<T>, Vec<&'a dyn Command<NodeToSave<'static, T>, (), Err = Err>>, Vec<&'a dyn Command<SavedNode<'static, T>, (), Err = Err>>>
-// where 
-//     T: Identify,
-//     Err: 'static,
-// {
-//     fn from(schema: &'a Schema<T>) -> Self {
-//         let before: Vec<_> = schema.triggers::<NodeToSave<'_, T>, Err>().collect();
-//         let after: Vec<_> = schema.triggers::<SavedNode<'_, T>, Err>().collect();
+impl<'a, T, Err> From<&'a Schema<T>> for Save<Unknown<T>, Vec<&'a dyn CommandRef<NodeToSave<'static, T>, (), Err = Err>>, Vec<&'a dyn CommandRef<SavedNode<'static, T>, (), Err = Err>>>
+where 
+    T: Identify,
+    Err: 'static,
+{
+    fn from(schema: &'a Schema<T>) -> Self {
+        let before: Vec<_> = schema.triggers::<NodeToSave<'_, T>, Err>().collect();
+        let after: Vec<_> = schema.triggers::<SavedNode<'_, T>, Err>().collect();
 
-//         Self {
-//             node: Unknown(PhantomData),
-//             before,
-//             after
-//         }
-//     }
-// }
+        Self {
+            node: Unknown(PhantomData),
+            before,
+            after
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use std::{convert::Infallible, default};
 
-    use crate::{graph::{fixtures::FakeNode, Graph}, id::{fixtures::IndentifyMock, Identify}, schema::Schema};
+    use crate::{graph::{fixtures::FakeNode, Graph}, id::{fixtures::IndentifyMock, Identify}, schema::Schema, command::{Command, CommandRef}};
 
     use super::{NodeToSave, Save};
 
     #[test]
-    fn save_from_schema_is_command() {
+    fn save_from_schema_should_be_command() {
         let schema = Schema::from(Graph::<IndentifyMock<usize>>::default());
-        let mut save = Save::new(IndentifyMock::new(1));
-        
-        for trigger in schema.triggers::<NodeToSave<'_, IndentifyMock<usize>>, Infallible>() {
-            save = save.with_trigger().before(trigger);
-        }
+        let r: Result<(), Infallible> = Save::from(&schema)
+            .with_node(IndentifyMock::new(1))
+            .execute();
     }
 }
