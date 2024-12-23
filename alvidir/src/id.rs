@@ -12,15 +12,15 @@ pub mod fixtures {
     use super::Identify;
 
     /// A mock implementation of the [`Identify`] trait.
-    pub struct IndentifyMock<T> {
-        value: T,
+    pub struct IndentifyMock<'a, Id> {
+        id_fn: Option<fn() -> &'a Id>,
     }
 
-    impl<T> Identify for IndentifyMock<T> {
-        type Id = T;
+    impl<'a, Id> Identify for IndentifyMock<'a, Id> {
+        type Id = Id;
 
         fn id(&self) -> &Self::Id {
-            &self.value
+            self.id_fn.expect("id method must be set")()
         }
     }
 }
