@@ -76,3 +76,26 @@ where
         }
     }
 }
+
+impl<DocumentRepo> LazyDocument<DocumentRepo>
+where
+    DocumentRepo: DocumentRepository,
+    DocumentRepo::Document: Debug,
+    <DocumentRepo::Document as Identify>::Id: Clone,
+{
+    /// Returns a [`LazyDocument`] with the given repository and content.
+    pub fn new(document_repo: Arc<DocumentRepo>, document: DocumentRepo::Document) -> Self {
+        let lazy_doc = Self {
+            document_repo: document_repo.clone(),
+            document_id: document.id().clone(),
+            document: Default::default(),
+        };
+
+        lazy_doc
+            .document
+            .set(document)
+            .expect("default once-lock should be uninitialized");
+        
+        lazy_doc
+    }
+}

@@ -1,8 +1,4 @@
-use std::{
-    fs::File,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{path::PathBuf, sync::Arc};
 
 use alvidir::{
     document::{lazy::LazyDocument, DocumentRepository},
@@ -12,9 +8,10 @@ use ignore::Walk;
 use regex::Regex;
 
 /// A file-system document.
+#[derive(Debug)]
 pub struct Document {
-    path: PathBuf,
-    _file: File,
+    pub path: PathBuf,
+    pub bytes: Vec<u8>,
 }
 
 impl Identify for Document {
@@ -26,14 +23,14 @@ impl Identify for Document {
 }
 
 /// Implements the [`DocumentRepository`] trait taking as datasource the given local directory.
-pub struct LocalDocumentRepository<'a> {
+pub struct LocalDocumentRepository {
     /// The base path in which the repository has to look up for files.
-    pub context: &'a Path,
+    pub context: PathBuf,
     /// The filename pattern.
     pub pattern: Regex,
 }
 
-impl DocumentRepository for LocalDocumentRepository<'_> {
+impl DocumentRepository for LocalDocumentRepository {
     type Document = Document;
 
     fn find_by_id(&self, _id: &<Self::Document as Identify>::Id) -> Option<Self::Document> {
@@ -41,10 +38,10 @@ impl DocumentRepository for LocalDocumentRepository<'_> {
     }
 }
 
-impl LocalDocumentRepository<'_> {
+impl LocalDocumentRepository {
     /// Returns an iterator of [`LazyDocument`].
     pub fn all(self: &Arc<Self>) -> impl Iterator<Item = LazyDocument<Self>> + '_ {
-        Walk::new(self.context)
+        Walk::new(&self.context)
             .filter_map(move |entry| {
                 if let Err(err) = &entry {
                     tracing::error!(
@@ -65,7 +62,7 @@ impl LocalDocumentRepository<'_> {
             .filter_map(move |entry| {
                 let path = entry
                     .path()
-                    .strip_prefix(self.context)
+                    .strip_prefix(&self.context)
                     .map(ToOwned::to_owned);
 
                 if let Err(err) = &path {

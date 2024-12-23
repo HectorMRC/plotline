@@ -1,10 +1,10 @@
 use clap::Subcommand;
-use node::NodeCommand;
+use document::DocumentCommand;
 
-pub mod node;
+pub mod document;
 pub mod repository;
 
 #[derive(Subcommand)]
 pub enum CliCommand {
-    Node(NodeCommand),
+    Doc(DocumentCommand),
 }

@@ -6,7 +6,7 @@ use std::{
 };
 
 use alvidir::graph::Graph;
-use alvidir_cli::{node::NodeCli, repository::LocalDocumentRepository, CliCommand};
+use alvidir_cli::{document::DocumentCli, repository::LocalDocumentRepository, CliCommand};
 use anyhow::Result;
 use clap::Parser;
 use regex::Regex;
@@ -64,15 +64,18 @@ fn main() -> Result<()> {
         .init();
 
     let document_repo = Arc::new(LocalDocumentRepository {
-        context: &args.context,
+        context: args.context,
         pattern: Regex::new(&args.pattern).expect("pattern should be a valid regular expression"),
     });
 
     let schema = Arc::new(Graph::from_iter(document_repo.all()).into());
 
-    let node_cli = NodeCli { schema };
+    let node_cli = DocumentCli {
+        schema,
+        document_repo,
+    };
 
     match args.subcommand {
-        CliCommand::Node(command) => node_cli.execute(command),
+        CliCommand::Doc(command) => node_cli.execute(command),
     }
 }
