@@ -1,6 +1,60 @@
 //! An interval search tree implementation.
 
+use std::convert::Infallible;
+
+use crate::schema::{plugin::Plugin, resource::Read, Schema};
+
 use super::{Interval, IntervalExt};
+
+/// An internval search tree.
+pub struct IntervalSearchTree<Intv>
+where
+    Intv: Interval,
+{
+    root: Option<IntervalSearchTreeNode<Intv>>,
+}
+
+impl<Intv> Default for IntervalSearchTree<Intv>
+where
+    Intv: Interval,
+{
+    fn default() -> Self {
+        Self {
+            root: Default::default(),
+        }
+    }
+}
+
+impl<T, Intv> Plugin<T> for IntervalSearchTree<Intv>
+where
+    T: 'static,
+    Intv: 'static + Interval,
+{
+    fn setup(&self, schema: Schema<T>) -> Schema<T>
+    where
+        T: crate::id::Identify,
+    {
+        schema
+            .with_resource(Self::default())
+            .on_context::<Schema<T>>()
+            .trigger(Self::on_save)
+            .on_context::<Schema<T>>()
+            .trigger(Self::on_delete)
+    }
+}
+
+impl<Intv> IntervalSearchTree<Intv>
+where
+    Intv: 'static + Interval,
+{
+    fn on_save(_: Read<IntervalSearchTree<Intv>>) -> Result<(), Infallible> {
+        todo!()
+    }
+
+    fn on_delete(_: Read<IntervalSearchTree<Intv>>) -> Result<(), Infallible> {
+        todo!()
+    }
+}
 
 /// A node in an interval search tree.
 #[derive(Debug, Clone, PartialEq)]
@@ -43,7 +97,7 @@ where
         self
     }
 
-    /// Adds the given interval in the tree rooted by self.
+    /// Inserts the given interval in the tree rooted by self.
     fn insert(&mut self, interval: Intv) {
         if self.max < interval.hi() {
             self.max = interval.hi();

@@ -2,6 +2,7 @@ use std::{
     error::Error,
     fmt::Debug,
     io::{self, Write},
+    path::PathBuf,
     str::FromStr,
     sync::Arc,
 };
@@ -15,7 +16,20 @@ use alvidir::{
 use anyhow::Result;
 use clap::{Args, Subcommand};
 
-use crate::repository::Document;
+/// A file-system document.
+#[derive(Debug)]
+pub struct Document {
+    pub path: PathBuf,
+    pub bytes: Vec<u8>,
+}
+
+impl Identify for Document {
+    type Id = PathBuf;
+
+    fn id(&self) -> &Self::Id {
+        &self.path
+    }
+}
 
 #[derive(Args)]
 struct DocumentSaveArgs {

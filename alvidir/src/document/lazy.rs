@@ -95,7 +95,7 @@ where
             .document
             .set(document)
             .expect("default once-lock should be uninitialized");
-        
+
         lazy_doc
     }
 }

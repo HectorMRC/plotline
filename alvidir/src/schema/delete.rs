@@ -5,6 +5,7 @@ use alvidir_macros::with_trigger;
 use crate::{
     chain::LiFoChain,
     command::{Command, NoopCommand},
+    deref::TryDeref,
     graph::Graph,
     id::Identify,
 };
@@ -19,7 +20,7 @@ where
     /// The graph the node is being deleted from.
     pub graph: &'a Graph<T>,
     /// The id of the node to delete.
-    pub node_id: &'a T::Id,
+    pub node: &'a T,
 }
 
 /// The context for triggers after delete.
@@ -43,12 +44,12 @@ where
     pub node_id: T::Id,
 }
 
-impl<T, B, A, E, BArgs, AArgs> Command<Schema<T>, (BArgs, AArgs)> for Delete<T, B, A>
+impl<T, B, A, E, BArgs, AArgs> Command<'_, Schema<T>, (BArgs, AArgs)> for Delete<T, B, A>
 where
     T: 'static + Identify,
-    T::Id: Ord,
-    B: for<'b> Command<NodeToDelete<'b, T>, BArgs, Err = E>,
-    A: for<'a> Command<DeletedNode<'a, T>, AArgs, Err = E>,
+    T::Id: Ord + Clone,
+    B: for<'b> Command<'b, NodeToDelete<'b, T>, BArgs, Err = E>,
+    A: for<'a> Command<'a, DeletedNode<'a, T>, AArgs, Err = E>,
 {
     type Err = E;
 
@@ -65,10 +66,15 @@ where
         let deleted_node = {
             let mut graph = schema.write();
 
+            let node = graph.node(self.node_id.clone());
+            let Some(node) = node.try_deref() else {
+                return Ok(());
+            };
+
             {
                 let payload = NodeToDelete {
                     graph: &graph,
-                    node_id: &self.node_id,
+                    node,
                 };
 
                 self.before.execute(&payload)?;

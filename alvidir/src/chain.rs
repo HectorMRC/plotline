@@ -14,14 +14,14 @@ pub struct LiFoChain<T, Head = ()> {
     pub value: T,
 }
 
-impl<T, U, Ctx, TArgs, UArgs> Command<Ctx, (TArgs, UArgs)> for LiFoChain<T, U>
+impl<'a, T, U, Ctx, TArgs, UArgs> Command<'a, Ctx, (TArgs, UArgs)> for LiFoChain<T, U>
 where
-    T: Command<Ctx, TArgs>,
-    U: Command<Ctx, UArgs, Err = T::Err>,
+    T: Command<'a, Ctx, TArgs>,
+    U: Command<'a, Ctx, UArgs, Err = <T as Command<'a, Ctx, TArgs>>::Err>,
 {
-    type Err = T::Err;
+    type Err = <T as Command<'a, Ctx, TArgs>>::Err;
 
-    fn execute(self, ctx: &Ctx) -> Result<(), Self::Err> {
+    fn execute(self, ctx: &'a Ctx) -> Result<(), Self::Err> {
         self.value.execute(ctx).and_then(|_| self.head.execute(ctx))
     }
 }

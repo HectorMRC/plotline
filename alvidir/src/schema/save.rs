@@ -1,7 +1,5 @@
 //! Save transaction.
 
-use std::cell::RefCell;
-
 use alvidir_macros::with_trigger;
 
 use crate::{
@@ -21,7 +19,7 @@ where
     /// The graph the node is being saved into.
     pub graph: &'a Graph<T>,
     /// The node being saved into the schema.
-    pub node: RefCell<T>,
+    pub node: T,
 }
 
 /// The context for triggers after saving.
@@ -45,12 +43,12 @@ where
     pub node: T,
 }
 
-impl<T, B, A, E, BArgs, AArgs> Command<Schema<T>, (BArgs, AArgs)> for Save<T, B, A>
+impl<T, B, A, E, BArgs, AArgs> Command<'_, Schema<T>, (BArgs, AArgs)> for Save<T, B, A>
 where
     T: 'static + Identify,
     T::Id: Ord + Clone,
-    B: for<'b> Command<NodeToSave<'b, T>, BArgs, Err = E>,
-    A: for<'a> Command<SavedNode<'a, T>, AArgs, Err = E>,
+    B: for<'b> Command<'b, NodeToSave<'b, T>, BArgs, Err = E>,
+    A: for<'a> Command<'a, SavedNode<'a, T>, AArgs, Err = E>,
 {
     type Err = E;
 
@@ -70,13 +68,12 @@ where
             let final_node = {
                 let payload = NodeToSave {
                     graph: &graph,
-                    node: RefCell::new(self.node),
+                    node: self.node,
                 };
 
                 self.before.execute(&payload)?;
                 payload.node
-            }
-            .into_inner();
+            };
 
             let inserted_id = final_node.id().clone();
             graph.insert(final_node);
