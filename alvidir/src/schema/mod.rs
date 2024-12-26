@@ -23,7 +23,7 @@ where
 {
     /// The graph being orchestrated by this schema.
     graph: RwLock<Graph<T>>,
-    /// All the resources of this schema.
+    /// All the resources in this schema.
     resources: ResourceSet,
     /// All the triggers in the schema.
     triggers: TriggerSet,

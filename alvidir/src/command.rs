@@ -3,7 +3,7 @@
 use std::convert::Infallible;
 
 /// An entity that can be executed under a specific context.
-pub trait Command<'a, Ctx, Args> {
+pub trait Command<'a, Ctx, Args = ()> {
     type Err;
 
     /// Performs the command.

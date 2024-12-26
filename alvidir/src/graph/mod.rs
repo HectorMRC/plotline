@@ -54,6 +54,22 @@ where
     }
 }
 
+impl<T> Source for Graph<T>
+where 
+    T: Identify,
+    T::Id: Ord,
+{
+    type Node = T;
+    
+    fn get(&self, id: &<Self::Node as Identify>::Id) -> Option<&Self::Node> {
+        self.nodes.get(id)
+    }
+    
+    fn contains(&self, id: &<Self::Node as Identify>::Id) -> bool {
+        self.nodes.contains_key(id)
+    }
+}
+
 impl<T> Graph<T>
 where
     T: Identify,
@@ -80,12 +96,10 @@ where
     pub fn remove(&mut self, node_id: &T::Id) -> Option<T> {
         self.nodes.remove(node_id)
     }
-}
 
-impl<T: Identify> Graph<T> {
     /// Returns the [`NodeProxy`] for the given id.
-    pub fn node(&self, id: T::Id) -> NodeProxy<'_, T> {
-        NodeProxy { graph: self, id }
+    pub fn node(&self, id: T::Id) -> NodeProxy<'_, Self> {
+        NodeProxy { source: self, id }
     }
 }
 
