@@ -7,15 +7,12 @@ pub mod resource;
 pub mod save;
 pub mod trigger;
 
-use std::{
-    any::{Any, TypeId},
-    collections::BTreeMap,
-    sync::RwLock,
-};
+use std::sync::RwLock;
 
 use guard::{SchemaReadGuard, SchemaWriteGuard};
 use plugin::Plugin;
-use trigger::{OnContext, Trigger};
+use resource::ResourceSet;
+use trigger::{OnContext, TriggerSet};
 
 use crate::{command::CommandRef, graph::Graph, id::Identify};
 
@@ -27,9 +24,9 @@ where
     /// The graph being orchestrated by this schema.
     graph: RwLock<Graph<T>>,
     /// All the resources of this schema.
-    resources: BTreeMap<TypeId, Box<dyn Any>>,
+    resources: ResourceSet,
     /// All the triggers in the schema.
-    triggers: Vec<Box<dyn Any>>,
+    triggers: TriggerSet,
 }
 
 impl<T> From<Graph<T>> for Schema<T>
@@ -64,8 +61,7 @@ where
     where
         R: 'static,
     {
-        let type_id = TypeId::of::<R>();
-        self.resources.insert(type_id, Box::new(resource));
+        self.resources = self.resources.with_resource(resource);
         self
     }
 
@@ -83,8 +79,7 @@ where
         Args: 'static,
         Err: 'static,
     {
-        let trigger: Box<dyn CommandRef<Ctx, Err = Err>> = Box::new(Trigger::from(trigger));
-        self.triggers.push(Box::new(trigger));
+        self.triggers = self.triggers.with_trigger(trigger);
         self
     }
 
@@ -102,18 +97,14 @@ where
         self.into()
     }
 
-    /// Returns an iterator over the triggers in the schema implementing the corresponding command.
-    pub fn triggers<Ctx, Err>(
-        &self,
-    ) -> impl Iterator<Item = &dyn CommandRef<'static, Ctx, Err = Err>>
-    where
-        Ctx: 'static,
-        Err: 'static,
-    {
-        self.triggers
-            .iter()
-            .filter_map(|trigger| trigger.downcast_ref::<Box<dyn CommandRef<Ctx, Err = Err>>>())
-            .map(AsRef::as_ref)
+    /// Returns the resource set of this schema.
+    pub fn resources(&self) -> &ResourceSet {
+        &self.resources
+    }
+
+    /// Returns the trigger set of this schema.
+    pub fn triggers(&self) -> &TriggerSet {
+        &self.triggers
     }
 
     /// Returns a read-only access to the schema.
@@ -126,78 +117,5 @@ where
     #[inline]
     pub fn write(&self) -> SchemaWriteGuard<'_, T> {
         self.into()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::{convert::Infallible, marker::PhantomData};
-
-    use crate::{graph::Graph, id::fixtures::IndentifyMock, schema::Schema};
-
-    #[test]
-    fn triggers_downcasting() {
-        struct Foo;
-        struct ContextFoo;
-        impl From<&ContextFoo> for Foo {
-            fn from(_: &ContextFoo) -> Self {
-                Foo
-            }
-        }
-
-        struct Bar<'a>(PhantomData<&'a ()>);
-        struct ContextBar<'a>(PhantomData<&'a ()>);
-        impl<'a> From<&ContextBar<'a>> for Bar<'a> {
-            fn from(_: &ContextBar) -> Self {
-                Bar(PhantomData)
-            }
-        }
-
-        impl<'a> From<&ContextFoo> for Bar<'a> {
-            fn from(_: &ContextFoo) -> Self {
-                Bar(PhantomData)
-            }
-        }
-
-        struct Qux;
-        struct ContextQux;
-        impl From<&ContextQux> for Qux {
-            fn from(_: &ContextQux) -> Self {
-                Qux
-            }
-        }
-
-        fn a_trigger(_: Foo) -> Result<(), Infallible> {
-            Ok(())
-        }
-
-        fn another_trigger(_: Bar) -> Result<(), Infallible> {
-            Ok(())
-        }
-
-        /// Is a trigger because Foo and Bar implement Command for the same context.
-        fn even_another_trigger(_: Foo, _: Bar) -> Result<(), Infallible> {
-            Ok(())
-        }
-
-        // Is not a trigger because Foo and Qux implement Command for different contexts.
-        fn _not_a_trigger(_: Foo, _: Qux) -> Result<(), Infallible> {
-            Ok(())
-        }
-
-        let schema = Schema::from(Graph::<IndentifyMock<usize>>::default())
-            // .with_trigger(_not_a_trigger)
-            .with_trigger(a_trigger)
-            .on_context::<ContextBar>()
-            .trigger(another_trigger)
-            .on_context::<ContextFoo>()
-            .trigger(another_trigger)
-            .with_trigger(even_another_trigger);
-
-        assert_eq!(schema.triggers::<ContextFoo, Infallible>().count(), 3);
-        assert_eq!(schema.triggers::<ContextBar, Infallible>().count(), 1);
-
-        // There is no trigger taking usize as context.
-        assert_eq!(schema.triggers::<usize, Infallible>().count(), 0);
     }
 }

@@ -34,12 +34,11 @@ where
     where
         T: crate::id::Identify,
     {
-        schema
-            .with_resource(Self::default())
-            .on_context::<Schema<T>>()
-            .trigger(Self::on_save)
-            .on_context::<Schema<T>>()
-            .trigger(Self::on_delete)
+        schema.with_resource(Self::default())
+        // .on_context::<Schema<T>>()
+        // .trigger(Self::on_save)
+        // .on_context::<Schema<T>>()
+        // .trigger(Self::on_delete)
     }
 }
 

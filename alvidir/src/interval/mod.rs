@@ -1,15 +1,15 @@
 //! Interval related definitions.
 
 #[allow(dead_code)]
-mod search_tree;
+pub mod search_tree;
 
 /// One of the limits in an [`Interval`].
 #[allow(dead_code)]
-trait Bound: Ord {}
+pub trait Bound: Ord {}
 impl<T> Bound for T where T: Ord {}
 
 /// A type delimited by two bounds.
-trait Interval {
+pub trait Interval {
     type Bound: Bound;
 
     /// Retrives the lowest bound in the interval.
