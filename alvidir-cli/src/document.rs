@@ -8,7 +8,6 @@ use std::{
 };
 
 use alvidir::{
-    command::Command,
     document::{lazy::LazyDocument, DocumentRepository},
     id::Identify,
     schema::{delete::Delete, save::Save, Schema},
@@ -17,7 +16,7 @@ use anyhow::Result;
 use clap::{Args, Subcommand};
 
 /// A file-system document.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Document {
     pub path: PathBuf,
     pub bytes: Vec<u8>,
@@ -61,6 +60,7 @@ pub struct DocumentCommand {
 pub struct DocumentCli<DocumentRepo>
 where
     DocumentRepo: DocumentRepository,
+    <DocumentRepo::Document as Identify>::Id: Clone,
 {
     pub schema: Arc<Schema<LazyDocument<DocumentRepo>>>,
     pub document_repo: Arc<DocumentRepo>,
@@ -69,7 +69,7 @@ where
 impl<DocumentRepo> DocumentCli<DocumentRepo>
 where
     DocumentRepo: 'static + DocumentRepository<Document = Document>,
-    DocumentRepo::Document: Debug,
+    DocumentRepo::Document: Debug + Clone,
     <DocumentRepo::Document as Identify>::Id: Ord + Clone + FromStr + Debug,
     <<DocumentRepo::Document as Identify>::Id as FromStr>::Err: 'static + Error + Sync + Send,
 {
@@ -84,7 +84,9 @@ where
         };
 
         match command.subcommand {
-            DocumentSubCommand::Delete => Delete::new(document_id()?).execute(&self.schema)?,
+            DocumentSubCommand::Delete => {
+                Delete::new(document_id()?).execute(self.schema.transaction())?
+            }
             DocumentSubCommand::List => {
                 let mut stdout = io::stdout().lock();
                 self.schema
@@ -100,7 +102,7 @@ where
                 };
 
                 Save::new(LazyDocument::new(self.document_repo.clone(), document))
-                    .execute(&self.schema)?;
+                    .execute(self.schema.transaction())?;
             }
         };
 

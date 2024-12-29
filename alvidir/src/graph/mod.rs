@@ -55,16 +55,16 @@ where
 }
 
 impl<T> Source for Graph<T>
-where 
-    T: Identify,
+where
+    T: Identify + Clone,
     T::Id: Ord,
 {
     type Node = T;
-    
-    fn get(&self, id: &<Self::Node as Identify>::Id) -> Option<&Self::Node> {
-        self.nodes.get(id)
+
+    fn get(&self, id: &<Self::Node as Identify>::Id) -> Option<Self::Node> {
+        self.nodes.get(id).cloned()
     }
-    
+
     fn contains(&self, id: &<Self::Node as Identify>::Id) -> bool {
         self.nodes.contains_key(id)
     }
@@ -89,17 +89,23 @@ where
 
 impl<T> Graph<T>
 where
+    T: Identify + Clone,
+    T::Id: Ord,
+{
+    /// Returns the [`NodeProxy`] for the given id.
+    pub fn node(&self, id: T::Id) -> NodeProxy<'_, Self> {
+        NodeProxy::new(self, id)
+    }
+}
+
+impl<T> Graph<T>
+where
     T: Identify,
     T::Id: Ord,
 {
     /// Removes the node with the given id from the graph, returning it, if any.
     pub fn remove(&mut self, node_id: &T::Id) -> Option<T> {
         self.nodes.remove(node_id)
-    }
-
-    /// Returns the [`NodeProxy`] for the given id.
-    pub fn node(&self, id: T::Id) -> NodeProxy<'_, Self> {
-        NodeProxy { source: self, id }
     }
 }
 
@@ -108,7 +114,7 @@ pub mod fixtures {
     use crate::{id::Identify, resource::Resource};
 
     /// A fake node type.
-    #[derive(Debug, Default)]
+    #[derive(Debug, Default, Clone)]
     pub struct FakeNode<Id> {
         pub id: Option<Id>,
         pub edges: Option<Vec<Id>>,

@@ -57,6 +57,7 @@ struct Cli {
     pattern: String,
 }
 
+#[allow(clippy::arc_with_non_send_sync)]
 fn main() -> Result<()> {
     let args = Cli::parse();
 

@@ -1,10 +1,13 @@
 //! Schema representation.
 
 pub mod delete;
+mod error;
+pub use error::{Error, Result};
 pub mod guard;
 pub mod plugin;
 pub mod resource;
 pub mod save;
+pub mod transaction;
 pub mod trigger;
 
 use std::sync::RwLock;
@@ -12,9 +15,10 @@ use std::sync::RwLock;
 use guard::{SchemaReadGuard, SchemaWriteGuard};
 use plugin::Plugin;
 use resource::ResourceSet;
-use trigger::{OnContext, TriggerSet};
+use transaction::Background;
+use trigger::{Trigger, TriggerSet};
 
-use crate::{command::CommandRef, graph::Graph, id::Identify};
+use crate::{graph::Graph, id::Identify};
 
 /// A graph that is subject to a set of rules.
 pub struct Schema<T>
@@ -26,7 +30,7 @@ where
     /// All the resources in this schema.
     resources: ResourceSet,
     /// All the triggers in the schema.
-    triggers: TriggerSet,
+    triggers: TriggerSet<T>,
 }
 
 impl<T> From<Graph<T>> for Schema<T>
@@ -65,36 +69,19 @@ where
         self
     }
 
-    /// Registers the given command as a trigger of this schema.
-    ///
-    /// This method works out of the box if, and only if, the trigger implements command for a single context.
-    /// Otherwise it requires to specify the context for which the trigger is being registered.
-    /// See [`Self::on_context`] for a better user experience.
-    pub fn with_trigger<Ctx, Args, Err>(
+    /// Schedules the given trigger in this schema.
+    pub fn with_trigger<S, Args>(
         mut self,
-        trigger: impl CommandRef<'static, Ctx, Args, Err = Err> + 'static,
+        scheduler: S,
+        trigger: impl Trigger<T, Args> + 'static,
     ) -> Self
     where
-        Ctx: 'static,
+        T: 'static,
+        S: 'static,
         Args: 'static,
-        Err: 'static,
     {
-        self.triggers = self.triggers.with_trigger(trigger);
+        self.triggers = self.triggers.with_trigger(scheduler, trigger);
         self
-    }
-
-    /// Pre-selects a context for which a trigger is going to be registered.
-    ///
-    /// This is the the two-steps equivalent of [`Self::with_trigger`].
-    /// Its main purpose is to enhance the Schema's API by reducing placeholders, which improves readability.
-    ///
-    /// ```ignore
-    /// // Both forms are equivalent.
-    /// schema.with_trigger<MyCtx, _, _>(MyTrigger);
-    /// schema.on_context<MyCtx>().trigger(MyTrigger);
-    /// ```
-    pub fn on_context<Ctx>(self) -> OnContext<T, Ctx> {
-        self.into()
     }
 
     /// Returns the resource set of this schema.
@@ -103,17 +90,21 @@ where
     }
 
     /// Returns the trigger set of this schema.
-    pub fn triggers(&self) -> &TriggerSet {
+    pub fn triggers(&self) -> &TriggerSet<T> {
         &self.triggers
     }
 
-    /// Returns a read-only access to the schema.
+    /// Returns a new transaction background.
+    #[inline]
+    pub fn transaction(&self) -> Background<'_, T> {
+        self.into()
+    }
+
     #[inline]
     pub fn read(&self) -> SchemaReadGuard<'_, T> {
         self.into()
     }
 
-    /// Returns a read-write access to the schema.
     #[inline]
     pub fn write(&self) -> SchemaWriteGuard<'_, T> {
         self.into()
