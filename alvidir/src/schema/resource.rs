@@ -4,15 +4,17 @@ use std::{
     any::{Any, TypeId},
     collections::BTreeMap,
     marker::PhantomData,
-    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+    sync::{Arc, RwLock},
 };
 
-use crate::deref::{TryDeref, TryDerefMut};
+use crate::id::Identify;
+
+use super::transaction::Context;
 
 /// Represents a set of arbitrary resources.
 #[derive(Debug, Default)]
 pub struct ResourceSet {
-    resources: BTreeMap<TypeId, RwLock<Box<dyn Any>>>,
+    resources: BTreeMap<TypeId, Arc<RwLock<Box<dyn Any>>>>,
 }
 
 impl ResourceSet {
@@ -25,140 +27,118 @@ impl ResourceSet {
     {
         let type_id = TypeId::of::<R>();
         self.resources
-            .insert(type_id, RwLock::new(Box::new(resource)));
+            .insert(type_id, Arc::new(RwLock::new(Box::new(resource))));
         self
     }
 }
 
-/// A read-only access to a resource.
-pub struct Read<'a, R> {
-    guard: Option<RwLockReadGuard<'a, Box<dyn Any>>>,
-    _type: PhantomData<R>,
+/// Represents a resource that may exists, or may not, in the schema.
+pub struct Res<T> {
+    lock: Option<Arc<RwLock<Box<dyn Any>>>>,
+    _type: PhantomData<T>,
 }
 
-impl<R> TryDeref for Read<'_, R>
+impl<T> Res<T>
 where
-    R: 'static,
+    T: 'static,
 {
-    type Target = R;
+    /// Gets a read-only access to the resource and executes the given closure.
+    pub fn with<F, R>(&self, f: F) -> Option<R>
+    where
+        F: FnOnce(&T) -> R,
+    {
+        match self.lock.as_ref()?.read() {
+            Ok(res) => Some(f(res.downcast_ref()?)),
+            Err(err) => {
+                tracing::error!(error = err.to_string(), type_id = ?TypeId::of::<T>(), "accessing resource");
+                None
+            }
+        }
+    }
 
-    fn try_deref(&self) -> Option<&Self::Target> {
-        self.guard.as_ref().and_then(|res| res.downcast_ref())
+    /// Gets a read-write access to the resouce and executes the given closure.
+    pub fn with_mut<F, R>(&self, f: F) -> Option<R>
+    where
+        F: FnOnce(&mut T) -> R,
+    {
+        match self.lock.as_ref()?.write() {
+            Ok(mut res) => Some(f(res.downcast_mut()?)),
+            Err(err) => {
+                tracing::error!(error = err.to_string(), type_id = ?TypeId::of::<T>(), "accessing resource");
+                None
+            }
+        }
+    }
+
+    /// Returns true if, and only if, the resource exists.
+    pub fn exists(&self) -> bool {
+        self.with(|_| true).unwrap_or_default()
     }
 }
 
-impl<'a, R> From<&'a ResourceSet> for Read<'a, R>
+impl<T> From<&ResourceSet> for Res<T>
 where
-    R: 'static,
+    T: 'static,
 {
-    fn from(set: &'a ResourceSet) -> Self {
+    fn from(set: &ResourceSet) -> Self {
         Self {
-            guard: set
-                .resources
-                .get(&TypeId::of::<R>())
-                .and_then(|lock| lock.read().ok()),
+            lock: set.resources.get(&TypeId::of::<T>()).cloned(),
             _type: PhantomData,
         }
     }
 }
 
-/// A read-write access to a resource.
-pub struct Write<'a, R> {
-    guard: Option<RwLockWriteGuard<'a, Box<dyn Any>>>,
-    _type: PhantomData<R>,
-}
-
-impl<R> TryDeref for Write<'_, R>
+impl<T, R> From<&Context<'_, T>> for Res<R>
 where
+    T: Identify,
     R: 'static,
 {
-    type Target = R;
-
-    fn try_deref(&self) -> Option<&Self::Target> {
-        self.guard.as_ref().and_then(|res| res.downcast_ref())
-    }
-}
-
-impl<R> TryDerefMut for Write<'_, R>
-where
-    R: 'static,
-{
-    fn try_deref_mut(&mut self) -> Option<&mut Self::Target> {
-        self.guard.as_mut().and_then(|res| res.downcast_mut())
-    }
-}
-
-impl<'a, R> From<&'a ResourceSet> for Write<'a, R>
-where
-    R: 'static,
-{
-    fn from(set: &'a ResourceSet) -> Self {
-        Self {
-            guard: set
-                .resources
-                .get(&TypeId::of::<R>())
-                .and_then(|lock| lock.write().ok()),
-            _type: PhantomData,
-        }
+    fn from(ctx: &Context<T>) -> Self {
+        ctx.resources().into()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        deref::{TryDeref, TryDerefMut},
         graph::Graph,
         id::fixtures::IndentifyMock,
-        schema::{
-            resource::{Read, Write},
-            Schema,
-        },
+        schema::{resource::Res, Schema},
     };
 
     #[test]
-    fn read_resource() {
+    fn resource_exists() {
         struct Foo;
         struct Bar;
 
         let schema = Schema::from(Graph::<IndentifyMock<usize>>::default()).with_resource(Foo);
 
-        let read_foo = Read::<Foo>::from(schema.resources());
-        assert!(
-            read_foo.try_deref().is_some(),
-            "resource from the schema should be dereferenced"
-        );
+        let res = Res::<Foo>::from(schema.resources());
+        assert!(res.exists(), "resource from the schema should exists");
 
-        let read_bar = Read::<Bar>::from(schema.resources());
+        let no_res = Res::<Bar>::from(schema.resources());
 
-        assert!(
-            read_bar.try_deref().is_none(),
-            "unregistered resource should not be dereferenced"
-        );
+        assert!(!no_res.exists(), "unregistered resource should not exists");
     }
 
     #[test]
-    fn write_resource() {
+    fn resource_read_write() {
         struct Foo(usize);
 
         let schema = Schema::from(Graph::<IndentifyMock<usize>>::default()).with_resource(Foo(0));
 
-        {
-            let mut write_foo = Write::<Foo>::from(schema.resources());
-            let foo = write_foo
-                .try_deref_mut()
-                .expect("resource from the schema should be dereferenced");
+        let res = Res::<Foo>::from(schema.resources());
+        res.with_mut(|foo| {
             foo.0 = 1;
-        }
+        })
+        .expect("resource from the schema should exists");
 
-        let read_foo = Read::<Foo>::from(schema.resources());
-        let foo = read_foo
-            .try_deref()
-            .map(|foo| foo.0)
-            .expect("resource from the schema should be dereferenced");
-
-        assert_eq!(
-            foo, 1,
-            "previous value of the resource should be overwritten"
-        );
+        res.with(|foo| {
+            assert_eq!(
+                foo.0, 1,
+                "previous value of the resource should be overwritten"
+            );
+        })
+        .expect("resource from the schema should exists");
     }
 }

@@ -2,7 +2,7 @@
 
 use std::sync::OnceLock;
 
-use crate::{deref::TryDeref, id::Identify, resource::Resource};
+use crate::{deref::TryDeref, id::Identify, property::Property};
 
 /// Represents a source of nodes.
 ///
@@ -86,7 +86,7 @@ where
     /// Returns a list of all the nodes pointed by the current one.
     pub fn successors<Edge>(&self) -> Vec<Self>
     where
-        Edge: Resource<S::Node> + Identify<Id = <S::Node as Identify>::Id>,
+        Edge: Property<S::Node> + Identify<Id = <S::Node as Identify>::Id>,
     {
         let Some(node) = self.try_deref() else {
             return Vec::default();

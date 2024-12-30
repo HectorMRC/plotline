@@ -3,16 +3,16 @@
 use crate::deref::TryDeref;
 
 /// A value in a source.
-pub trait Resource<Src> {
+pub trait Property<Src> {
     /// Retrives all the ocurrences of self in the source.
     fn all(source: &Src) -> Vec<Self>
     where
         Self: Sized;
 }
 
-impl<T, U> Resource<U> for T
+impl<T, U> Property<U> for T
 where
-    T: Resource<U::Target>,
+    T: Property<U::Target>,
     U: TryDeref,
 {
     fn all(source: &U) -> Vec<Self>

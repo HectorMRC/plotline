@@ -1,6 +1,6 @@
 //! Save transaction.
 
-use crate::{deref::TryDeref, id::Identify};
+use crate::id::Identify;
 
 use super::{transaction::Transaction, Result};
 
@@ -26,9 +26,7 @@ impl<T> Save<T> {
                 .select::<BeforeSave>()
                 .try_for_each(|trigger| trigger.execute(&ctx))?;
 
-            if let Some(node) = ctx.try_deref() {
-                ctx.save(node.clone());
-            }
+            ctx.with(|node| ctx.save(node.clone()));
 
             ctx.triggers()
                 .select::<AfterSave>()

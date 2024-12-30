@@ -111,7 +111,7 @@ where
 
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
-    use crate::{id::Identify, resource::Resource};
+    use crate::{id::Identify, property::Property};
 
     /// A fake node type.
     #[derive(Debug, Default, Clone)]
@@ -151,7 +151,7 @@ pub mod fixtures {
         }
     }
 
-    impl<T> Resource<FakeNode<T>> for FakeEdge<T>
+    impl<T> Property<FakeNode<T>> for FakeEdge<T>
     where
         T: Copy,
     {

@@ -3,7 +3,6 @@
 use std::sync::{Arc, OnceLock, RwLock};
 
 use crate::{
-    deref::{TryDeref, TryDerefMut},
     graph::{Graph, NodeProxy, Source},
     id::Identify,
 };
@@ -50,28 +49,9 @@ where
 {
     graph: &'a Graph<T>,
     schema: &'a Schema<T>,
+    parent: Option<&'a Context<'a, T>>,
     operations: Arc<RwLock<Vec<Operation<T>>>>,
-    target: Option<T>,
-}
-
-impl<T> TryDeref for Context<'_, T>
-where
-    T: Identify,
-{
-    type Target = T;
-
-    fn try_deref(&self) -> Option<&Self::Target> {
-        self.target.as_ref()
-    }
-}
-
-impl<T> TryDerefMut for Context<'_, T>
-where
-    T: Identify,
-{
-    fn try_deref_mut(&mut self) -> Option<&mut Self::Target> {
-        self.target.as_mut()
-    }
+    target: Option<RwLock<T>>,
 }
 
 impl<T> Source for Context<'_, T>
@@ -90,7 +70,10 @@ where
         match guard.iter().rev().find(|&op| op.id() == id) {
             Some(Operation::Save(node)) => Some(node.clone()),
             Some(Operation::Delete(_)) => None,
-            None => self.graph.get(id),
+            None => self
+                .parent
+                .map(|parent| parent.get(id))
+                .unwrap_or_else(|| self.graph.get(id)),
         }
     }
 
@@ -103,7 +86,10 @@ where
         match guard.iter().rev().find(|&op| op.id() == id) {
             Some(Operation::Save(_)) => true,
             Some(Operation::Delete(_)) => false,
-            None => self.graph.contains(id),
+            None => self
+                .parent
+                .map(|parent| parent.contains(id))
+                .unwrap_or_else(|| self.graph.contains(id)),
         }
     }
 }
@@ -125,8 +111,36 @@ where
 {
     /// Assigns a target to this context.
     pub fn with_target(mut self, target: T) -> Self {
-        self.target = Some(target);
+        self.target = Some(RwLock::new(target));
         self
+    }
+
+    /// Gets a read-only access to the target and executes the given closure.
+    pub fn with<F, R>(&self, f: F) -> Option<R>
+    where
+        F: Fn(&T) -> R,
+    {
+        match self.target.as_ref()?.read() {
+            Ok(guard) => Some(f(&guard)),
+            Err(err) => {
+                tracing::error!(error = err.to_string(), "accessing target");
+                None
+            }
+        }
+    }
+
+    /// Gets a read-write access to the target and executes the given closure.
+    pub fn with_mut<F, R>(&self, f: F) -> Option<R>
+    where
+        F: Fn(&mut T) -> R,
+    {
+        match self.target.as_ref()?.write() {
+            Ok(mut guard) => Some(f(&mut guard)),
+            Err(err) => {
+                tracing::error!(error = err.to_string(), "accessing target");
+                None
+            }
+        }
     }
 
     /// Registers the save operation as part of the transaction.
@@ -166,6 +180,52 @@ where
     }
 }
 
+/// Represents a constrained-access to a [`Context`].
+pub struct Ctx<'a, T>
+where
+    T: Identify,
+{
+    context: &'a Context<'a, T>,
+}
+
+impl<'a, T> Ctx<'a, T>
+where
+    T: Identify,
+{
+    /// Returns a new transaction holded by this context.
+    #[inline]
+    pub fn transaction(&'a self) -> Foreground<'a, T> {
+        self.context.into()
+    }
+
+    /// Gets a read-only access to the target and executes the given closure.
+    #[inline]
+    pub fn with<F, R>(&self, f: F) -> Option<R>
+    where
+        F: Fn(&T) -> R,
+    {
+        self.context.with(f)
+    }
+
+    /// Gets a read-write access to the target and executes the given closure.
+    #[inline]
+    pub fn with_mut<F, R>(&self, f: F) -> Option<R>
+    where
+        F: Fn(&mut T) -> R,
+    {
+        self.context.with_mut(f)
+    }
+}
+
+impl<'a, T> From<&'a Context<'a, T>> for Ctx<'a, T>
+where
+    T: Identify,
+{
+    fn from(context: &'a Context<T>) -> Self {
+        Ctx { context }
+    }
+}
+
 /// Represents a set of operations that must be completed transactionally.
 pub struct Background<'a, T>
 where
@@ -189,7 +249,7 @@ where
     }
 }
 
-impl<T> Transaction for Background<'_, T>
+impl<'a, T> Transaction for Background<'a, T>
 where
     T: Identify,
     T::Id: Clone + Ord,
@@ -202,6 +262,7 @@ where
             graph: self.guard.get_or_init(|| self.schema.write()),
             operations: self.operations.clone(),
             target: Default::default(),
+            parent: Default::default(),
         }
     }
 
@@ -264,6 +325,7 @@ where
             schema: self.context.schema,
             operations: self.operations.clone(),
             target: Default::default(),
+            parent: Some(self.context),
         }
     }
 

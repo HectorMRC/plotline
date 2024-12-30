@@ -4,28 +4,31 @@ use std::{any::TypeId, marker::PhantomData};
 
 use crate::id::Identify;
 
-use super::{transaction::Context, Result};
+use super::{
+    transaction::{Context, Ctx},
+    Result,
+};
 
-/// Represents a procedure that can be triggered under a [`Context`].
+/// Represents a trigger that can be executed under a [`Context`].
 pub trait Trigger<T, Args>
 where
     T: Identify,
 {
-    /// Performs the command.
+    /// Executes the trigger.
     fn execute(&self, ctx: &Context<'_, T>) -> Result<()>;
 }
 
 #[macro_export]
 macro_rules! impl_trigger {
     ($($args:tt),*) => {
-        impl<T, U, $($args),*> Trigger<T, ($($args,)*)> for U
+        impl<_T, _F, $($args),*> Trigger<_T, ($($args,)*)> for _F
         where
-            T: Identify,
-            U: Fn($($args),*) -> Result<()>,
-            $($args: for<'a> From<&'a Context<'a, T>>),*
+            _T: Identify,
+            _F: Fn(Ctx<_T>, $($args),*) -> Result<()>,
+            $($args: for<'a> From<&'a Context<'a, _T>>),*
         {
-            fn execute(&self, _ctx: &Context<'_, T>) -> Result<()> {
-                (self)($($args::from(_ctx)),*)
+            fn execute(&self, _ctx: &Context<'_, _T>) -> Result<()> {
+                (self)(_ctx.into(), $($args::from(_ctx)),*)
             }
         }
     };
@@ -119,7 +122,10 @@ mod tests {
     use crate::{
         graph::Graph,
         id::fixtures::IndentifyMock,
-        schema::{transaction::Context, Result, Schema},
+        schema::{
+            transaction::{Context, Ctx},
+            Result, Schema,
+        },
     };
 
     #[test]
@@ -140,11 +146,11 @@ mod tests {
             }
         }
 
-        fn a_trigger(_: Foo) -> Result<()> {
+        fn a_trigger(_: Ctx<Node>, _: Foo) -> Result<()> {
             Ok(())
         }
 
-        fn another_trigger(_: Foo, _: Bar) -> Result<()> {
+        fn another_trigger<'a>(_: Ctx<Node>, _: Foo, _: Bar) -> Result<()> {
             Ok(())
         }
 
