@@ -63,12 +63,12 @@ pub fn impl_with_trigger(mut parsed_item: ItemStruct) -> syn::Result<TokenStream
         #where_clause
         {
             /// Configure triggers for this transaction.
-            pub fn with_trigger(self) -> WithTrigger<Self> {
+            pub fn with_trigger(self) -> alvidir::schema::trigger::WithTrigger<Self> {
                 self.into()
             }
         }
 
-        impl<#generic_params> WithTrigger<#name<#generic_params>>
+        impl<#generic_params> alvidir::schema::trigger::WithTrigger<#name<#generic_params>>
         #where_clause
         {
             /// Schedules the given command to be executed before the transaction is performed.

@@ -7,20 +7,7 @@ use alvidir::{
 use ignore::Walk;
 use regex::Regex;
 
-/// A file-system document.
-#[derive(Debug)]
-pub struct Document {
-    pub path: PathBuf,
-    pub bytes: Vec<u8>,
-}
-
-impl Identify for Document {
-    type Id = PathBuf;
-
-    fn id(&self) -> &Self::Id {
-        &self.path
-    }
-}
+use crate::document::Document;
 
 /// Implements the [`DocumentRepository`] trait taking as datasource the given local directory.
 pub struct LocalDocumentRepository {

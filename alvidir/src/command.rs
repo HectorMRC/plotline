@@ -3,23 +3,45 @@
 use std::convert::Infallible;
 
 /// An entity that can be executed under a specific context.
-pub trait Command<Ctx, Args> {
+pub trait Command<'a, Ctx, Args = ()> {
     type Err;
 
     /// Performs the command.
-    fn execute(self, ctx: &Ctx) -> Result<(), Self::Err>;
+    fn execute(self, ctx: &'a Ctx) -> Result<(), Self::Err>;
+}
+
+/// An entity that can be executed by reference under a specific context.
+pub trait CommandRef<'a, Ctx, Args = ()> {
+    type Err;
+
+    /// Performs the command.
+    fn execute(&self, ctx: &'a Ctx) -> Result<(), Self::Err>;
 }
 
 macro_rules! impl_command {
     ($($args:tt),*) => {
-        impl<T, Ctx, Err, $($args),*> Command<Ctx, (Err, $($args,)*)> for T
+        impl<'a, T, Ctx, Err, $($args),*> Command<'a, Ctx, (Err, $($args,)*)> for T
         where
             T: Fn($($args),*) -> Result<(), Err>,
-            $($args: for<'a> From<&'a Ctx>),*
+            Ctx: 'a,
+            $($args: From<&'a Ctx>),*
         {
             type Err = Err;
 
-            fn execute(self, _ctx: &Ctx) -> Result<(), Self::Err> {
+            fn execute(self, _ctx: &'a Ctx) -> Result<(), Self::Err> {
+                (self)($($args::from(_ctx)),*)
+            }
+        }
+
+        impl<'a, T, Ctx, Err, $($args),*> CommandRef<'a, Ctx, (Err, $($args,)*)> for T
+        where
+            T: Fn($($args),*) -> Result<(), Err>,
+            Ctx: 'a,
+            $($args: From<&'a Ctx>),*
+        {
+            type Err = Err;
+
+            fn execute(&self, _ctx: &'a Ctx) -> Result<(), Self::Err> {
                 (self)($($args::from(_ctx)),*)
             }
         }
@@ -40,7 +62,7 @@ impl_command!(A, B, C, D, E, F, G, H);
 #[derive(Debug, Default)]
 pub struct NoopCommand;
 
-impl<Ctx> Command<Ctx, ()> for NoopCommand {
+impl<Ctx> Command<'_, Ctx, ()> for NoopCommand {
     type Err = Infallible;
 
     fn execute(self, _: &Ctx) -> Result<(), Self::Err> {
@@ -58,7 +80,7 @@ mod tests {
     fn handle_arbitrary_commands() {
         struct Handler;
         impl Handler {
-            fn with_command<M>(self, _: impl Command<Self, M>) -> Self {
+            fn with_command<'a, M>(self, _: impl Command<'a, Self, M>) -> Self {
                 self
             }
         }

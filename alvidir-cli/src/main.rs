@@ -5,7 +5,7 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-use alvidir::graph::Graph;
+use alvidir::{graph::Graph, schema::Schema};
 use alvidir_cli::{document::DocumentCli, repository::LocalDocumentRepository, CliCommand};
 use anyhow::Result;
 use clap::Parser;
@@ -53,6 +53,7 @@ struct Cli {
     pattern: String,
 }
 
+#[allow(clippy::arc_with_non_send_sync)]
 fn main() -> Result<()> {
     let args = Cli::parse();
 
@@ -68,7 +69,8 @@ fn main() -> Result<()> {
         pattern: Regex::new(&args.pattern).expect("pattern should be a valid regular expression"),
     });
 
-    let schema = Arc::new(Graph::from_iter(document_repo.all()).into());
+    let graph = Graph::from_iter(document_repo.all());
+    let schema = Arc::new(Schema::from(graph));
 
     let node_cli = DocumentCli {
         schema,

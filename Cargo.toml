@@ -3,9 +3,9 @@ members = ["alvidir", "alvidir-cli", "alvidir-macros"]
 resolver = "2"
 
 [workspace.dependencies]
-alvidir.path = "alvidir"
-alvidir-macros.path = "alvidir-macros"
-log = "0.4.22"
-serde = "1.0.215"
-thiserror = "2.0.3"
-tracing = "0.1.41"
+alvidir = { path = "alvidir", default-features = false }
+alvidir-macros = { path = "alvidir-macros", default-features = false }
+log = { version = "0.4.22", default-features = false }
+serde = { version = "1.0.216", default-features = false }
+thiserror = { version = "2.0.9", default-features = false }
+tracing = { version = "0.1.41", default-features = false }

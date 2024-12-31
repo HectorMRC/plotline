@@ -22,6 +22,21 @@ where
     document: OnceLock<DocumentRepo::Document>,
 }
 
+impl<DocumentRepo> Clone for LazyDocument<DocumentRepo>
+where
+    DocumentRepo: DocumentRepository,
+    DocumentRepo::Document: Clone,
+    <DocumentRepo::Document as Identify>::Id: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            document_repo: self.document_repo.clone(),
+            document_id: self.document_id.clone(),
+            document: self.document.clone(),
+        }
+    }
+}
+
 impl<DocumentRepo> Identify for LazyDocument<DocumentRepo>
 where
     DocumentRepo: DocumentRepository,
@@ -95,7 +110,7 @@ where
             .document
             .set(document)
             .expect("default once-lock should be uninitialized");
-        
+
         lazy_doc
     }
 }

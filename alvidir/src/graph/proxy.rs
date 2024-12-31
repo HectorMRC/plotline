@@ -1,63 +1,92 @@
 //! A proxy for nodes in a graph.
 
-use crate::{deref::TryDeref, id::Identify, resource::Resource};
+use std::sync::OnceLock;
 
-use super::Graph;
+use crate::{deref::TryDeref, id::Identify, property::Property};
 
-/// A preliminary representation of a node that may, or may not, exist in a [`Graph`].
-#[derive(Debug)]
-pub struct NodeProxy<'a, T: Identify> {
-    /// The graph in which the id potentially exists.
-    pub graph: &'a Graph<T>,
-    /// The id of the node.
-    pub id: T::Id,
+/// Represents a source of nodes.
+///
+/// This trait allows [`NodeProxy`] to be graph-agnostic.
+pub trait Source {
+    type Node: Identify;
+
+    /// Provides the node with the given id, if any.
+    //
+    // TODO: try to return Option<&Self::Node>.
+    //       This method was previously returning a reference, but the transaction
+    //       feature required this to become a value.
+    fn get(&self, id: &<Self::Node as Identify>::Id) -> Option<Self::Node>;
+    /// Returns true if, and only if, a node with the given id exist in the source.
+    /// Otherwise returns false.
+    fn contains(&self, id: &<Self::Node as Identify>::Id) -> bool;
 }
 
-impl<T> Clone for NodeProxy<'_, T>
+/// A preliminary representation of a node that may, or may not, exist in a [`Graph`].
+pub struct NodeProxy<'a, S>
 where
-    T: Identify,
-    T::Id: Clone,
+    S: Source,
+    S::Node: Identify,
+{
+    /// The source in which the id potentially exists.
+    pub source: &'a S,
+    /// The id of the node.
+    pub id: <S::Node as Identify>::Id,
+    /// The actual node.
+    value: OnceLock<Option<S::Node>>,
+}
+
+impl<S> Clone for NodeProxy<'_, S>
+where
+    S: Source,
+    S::Node: Identify + Clone,
+    <S::Node as Identify>::Id: Clone,
 {
     fn clone(&self) -> Self {
         Self {
-            graph: self.graph,
+            source: self.source,
             id: self.id.clone(),
+            value: self.value.clone(),
         }
     }
 }
 
-impl<T> Identify for NodeProxy<'_, T>
+impl<S> Identify for NodeProxy<'_, S>
 where
-    T: Identify,
+    S: Source,
+    S::Node: Identify,
 {
-    type Id = T::Id;
+    type Id = <S::Node as Identify>::Id;
 
     fn id(&self) -> &Self::Id {
         &self.id
     }
 }
 
-impl<T> TryDeref for NodeProxy<'_, T>
+impl<S> TryDeref for NodeProxy<'_, S>
 where
-    T: Identify,
-    T::Id: Ord,
+    S: Source,
+    S::Node: Identify,
+    <S::Node as Identify>::Id: Ord,
 {
-    type Target = T;
+    type Target = S::Node;
 
     fn try_deref(&self) -> Option<&Self::Target> {
-        self.graph.nodes.get(&self.id)
+        self.value
+            .get_or_init(|| self.source.get(&self.id))
+            .as_ref()
     }
 }
 
-impl<T> NodeProxy<'_, T>
+impl<S> NodeProxy<'_, S>
 where
-    T: Identify,
-    T::Id: Ord + Clone,
+    S: Source,
+    S::Node: Identify,
+    <S::Node as Identify>::Id: Ord + Clone,
 {
     /// Returns a list of all the nodes pointed by the current one.
     pub fn successors<Edge>(&self) -> Vec<Self>
     where
-        Edge: Resource<T> + Identify<Id = T::Id>,
+        Edge: Property<S::Node> + Identify<Id = <S::Node as Identify>::Id>,
     {
         let Some(node) = self.try_deref() else {
             return Vec::default();
@@ -66,21 +95,31 @@ where
         Edge::all(node)
             .into_iter()
             .map(|edge| Self {
-                graph: self.graph,
+                source: self.source,
                 id: edge.id().clone(),
+                value: Default::default(),
             })
             .collect()
     }
 }
 
-impl<T> NodeProxy<'_, T>
+impl<'a, S> NodeProxy<'a, S>
 where
-    T: Identify,
-    T::Id: Ord,
+    S: Source,
+    S::Node: Identify,
+    <S::Node as Identify>::Id: Ord,
 {
+    pub fn new(source: &'a S, id: <S::Node as Identify>::Id) -> Self {
+        NodeProxy {
+            source,
+            id,
+            value: Default::default(),
+        }
+    }
+
     /// Returns true if, and only if, the node does not exist in the graph.
     pub fn is_virtual(&self) -> bool {
-        !self.graph.nodes.contains_key(&self.id)
+        !self.source.contains(&self.id)
     }
 }
 

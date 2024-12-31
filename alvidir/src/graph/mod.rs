@@ -54,6 +54,22 @@ where
     }
 }
 
+impl<T> Source for Graph<T>
+where
+    T: Identify + Clone,
+    T::Id: Ord,
+{
+    type Node = T;
+
+    fn get(&self, id: &<Self::Node as Identify>::Id) -> Option<Self::Node> {
+        self.nodes.get(id).cloned()
+    }
+
+    fn contains(&self, id: &<Self::Node as Identify>::Id) -> bool {
+        self.nodes.contains_key(id)
+    }
+}
+
 impl<T> Graph<T>
 where
     T: Identify,
@@ -73,6 +89,17 @@ where
 
 impl<T> Graph<T>
 where
+    T: Identify + Clone,
+    T::Id: Ord,
+{
+    /// Returns the [`NodeProxy`] for the given id.
+    pub fn node(&self, id: T::Id) -> NodeProxy<'_, Self> {
+        NodeProxy::new(self, id)
+    }
+}
+
+impl<T> Graph<T>
+where
     T: Identify,
     T::Id: Ord,
 {
@@ -82,19 +109,12 @@ where
     }
 }
 
-impl<T: Identify> Graph<T> {
-    /// Returns the [`NodeProxy`] for the given id.
-    pub fn node(&self, id: T::Id) -> NodeProxy<'_, T> {
-        NodeProxy { graph: self, id }
-    }
-}
-
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
-    use crate::{id::Identify, resource::Resource};
+    use crate::{id::Identify, property::Property};
 
     /// A fake node type.
-    #[derive(Debug, Default)]
+    #[derive(Debug, Default, Clone)]
     pub struct FakeNode<Id> {
         pub id: Option<Id>,
         pub edges: Option<Vec<Id>>,
@@ -131,7 +151,7 @@ pub mod fixtures {
         }
     }
 
-    impl<T> Resource<FakeNode<T>> for FakeEdge<T>
+    impl<T> Property<FakeNode<T>> for FakeEdge<T>
     where
         T: Copy,
     {

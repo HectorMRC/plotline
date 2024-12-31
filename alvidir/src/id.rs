@@ -16,7 +16,7 @@ pub mod fixtures {
         id_fn: Option<fn() -> &'a Id>,
     }
 
-    impl<'a, Id> Identify for IndentifyMock<'a, Id> {
+    impl<Id> Identify for IndentifyMock<'_, Id> {
         type Id = Id;
 
         fn id(&self) -> &Self::Id {
