@@ -9,7 +9,6 @@ repository = "https://github.com/hectormrc/plotline"
 version = "0.0.1"
 
 [dependencies]
-alvidir-macros.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 
