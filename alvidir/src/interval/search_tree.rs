@@ -4,7 +4,11 @@ use crate::{
     id::Identify,
     property::Property,
     schema::{
-        delete::AfterDelete, plugin::Plugin, resource::Res, save::AfterSave, transaction::Ctx,
+        delete::AfterDelete,
+        plugin::Plugin,
+        resource::Res,
+        save::AfterSave,
+        transaction::{Ctx, Target},
         Result, Schema,
     },
 };
@@ -110,23 +114,21 @@ where
     T::Id: Clone,
     Intv: 'static + Interval + Property<T>,
 {
-    fn on_save(ctx: Ctx<T>, search_tree: Res<Self>) -> Result<()> {
-        let Some(interval) = ctx.with(|target| NodeInterval::new(target)).flatten() else {
+    fn on_save(_: Ctx<T>, target: Target<T>, search_tree: Res<Self>) -> Result<()> {
+        let Some(interval) = target.with(|target| NodeInterval::new(target)).flatten() else {
             return Ok(());
         };
 
         search_tree.with_mut(|search_tree| search_tree.insert(interval));
-
         Ok(())
     }
 
-    fn on_delete(ctx: Ctx<T>, search_tree: Res<Self>) -> Result<()> {
-        let Some(interval) = ctx.with(|target| NodeInterval::new(target)).flatten() else {
+    fn on_delete(_: Ctx<T>, target: Target<T>, search_tree: Res<Self>) -> Result<()> {
+        let Some(interval) = target.with(|target| NodeInterval::new(target)).flatten() else {
             return Ok(());
         };
 
         search_tree.with_mut(|search_tree| search_tree.remove(&interval));
-
         Ok(())
     }
 }

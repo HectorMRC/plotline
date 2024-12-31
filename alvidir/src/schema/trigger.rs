@@ -27,8 +27,8 @@ macro_rules! impl_trigger {
             _F: Fn(Ctx<_T>, $($args),*) -> Result<()>,
             $($args: for<'a> From<&'a Context<'a, _T>>),*
         {
-            fn execute(&self, _ctx: &Context<'_, _T>) -> Result<()> {
-                (self)(_ctx.into(), $($args::from(_ctx)),*)
+            fn execute(&self, ctx: &Context<'_, _T>) -> Result<()> {
+                (self)(ctx.into(), $($args::from(ctx)),*)
             }
         }
     };

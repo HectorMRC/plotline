@@ -42,6 +42,71 @@ where
     }
 }
 
+/// The node targeted by a context.
+pub struct Target<T> {
+    lock: Option<Arc<RwLock<T>>>,
+}
+
+impl<T> Default for Target<T> {
+    fn default() -> Self {
+        Self {
+            lock: Default::default(),
+        }
+    }
+}
+
+impl<T> Clone for Target<T> {
+    fn clone(&self) -> Self {
+        Self {
+            lock: self.lock.clone(),
+        }
+    }
+}
+
+impl<T> Target<T> {
+    /// Sets the given value as the target.
+    pub fn set(&mut self, value: T) {
+        self.lock = Some(Arc::new(RwLock::new(value)));
+    }
+
+    /// Gets a read-only access to the target and executes the given closure.
+    pub fn with<F, R>(&self, f: F) -> Option<R>
+    where
+        F: Fn(&T) -> R,
+    {
+        match self.lock.as_ref()?.read() {
+            Ok(guard) => Some(f(&guard)),
+            Err(err) => {
+                tracing::error!(error = err.to_string(), "accessing target");
+                None
+            }
+        }
+    }
+
+    /// Gets a read-write access to the target and executes the given closure.
+    pub fn with_mut<F, R>(&self, f: F) -> Option<R>
+    where
+        F: Fn(&mut T) -> R,
+    {
+        match self.lock.as_ref()?.write() {
+            Ok(mut guard) => Some(f(&mut guard)),
+            Err(err) => {
+                tracing::error!(error = err.to_string(), "accessing target");
+                None
+            }
+        }
+    }
+}
+
+impl<'a, T> From<&'a Context<'a, T>> for Target<T>
+where
+    T: Identify,
+{
+    fn from(context: &'a Context<T>) -> Self {
+        context.target().clone()
+    }
+}
+
 /// Represents a subset of operations from a transaction.
 pub struct Context<'a, T>
 where
@@ -51,7 +116,7 @@ where
     schema: &'a Schema<T>,
     parent: Option<&'a Context<'a, T>>,
     operations: Arc<RwLock<Vec<Operation<T>>>>,
-    target: Option<RwLock<T>>,
+    target: Target<T>,
 }
 
 impl<T> Source for Context<'_, T>
@@ -111,36 +176,8 @@ where
 {
     /// Assigns a target to this context.
     pub fn with_target(mut self, target: T) -> Self {
-        self.target = Some(RwLock::new(target));
+        self.target.set(target);
         self
-    }
-
-    /// Gets a read-only access to the target and executes the given closure.
-    pub fn with<F, R>(&self, f: F) -> Option<R>
-    where
-        F: Fn(&T) -> R,
-    {
-        match self.target.as_ref()?.read() {
-            Ok(guard) => Some(f(&guard)),
-            Err(err) => {
-                tracing::error!(error = err.to_string(), "accessing target");
-                None
-            }
-        }
-    }
-
-    /// Gets a read-write access to the target and executes the given closure.
-    pub fn with_mut<F, R>(&self, f: F) -> Option<R>
-    where
-        F: Fn(&mut T) -> R,
-    {
-        match self.target.as_ref()?.write() {
-            Ok(mut guard) => Some(f(&mut guard)),
-            Err(err) => {
-                tracing::error!(error = err.to_string(), "accessing target");
-                None
-            }
-        }
     }
 
     /// Registers the save operation as part of the transaction.
@@ -173,6 +210,11 @@ where
         self.schema.triggers()
     }
 
+    /// Returns a reference to the transaction's target.
+    pub fn target(&self) -> &Target<T> {
+        &self.target
+    }
+
     /// Returns a new transaction holded by this context.
     #[inline]
     pub fn transaction(&self) -> Foreground<'_, T> {
@@ -196,24 +238,6 @@ where
     #[inline]
     pub fn transaction(&'a self) -> Foreground<'a, T> {
         self.context.into()
-    }
-
-    /// Gets a read-only access to the target and executes the given closure.
-    #[inline]
-    pub fn with<F, R>(&self, f: F) -> Option<R>
-    where
-        F: Fn(&T) -> R,
-    {
-        self.context.with(f)
-    }
-
-    /// Gets a read-write access to the target and executes the given closure.
-    #[inline]
-    pub fn with_mut<F, R>(&self, f: F) -> Option<R>
-    where
-        F: Fn(&mut T) -> R,
-    {
-        self.context.with_mut(f)
     }
 }
 
@@ -249,7 +273,7 @@ where
     }
 }
 
-impl<'a, T> Transaction for Background<'a, T>
+impl<T> Transaction for Background<'_, T>
 where
     T: Identify,
     T::Id: Clone + Ord,

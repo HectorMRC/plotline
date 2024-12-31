@@ -21,6 +21,7 @@ impl ResourceSet {
     /// Registers the given resource.
     ///
     /// This methos overwrites any older value for the same resource type.
+    #[allow(clippy::arc_with_non_send_sync)]
     pub fn with_resource<R>(mut self, resource: R) -> Self
     where
         R: 'static,
@@ -32,7 +33,7 @@ impl ResourceSet {
     }
 }
 
-/// Represents a resource that may exists, or may not, in the schema.
+/// A resource that may, or may not, exist in the schema.
 pub struct Res<T> {
     lock: Option<Arc<RwLock<Box<dyn Any>>>>,
     _type: PhantomData<T>,

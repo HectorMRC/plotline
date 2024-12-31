@@ -26,7 +26,7 @@ impl<T> Save<T> {
                 .select::<BeforeSave>()
                 .try_for_each(|trigger| trigger.execute(&ctx))?;
 
-            ctx.with(|node| ctx.save(node.clone()));
+            ctx.target().with(|node| ctx.save(node.clone()));
 
             ctx.triggers()
                 .select::<AfterSave>()

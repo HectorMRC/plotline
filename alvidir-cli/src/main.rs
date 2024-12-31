@@ -5,11 +5,7 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-use alvidir::{
-    graph::Graph,
-    interval::{fixtures::IntervalMock, search_tree::IntervalSearchTree},
-    schema::Schema,
-};
+use alvidir::{graph::Graph, schema::Schema};
 use alvidir_cli::{document::DocumentCli, repository::LocalDocumentRepository, CliCommand};
 use anyhow::Result;
 use clap::Parser;
@@ -74,8 +70,7 @@ fn main() -> Result<()> {
     });
 
     let graph = Graph::from_iter(document_repo.all());
-    let schema =
-        Arc::new(Schema::from(graph).install(IntervalSearchTree::<IntervalMock<usize>>::default()));
+    let schema = Arc::new(Schema::from(graph));
 
     let node_cli = DocumentCli {
         schema,
