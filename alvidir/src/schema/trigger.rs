@@ -76,7 +76,7 @@ impl<T> TriggerSet<T> {
     }
 
     /// Returns an iterator over the triggers scheduled for the given type.
-    pub fn select<S>(&self) -> impl Iterator<Item = &dyn Trigger<T, ()>>
+    pub fn select<S>(&self, _: S) -> impl Iterator<Item = &dyn Trigger<T, ()>>
     where
         S: 'static,
     {
@@ -159,9 +159,7 @@ mod tests {
             .with_trigger(Schedule1, another_trigger)
             .with_trigger(Schedule2, another_trigger);
 
-        assert_eq!(schema.triggers().select::<Schedule1>().count(), 2);
-        assert_eq!(schema.triggers().select::<Schedule2>().count(), 1);
-
-        assert_eq!(schema.triggers().select::<usize>().count(), 0);
+        assert_eq!(schema.triggers().select(Schedule1).count(), 2);
+        assert_eq!(schema.triggers().select(Schedule2).count(), 1);
     }
 }

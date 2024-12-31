@@ -38,12 +38,12 @@ where
 
             let ctx = ctx.with_target(node);
             ctx.triggers()
-                .select::<BeforeDelete>()
+                .select(BeforeDelete)
                 .try_for_each(|trigger| trigger.execute(&ctx))?;
 
             ctx.delete(self.node_id);
             ctx.triggers()
-                .select::<AfterDelete>()
+                .select(AfterDelete)
                 .try_for_each(|trigger| trigger.execute(&ctx))?;
         }
 

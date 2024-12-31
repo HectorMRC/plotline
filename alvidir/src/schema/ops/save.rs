@@ -21,13 +21,13 @@ impl<T> Save<T> {
         {
             let ctx = tx.begin().with_target(self.node);
             ctx.triggers()
-                .select::<BeforeSave>()
+                .select(BeforeSave)
                 .try_for_each(|trigger| trigger.execute(&ctx))?;
 
             ctx.target().with(|node| ctx.save(node.clone()));
 
             ctx.triggers()
-                .select::<AfterSave>()
+                .select(AfterSave)
                 .try_for_each(|trigger| trigger.execute(&ctx))?;
         }
 
