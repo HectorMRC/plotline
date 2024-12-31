@@ -87,10 +87,7 @@ impl<T> TriggerSet<T> {
     }
 }
 
-/// Wraps the trigger's [`CommandRef`] into an argless implementation of [`CommandRef`].
-///
-/// This wraper is useful when downcasting triggers from `Box<dyn Any>`.
-/// It allows selecting all the triggers for a specific context and error type, no matter the arguments.
+/// Wraps a trigger into an argless implementation of [`Trigger`].
 pub(crate) struct ArglessTrigger<T, M> {
     trigger: T,
     _meta: PhantomData<M>,
