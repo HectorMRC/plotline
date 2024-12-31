@@ -1,5 +1,7 @@
 //! Delete transaction.
 
+use std::fmt::Debug;
+
 use crate::{
     deref::TryDeref,
     id::Identify,
@@ -23,14 +25,14 @@ where
 impl<T> Delete<T>
 where
     T: Identify + Clone,
-    T::Id: Ord + Clone,
+    T::Id: Debug + Ord + Clone,
 {
     /// Executes the [`Delete`] transaction.
     pub fn execute(self, tx: impl Transaction<Target = T>) -> Result<()> {
         {
             let ctx = tx.begin();
             let Some(node) = ctx.node(self.node_id.clone()).try_deref().cloned() else {
-                tracing::warn!("node does not exist");
+                tracing::warn!(node_id = ?self.node_id, "node does not exist");
                 return Err(Error::Noop);
             };
 
