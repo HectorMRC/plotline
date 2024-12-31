@@ -72,7 +72,7 @@ impl<T> Target<T> {
     /// Gets a read-only access to the target and executes the given closure.
     pub fn with<F, R>(&self, f: F) -> Option<R>
     where
-        F: Fn(&T) -> R,
+        F: FnOnce(&T) -> R,
     {
         match self.lock.as_ref()?.read() {
             Ok(guard) => Some(f(&guard)),
@@ -86,7 +86,7 @@ impl<T> Target<T> {
     /// Gets a read-write access to the target and executes the given closure.
     pub fn with_mut<F, R>(&self, f: F) -> Option<R>
     where
-        F: Fn(&mut T) -> R,
+        F: FnOnce(&mut T) -> R,
     {
         match self.lock.as_ref()?.write() {
             Ok(mut guard) => Some(f(&mut guard)),

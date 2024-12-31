@@ -48,8 +48,14 @@ where
 
         self.root = Some(IntervalSearchTreeNode::new(interval));
     }
+}
 
-    fn remove(&mut self, _interval: &NodeInterval<T, Intv>) {
+impl<T, Intv> IntervalSearchTree<T, Intv>
+where
+    T: Identify,
+    Intv: Identify<Id = T::Id> + Interval,
+{
+    fn remove(&mut self, _id: &T::Id) {
         unimplemented!("remove from interval search tree is yet to be implemented")
     }
 }
@@ -78,36 +84,6 @@ where
     }
 }
 
-impl<T, Intv> PartialEq for NodeInterval<T, Intv>
-where
-    T: Identify,
-{
-    fn eq(&self, _other: &Self) -> bool {
-        unimplemented!()
-    }
-}
-
-impl<T, Intv> NodeInterval<T, Intv>
-where
-    T: Identify,
-    T::Id: Clone,
-    Intv: Property<T>,
-{
-    /// Returns a new [`NodeInterval`] if, and only if, the given node has exactly one occurence of Intv.
-    fn new(node: &T) -> Option<Self> {
-        let mut intervals = Intv::all(node).into_iter();
-        let interval = intervals.next()?;
-        if intervals.next().is_some() {
-            return None;
-        }
-
-        Some(Self {
-            node_id: node.id().clone(),
-            interval,
-        })
-    }
-}
-
 impl<T, Intv> IntervalSearchTree<T, Intv>
 where
     T: 'static + Identify,
@@ -115,20 +91,43 @@ where
     Intv: 'static + Interval + Property<T>,
 {
     fn on_save(_: Ctx<T>, target: Target<T>, search_tree: Res<Self>) -> Result<()> {
-        let Some(interval) = target.with(|target| NodeInterval::new(target)).flatten() else {
+        let Some(intervals) = target.with(|target| {
+            Intv::all(target).into_iter().map({
+                let node_id = target.id().clone();
+                move |interval| NodeInterval {
+                    node_id: node_id.clone(),
+                    interval,
+                }
+            })
+        }) else {
             return Ok(());
         };
 
-        search_tree.with_mut(|search_tree| search_tree.insert(interval));
+        search_tree.with_mut(|search_tree| {
+            intervals.into_iter().for_each(|interval| {
+                search_tree.insert(interval);
+            });
+        });
+
         Ok(())
     }
+}
 
+impl<T, Intv> IntervalSearchTree<T, Intv>
+where
+    T: 'static + Identify,
+    T::Id: Clone,
+    Intv: 'static + Identify<Id = T::Id> + Interval + Property<T>,
+{
     fn on_delete(_: Ctx<T>, target: Target<T>, search_tree: Res<Self>) -> Result<()> {
-        let Some(interval) = target.with(|target| NodeInterval::new(target)).flatten() else {
+        let Some(id) = target.with(|target| target.id().clone()) else {
             return Ok(());
         };
 
-        search_tree.with_mut(|search_tree| search_tree.remove(&interval));
+        search_tree.with_mut(|search_tree| {
+            search_tree.remove(&id);
+        });
+
         Ok(())
     }
 }
@@ -137,7 +136,7 @@ impl<T, Intv> Plugin<T> for IntervalSearchTree<T, Intv>
 where
     T: 'static + Identify,
     T::Id: Clone,
-    Intv: 'static + Interval + Property<T>,
+    Intv: 'static + Identify<Id = T::Id> + Interval + Property<T>,
 {
     fn setup(&self, schema: Schema<T>) -> Schema<T>
     where

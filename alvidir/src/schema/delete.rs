@@ -1,6 +1,6 @@
 //! Delete transaction.
 
-use crate::{deref::TryDeref, id::Identify};
+use crate::{deref::TryDeref, id::Identify, schema::Error};
 
 use super::{transaction::Transaction, Result};
 
@@ -27,8 +27,8 @@ where
         {
             let ctx = tx.begin();
             let Some(node) = ctx.node(self.node_id.clone()).try_deref().cloned() else {
-                tracing::warn_span!("node does not exists");
-                return Ok(());
+                tracing::warn!("node does not exist");
+                return Err(Error::Noop);
             };
 
             let ctx = ctx.with_target(node);
