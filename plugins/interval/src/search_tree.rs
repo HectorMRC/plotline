@@ -1,156 +1,12 @@
 //! An interval search tree implementation.
 
-use crate::{
-    id::Identify,
-    property::Property,
-    schema::{
-        ops::{delete::AfterDelete, save::AfterSave},
-        plugin::Plugin,
-        resource::Res,
-        transaction::{Ctx, Target},
-        Result, Schema,
-    },
-};
+use alvidir::id::Identify;
 
 use super::{Interval, IntervalExt};
 
-/// An internval search tree.
-pub struct IntervalSearchTree<T, Intv>
-where
-    T: Identify,
-    Intv: Interval,
-{
-    root: Option<IntervalSearchTreeNode<NodeInterval<T, Intv>>>,
-}
-
-impl<T, Intv> Default for IntervalSearchTree<T, Intv>
-where
-    T: Identify,
-    Intv: Interval,
-{
-    fn default() -> Self {
-        Self {
-            root: Default::default(),
-        }
-    }
-}
-
-impl<T, Intv> IntervalSearchTree<T, Intv>
-where
-    T: Identify,
-    Intv: Interval,
-{
-    fn insert(&mut self, interval: NodeInterval<T, Intv>) {
-        if let Some(root) = &mut self.root {
-            return root.insert(interval);
-        }
-
-        self.root = Some(IntervalSearchTreeNode::new(interval));
-    }
-}
-
-impl<T, Intv> IntervalSearchTree<T, Intv>
-where
-    T: Identify,
-    Intv: Identify<Id = T::Id> + Interval,
-{
-    fn remove(&mut self, _id: &T::Id) {
-        unimplemented!("remove from interval search tree is yet to be implemented")
-    }
-}
-
-struct NodeInterval<T, Intv>
-where
-    T: Identify,
-{
-    node_id: T::Id,
-    interval: Intv,
-}
-
-impl<T, Intv> Interval for NodeInterval<T, Intv>
-where
-    T: Identify,
-    Intv: Interval,
-{
-    type Bound = Intv::Bound;
-
-    fn lo(&self) -> Self::Bound {
-        self.interval.lo()
-    }
-
-    fn hi(&self) -> Self::Bound {
-        self.interval.hi()
-    }
-}
-
-impl<T, Intv> IntervalSearchTree<T, Intv>
-where
-    T: 'static + Identify,
-    T::Id: Clone,
-    Intv: 'static + Interval + Property<T>,
-{
-    fn on_save(_: Ctx<T>, target: Target<T>, search_tree: Res<Self>) -> Result<()> {
-        let Some(intervals) = target.with(|target| {
-            Intv::all(target).into_iter().map({
-                let node_id = target.id().clone();
-                move |interval| NodeInterval {
-                    node_id: node_id.clone(),
-                    interval,
-                }
-            })
-        }) else {
-            return Ok(());
-        };
-
-        search_tree.with_mut(|search_tree| {
-            intervals.into_iter().for_each(|interval| {
-                search_tree.insert(interval);
-            });
-        });
-
-        Ok(())
-    }
-}
-
-impl<T, Intv> IntervalSearchTree<T, Intv>
-where
-    T: 'static + Identify,
-    T::Id: Clone,
-    Intv: 'static + Identify<Id = T::Id> + Interval + Property<T>,
-{
-    fn on_delete(_: Ctx<T>, target: Target<T>, search_tree: Res<Self>) -> Result<()> {
-        let Some(id) = target.with(|target| target.id().clone()) else {
-            return Ok(());
-        };
-
-        search_tree.with_mut(|search_tree| {
-            search_tree.remove(&id);
-        });
-
-        Ok(())
-    }
-}
-
-impl<T, Intv> Plugin<T> for IntervalSearchTree<T, Intv>
-where
-    T: 'static + Identify,
-    T::Id: Clone,
-    Intv: 'static + Identify<Id = T::Id> + Interval + Property<T>,
-{
-    fn setup(&self, schema: Schema<T>) -> Schema<T>
-    where
-        T: crate::id::Identify,
-    {
-        schema
-            .with_resource(Self::default())
-            .with_trigger(AfterSave, Self::on_save)
-            .with_trigger(AfterDelete, Self::on_delete)
-    }
-}
-
 /// A node in an interval search tree.
 #[derive(Debug, Clone, PartialEq)]
-struct IntervalSearchTreeNode<Intv>
+pub struct IntervalSearchTreeNode<Intv>
 where
     Intv: Interval,
 {
@@ -171,10 +27,19 @@ where
 
 impl<Intv> IntervalSearchTreeNode<Intv>
 where
+    Intv: Identify + Interval,
+{
+    pub fn delete(&mut self, _id: &Intv::Id) {
+        unimplemented!("remove from interval search tree is yet to be implemented")
+    }
+}
+
+impl<Intv> IntervalSearchTreeNode<Intv>
+where
     Intv: Interval,
 {
     /// Creates a new node containing the given interval.
-    fn new(interval: Intv) -> Self {
+    pub fn new(interval: Intv) -> Self {
         Self {
             max: interval.hi(),
             value: interval,
@@ -184,13 +49,13 @@ where
     }
 
     /// Inserts the given interval in the tree rooted by self.
-    fn with_interval(mut self, interval: Intv) -> Self {
+    pub fn with_interval(mut self, interval: Intv) -> Self {
         self.insert(interval);
         self
     }
 
     /// Inserts the given interval in the tree rooted by self.
-    fn insert(&mut self, interval: Intv) {
+    pub fn insert(&mut self, interval: Intv) {
         if self.max < interval.hi() {
             self.max = interval.hi();
         }
@@ -210,7 +75,7 @@ where
 
     /// Returns true if, and only if, there is an interval in the tree that intersects the given
     /// one.
-    fn intersects(&self, interval: &Intv) -> bool {
+    pub fn intersects(&self, interval: &Intv) -> bool {
         if self.value.intersects(interval) {
             return true;
         }
@@ -233,7 +98,7 @@ where
     }
 
     /// Calls the given closure for each interval in the tree overlapping the given one.
-    fn for_each_intersection<F>(&self, interval: &Intv, mut f: F)
+    pub fn for_each_intersection<F>(&self, interval: &Intv, mut f: F)
     where
         F: FnMut(&Intv),
     {
@@ -265,7 +130,7 @@ where
     }
 
     /// Returns the total amount of intervals in the tree.
-    fn count(&self) -> usize {
+    pub fn count(&self) -> usize {
         let mut count = 1;
 
         count += self
@@ -286,7 +151,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::interval::{
+    use crate::{
         fixtures::{interval_mock, IntervalMock},
         search_tree::IntervalSearchTreeNode,
     };

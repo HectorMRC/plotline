@@ -1,5 +1,5 @@
 [workspace]
-members = ["alvidir", "alvidir-cli"]
+members = ["alvidir", "alvidir-cli", "plugins/interval"]
 resolver = "2"
 
 [workspace.dependencies]

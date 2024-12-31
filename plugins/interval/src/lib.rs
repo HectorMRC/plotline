@@ -1,6 +1,6 @@
 //! Interval related definitions.
 
-#[allow(dead_code)]
+pub mod plugin;
 pub mod search_tree;
 
 /// One of the limits in an [`Interval`].

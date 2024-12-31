@@ -1,0 +1,12 @@
+[package]
+name = "alvidir-plugin-interval"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+alvidir.workspace = true
+
+[features]
+# Enables the "fixture" constructor for structs as well as mock implementations
+# for traits.
+fixtures = []
