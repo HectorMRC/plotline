@@ -5,6 +5,7 @@ pub mod document;
 pub mod graph;
 pub mod id;
 pub mod interval;
+pub mod prelude;
 pub mod property;
 pub mod schema;
 
