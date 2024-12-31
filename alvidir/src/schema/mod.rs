@@ -1,12 +1,11 @@
 //! Schema representation.
 
-pub mod delete;
 mod error;
 pub use error::{Error, Result};
 pub mod guard;
+pub mod ops;
 pub mod plugin;
 pub mod resource;
-pub mod save;
 pub mod transaction;
 pub mod trigger;
 

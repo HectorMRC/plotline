@@ -1,8 +1,6 @@
 //! Save transaction.
 
-use crate::id::Identify;
-
-use super::{transaction::Transaction, Result};
+use crate::{id::Identify, prelude::Transaction, schema::Result};
 
 pub struct BeforeSave;
 

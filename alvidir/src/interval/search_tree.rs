@@ -4,10 +4,9 @@ use crate::{
     id::Identify,
     property::Property,
     schema::{
-        delete::AfterDelete,
+        ops::{delete::AfterDelete, save::AfterSave},
         plugin::Plugin,
         resource::Res,
-        save::AfterSave,
         transaction::{Ctx, Target},
         Result, Schema,
     },

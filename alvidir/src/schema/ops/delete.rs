@@ -1,8 +1,11 @@
 //! Delete transaction.
 
-use crate::{deref::TryDeref, id::Identify, schema::Error};
-
-use super::{transaction::Transaction, Result};
+use crate::{
+    deref::TryDeref,
+    id::Identify,
+    prelude::Transaction,
+    schema::{Error, Result},
+};
 
 pub struct BeforeDelete;
 

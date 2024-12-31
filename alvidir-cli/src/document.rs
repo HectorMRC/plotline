@@ -10,7 +10,10 @@ use std::{
 use alvidir::{
     document::{lazy::LazyDocument, DocumentRepository},
     id::Identify,
-    schema::{delete::Delete, save::Save, Schema},
+    schema::{
+        ops::{delete::Delete, save::Save},
+        Schema,
+    },
 };
 use anyhow::Result;
 use clap::{Args, Subcommand};
