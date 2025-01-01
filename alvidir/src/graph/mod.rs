@@ -115,28 +115,16 @@ pub mod fixtures {
 
     /// A fake node type.
     #[derive(Debug, Default, Clone)]
-    pub struct FakeNode<Id> {
-        pub id: Option<Id>,
-        pub edges: Option<Vec<Id>>,
+    pub struct FakeNode<'a, Id> {
+        pub id_fn: Option<fn() -> &'a Id>,
+        pub edges_fn: Option<fn() -> Vec<Id>>,
     }
 
-    impl<Id> Identify for FakeNode<Id> {
+    impl<Id> Identify for FakeNode<'_, Id> {
         type Id = Id;
 
         fn id(&self) -> &Self::Id {
-            self.id.as_ref().expect("id should be set")
-        }
-    }
-
-    impl<Id> FakeNode<Id> {
-        pub fn with_id(mut self, id: Id) -> Self {
-            self.id = Some(id);
-            self
-        }
-
-        pub fn with_edges(mut self, edges: Vec<Id>) -> Self {
-            self.edges = Some(edges);
-            self
+            self.id_fn.expect("id method should be set")()
         }
     }
 
@@ -151,7 +139,7 @@ pub mod fixtures {
         }
     }
 
-    impl<T> Property<FakeNode<T>> for FakeEdge<T>
+    impl<T> Property<FakeNode<'_, T>> for FakeEdge<T>
     where
         T: Copy,
     {
@@ -159,10 +147,7 @@ pub mod fixtures {
         where
             Self: Sized,
         {
-            source
-                .edges
-                .as_ref()
-                .expect("edges method should be set")
+            source.edges_fn.expect("edges method should be set")()
                 .iter()
                 .cloned()
                 .map(FakeEdge::from)
@@ -181,9 +166,10 @@ pub mod fixtures {
     #[allow(unused_macros)]
     macro_rules! fake_node {
         ($id:tt $(,$edges:tt)*) => {
-            FakeNode::default()
-                .with_id($id)
-                .with_edges(vec![$($edges)*])
+            FakeNode {
+                id_fn: Some(|| {&$id}),
+                edges_fn: Some(|| {vec![$($edges)*]})
+            }
         };
     }
 

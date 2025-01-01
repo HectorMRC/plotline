@@ -88,7 +88,7 @@ impl<T> TriggerSet<T> {
 }
 
 /// Wraps a trigger into an argless implementation of [`Trigger`].
-pub(crate) struct ArglessTrigger<T, M> {
+struct ArglessTrigger<T, M> {
     trigger: T,
     _meta: PhantomData<M>,
 }

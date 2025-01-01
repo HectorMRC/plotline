@@ -13,14 +13,14 @@ pub mod fixtures {
 
     /// A mock implementation of the [`Identify`] trait.
     pub struct IndentifyMock<'a, Id> {
-        id_fn: Option<fn() -> &'a Id>,
+        pub id_fn: Option<fn() -> &'a Id>,
     }
 
     impl<Id> Identify for IndentifyMock<'_, Id> {
         type Id = Id;
 
         fn id(&self) -> &Self::Id {
-            self.id_fn.expect("id method must be set")()
+            self.id_fn.expect("id method should be set")()
         }
     }
 }

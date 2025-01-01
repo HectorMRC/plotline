@@ -309,9 +309,13 @@ where
             }
         };
 
-        let _ = ops.into_iter().filter_map(|op| match op {
-            Operation::Save(node) => guard.insert(node),
-            Operation::Delete(node_id) => guard.remove(&node_id),
+        ops.into_iter().for_each(|op| match op {
+            Operation::Save(node) => {
+                guard.insert(node);
+            }
+            Operation::Delete(node_id) => {
+                guard.remove(&node_id);
+            }
         });
     }
 }
@@ -379,5 +383,136 @@ where
         };
 
         upstream_ops.extend(ops);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        graph::{
+            fixtures::{fake_node, FakeNode},
+            Graph, Source,
+        },
+        schema::Schema,
+    };
+
+    use super::Transaction;
+
+    #[test]
+    fn context_should_overwrite_original_state() {
+        let schema: Schema<_> = Graph::default().with_node(fake_node!(1)).into();
+
+        let tx = schema.transaction();
+        let ctx = tx.begin();
+
+        ctx.delete(1);
+        assert!(
+            !ctx.contains(&1),
+            "deletion should be registered into the context"
+        );
+
+        ctx.save(fake_node!(2));
+        assert!(
+            ctx.contains(&2),
+            "save should be registered into the context"
+        );
+    }
+
+    #[test]
+    fn uncommited_transaction_should_not_apply_changes() {
+        let schema: Schema<_> = Graph::default().with_node(fake_node!(1)).into();
+
+        {
+            let tx = schema.transaction();
+            let ctx = tx.begin();
+
+            ctx.delete(1);
+            ctx.save(fake_node!(2));
+        } // tx is droped here, schema is now unlock
+
+        assert!(
+            schema.read().contains(&1),
+            "uncommitted transaction should not apply changes"
+        );
+
+        assert!(
+            !schema.read().contains(&2),
+            "uncommitted transaction should not apply changes"
+        );
+    }
+
+    #[test]
+    fn commited_transaction_should_apply_changes() {
+        let schema: Schema<_> = Graph::default().with_node(fake_node!(1)).into();
+        let tx = schema.transaction();
+
+        {
+            let ctx = tx.begin();
+
+            ctx.delete(1);
+            ctx.save(fake_node!(2));
+        } // ctx is droped here, transaction can be commited.
+
+        tx.commit();
+
+        assert!(
+            !schema.read().contains(&1),
+            "committed transaction should apply changes"
+        );
+
+        assert!(
+            schema.read().contains(&2),
+            "committed transaction should apply changes"
+        );
+    }
+
+    #[test]
+    fn subtransactions_should_be_independent() {
+        let schema: Schema<_> = Graph::default().with_node(fake_node!(1)).into();
+        
+        let tx_1 = schema.transaction();
+        let ctx_1 = tx_1.begin();
+
+        let tx_2 = ctx_1.transaction();
+        let ctx_2 = tx_2.begin();
+        ctx_2.delete(1);
+    
+        let tx_3 = ctx_1.transaction();
+        let ctx_3 = tx_3.begin();
+        ctx_3.save(fake_node!(2));
+
+        assert!(ctx_1.contains(&1), "clean context should keep original state");
+        assert!(!ctx_1.contains(&2), "clean context should keep original state");
+
+        assert!(!ctx_2.contains(&1), "context shoudl overwrite original state");
+        assert!(!ctx_2.contains(&2), "subtransactions should not interfer each other");
+
+        assert!(ctx_3.contains(&1), "subtransactions should not interfer each other");
+        assert!(ctx_3.contains(&2), "context shoudl overwrite original state.");
+    }
+
+    #[test]
+    fn committed_subtransaction_should_apply_on_parent_context() {
+        let schema: Schema<_> = Graph::default().with_node(fake_node!(1)).into();
+        
+        {
+            let tx_1 = schema.transaction();
+            let ctx_1 = tx_1.begin();
+
+            let tx_2 = ctx_1.transaction();
+            
+            {
+                let ctx_2 = tx_2.begin();
+                ctx_2.delete(1);
+            }
+
+            tx_2.commit();
+            assert!(!ctx_1.contains(&1), "committed subtransaction should apply on parent context");
+        }
+
+        assert!(
+            schema.read().contains(&1),
+            "uncommitted transaction should not apply changes"
+        );
     }
 }
