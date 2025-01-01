@@ -10,14 +10,13 @@ use crate::{
 use super::{guard::SchemaWriteGuard, resource::ResourceSet, trigger::TriggerSet, Result, Schema};
 
 /// Represents a set of operations that must be perfomed as a whole.
-pub trait Transaction {
+pub trait Transaction: Sized {
     /// The type being targeted by the transaction.
     type Target: Identify;
 
     /// Executes the given closure as a transaction.
     fn with<F, T>(self, f: F) -> Result<T>
     where
-        Self: Sized,
         F: FnOnce(Context<'_, Self::Target>) -> Result<T>;
 }
 
