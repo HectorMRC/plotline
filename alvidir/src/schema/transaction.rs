@@ -11,6 +11,7 @@ use super::{guard::SchemaWriteGuard, resource::ResourceSet, trigger::TriggerSet,
 
 /// Represents a set of operations that must be perfomed as a whole.
 pub trait Transaction {
+    /// The type being targeted by the transaction.
     type Target: Identify;
 
     /// Begins the transaction.
