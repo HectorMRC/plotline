@@ -2,8 +2,10 @@
 
 use crate::{id::Identify, prelude::Transaction, schema::Result};
 
+/// Schedules a trigger before a save is performed.
 pub struct BeforeSave;
 
+/// Schedules a trigger after a save is performed.
 pub struct AfterSave;
 
 /// A save transaction for a node into a schema.

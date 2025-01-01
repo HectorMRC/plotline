@@ -8,8 +8,10 @@ use crate::{
     schema::{transaction::Transaction, Error, Result},
 };
 
+/// Schedules a trigger before a deletion is performed.
 pub struct BeforeDelete;
 
+/// Schedules a trigger after a deletion is performed.
 pub struct AfterDelete;
 
 /// A delete transaction for a node from a schema.
