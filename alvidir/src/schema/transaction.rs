@@ -7,7 +7,7 @@ use crate::{
     id::Identify,
 };
 
-use super::{guard::SchemaWriteGuard, resource::ResourceSet, trigger::TriggerSet, Schema};
+use super::{guard::SchemaWriteGuard, resource::ResourceSet, trigger::TriggerSet, Result, Schema};
 
 /// Represents a set of operations that must be perfomed as a whole.
 pub trait Transaction {
@@ -17,6 +17,17 @@ pub trait Transaction {
     fn begin(&self) -> Context<'_, Self::Target>;
     /// Commits the transaction.
     fn commit(self);
+    /// Executes the given closure as a transaction.
+    // This method cannot be moved into a TransactionExt trait due its Sized requirement over self.
+    fn with<F, T>(self, f: F) -> Result<T>
+    where
+        Self: Sized,
+        F: FnOnce(Context<'_, Self::Target>) -> Result<T>,
+    {
+        f(self.begin()).inspect(|_| {
+            self.commit();
+        })
+    }
 }
 
 /// Represents an operation into the schema.
@@ -446,14 +457,13 @@ mod tests {
         let schema: Schema<_> = Graph::default().with_node(fake_node!(1)).into();
         let tx = schema.transaction();
 
-        {
-            let ctx = tx.begin();
-
+        tx.with(|ctx| {
             ctx.delete(1);
             ctx.save(fake_node!(2));
-        } // ctx is droped here, transaction can be commited.
 
-        tx.commit();
+            Ok(())
+        })
+        .expect("transaction should not fail");
 
         assert!(
             !schema.read().contains(&1),
@@ -517,14 +527,14 @@ mod tests {
             let tx_1 = schema.transaction();
             let ctx_1 = tx_1.begin();
 
-            let tx_2 = ctx_1.transaction();
+            ctx_1
+                .transaction()
+                .with(|ctx_2| {
+                    ctx_2.delete(1);
+                    Ok(())
+                })
+                .expect("transaction should not fail");
 
-            {
-                let ctx_2 = tx_2.begin();
-                ctx_2.delete(1);
-            }
-
-            tx_2.commit();
             assert!(
                 !ctx_1.contains(&1),
                 "committed subtransaction should apply on parent context"

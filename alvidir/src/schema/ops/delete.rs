@@ -5,8 +5,7 @@ use std::fmt::Debug;
 use crate::{
     deref::TryDeref,
     id::Identify,
-    prelude::Transaction,
-    schema::{Error, Result},
+    schema::{transaction::Transaction, Error, Result},
 };
 
 pub struct BeforeDelete;
@@ -29,8 +28,7 @@ where
 {
     /// Executes the [`Delete`] transaction.
     pub fn execute(self, tx: impl Transaction<Target = T>) -> Result<()> {
-        {
-            let ctx = tx.begin();
+        tx.with(|ctx| {
             let Some(node) = ctx.node(self.node_id.clone()).try_deref().cloned() else {
                 tracing::warn!(node_id = ?self.node_id, "node does not exist");
                 return Err(Error::Noop);
@@ -45,10 +43,9 @@ where
             ctx.triggers()
                 .select(AfterDelete)
                 .try_for_each(|trigger| trigger.execute(&ctx))?;
-        }
 
-        tx.commit();
-        Ok(())
+            Ok(())
+        })
     }
 }
 

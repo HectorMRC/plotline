@@ -18,8 +18,9 @@ impl<T> Save<T> {
     where
         T: Identify + Clone,
     {
-        {
-            let ctx = tx.begin().with_target(self.node);
+        tx.with(|ctx| {
+            let ctx = ctx.with_target(self.node);
+
             ctx.triggers()
                 .select(BeforeSave)
                 .try_for_each(|trigger| trigger.execute(&ctx))?;
@@ -29,10 +30,9 @@ impl<T> Save<T> {
             ctx.triggers()
                 .select(AfterSave)
                 .try_for_each(|trigger| trigger.execute(&ctx))?;
-        }
 
-        tx.commit();
-        Ok(())
+            Ok(())
+        })
     }
 }
 
