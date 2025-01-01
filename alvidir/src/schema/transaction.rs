@@ -14,20 +14,157 @@ pub trait Transaction {
     /// The type being targeted by the transaction.
     type Target: Identify;
 
-    /// Begins the transaction.
-    fn begin(&self) -> Context<'_, Self::Target>;
-    /// Commits the transaction.
-    fn commit(self);
     /// Executes the given closure as a transaction.
-    // This method cannot be moved into a TransactionExt trait due its Sized requirement over self.
     fn with<F, T>(self, f: F) -> Result<T>
     where
         Self: Sized,
-        F: FnOnce(Context<'_, Self::Target>) -> Result<T>,
+        F: FnOnce(Context<'_, Self::Target>) -> Result<T>;
+}
+
+/// Represents a set of operations that must be completed transactionally.
+pub struct Background<'a, T>
+where
+    T: Identify,
+{
+    schema: &'a Schema<T>,
+    guard: OnceLock<SchemaWriteGuard<'a, T>>,
+    operations: Arc<RwLock<Vec<Operation<T>>>>,
+}
+
+impl<'a, T> From<&'a Schema<T>> for Background<'a, T>
+where
+    T: Identify,
+{
+    fn from(schema: &'a Schema<T>) -> Self {
+        Self {
+            schema,
+            guard: Default::default(),
+            operations: Default::default(),
+        }
+    }
+}
+
+impl<T> Transaction for Background<'_, T>
+where
+    T: Identify,
+    T::Id: Clone + Ord,
+{
+    type Target = T;
+
+    fn with<F, U>(self, f: F) -> Result<U>
+    where
+        Self: Sized,
+        F: FnOnce(Context<'_, Self::Target>) -> Result<U>,
     {
-        f(self.begin()).inspect(|_| {
+        f((&self).into()).inspect(|_| {
             self.commit();
         })
+    }
+}
+
+impl<T> Background<'_, T>
+where
+    T: Identify,
+    T::Id: Clone + Ord,
+{
+    fn commit(mut self) {
+        let Some(mut guard) = self.guard.take() else {
+            tracing::error!("committing uninitialized transaction");
+            return;
+        };
+
+        let Some(ops) = Arc::into_inner(self.operations) else {
+            tracing::error!("commiting transaction with contexts yet in use");
+            return;
+        };
+
+        let ops = match ops.into_inner() {
+            Ok(ops) => ops,
+            Err(err) => {
+                tracing::error!(error = err.to_string(), "committing poisoned transaction");
+                return;
+            }
+        };
+
+        ops.into_iter().for_each(|op| match op {
+            Operation::Save(node) => {
+                guard.insert(node);
+            }
+            Operation::Delete(node_id) => {
+                guard.remove(&node_id);
+            }
+        });
+    }
+}
+
+/// Represents a subset of operations that must be completed transactionally.
+pub struct Foreground<'a, T>
+where
+    T: Identify,
+{
+    context: &'a Context<'a, T>,
+    operations: Arc<RwLock<Vec<Operation<T>>>>,
+}
+
+impl<'a, T> From<&'a Context<'a, T>> for Foreground<'a, T>
+where
+    T: Identify,
+{
+    fn from(context: &'a Context<'_, T>) -> Self {
+        Foreground {
+            context,
+            operations: Default::default(),
+        }
+    }
+}
+
+impl<T> Transaction for Foreground<'_, T>
+where
+    T: Identify,
+{
+    type Target = T;
+
+    fn with<F, U>(self, f: F) -> Result<U>
+    where
+        Self: Sized,
+        F: FnOnce(Context<'_, Self::Target>) -> Result<U>,
+    {
+        f((&self).into()).inspect(|_| {
+            self.commit();
+        })
+    }
+}
+
+impl<T> Foreground<'_, T>
+where
+    T: Identify,
+{
+    fn commit(self) {
+        let Some(ops) = Arc::into_inner(self.operations) else {
+            tracing::error!("commiting transaction with contexts yet in use");
+            return;
+        };
+
+        let ops = match ops.into_inner() {
+            Ok(ops) => ops,
+            Err(err) => {
+                tracing::error!(error = err.to_string(), "committing poisoned transaction");
+                return;
+            }
+        };
+
+        let mut upstream_ops = match self.context.operations.write() {
+            Ok(ops) => ops,
+            Err(err) => {
+                tracing::error!(
+                    error = err.to_string(),
+                    "committing transaction into poisoned context"
+                );
+                return;
+            }
+        };
+
+        upstream_ops.extend(ops);
     }
 }
 
@@ -171,6 +308,36 @@ where
     }
 }
 
+impl<'a, T> From<&'a Background<'_, T>> for Context<'a, T>
+where
+    T: Identify,
+{
+    fn from(tx: &'a Background<'_, T>) -> Self {
+        Context {
+            schema: tx.schema,
+            graph: tx.guard.get_or_init(|| tx.schema.write()),
+            operations: tx.operations.clone(),
+            target: Default::default(),
+            parent: Default::default(),
+        }
+    }
+}
+
+impl<'a, T> From<&'a Foreground<'_, T>> for Context<'a, T>
+where
+    T: Identify,
+{
+    fn from(tx: &'a Foreground<'_, T>) -> Self {
+        Context {
+            graph: tx.context.graph,
+            schema: tx.context.schema,
+            operations: tx.operations.clone(),
+            target: Default::default(),
+            parent: Some(tx.context),
+        }
+    }
+}
+
 impl<T> Context<'_, T>
 where
     T: Identify + Clone,
@@ -262,142 +429,6 @@ where
     }
 }
 
-/// Represents a set of operations that must be completed transactionally.
-pub struct Background<'a, T>
-where
-    T: Identify,
-{
-    schema: &'a Schema<T>,
-    guard: OnceLock<SchemaWriteGuard<'a, T>>,
-    operations: Arc<RwLock<Vec<Operation<T>>>>,
-}
-
-impl<'a, T> From<&'a Schema<T>> for Background<'a, T>
-where
-    T: Identify,
-{
-    fn from(schema: &'a Schema<T>) -> Self {
-        Self {
-            schema,
-            guard: Default::default(),
-            operations: Default::default(),
-        }
-    }
-}
-
-impl<T> Transaction for Background<'_, T>
-where
-    T: Identify,
-    T::Id: Clone + Ord,
-{
-    type Target = T;
-
-    fn begin(&self) -> Context<'_, T> {
-        Context {
-            schema: self.schema,
-            graph: self.guard.get_or_init(|| self.schema.write()),
-            operations: self.operations.clone(),
-            target: Default::default(),
-            parent: Default::default(),
-        }
-    }
-
-    fn commit(mut self) {
-        let Some(mut guard) = self.guard.take() else {
-            tracing::error!("committing uninitialized transaction");
-            return;
-        };
-
-        let Some(ops) = Arc::into_inner(self.operations) else {
-            tracing::error!("commiting transaction with contexts yet in use");
-            return;
-        };
-
-        let ops = match ops.into_inner() {
-            Ok(ops) => ops,
-            Err(err) => {
-                tracing::error!(error = err.to_string(), "committing poisoned transaction");
-                return;
-            }
-        };
-
-        ops.into_iter().for_each(|op| match op {
-            Operation::Save(node) => {
-                guard.insert(node);
-            }
-            Operation::Delete(node_id) => {
-                guard.remove(&node_id);
-            }
-        });
-    }
-}
-
-/// Represents a subset of operations that must be completed transactionally.
-pub struct Foreground<'a, T>
-where
-    T: Identify,
-{
-    context: &'a Context<'a, T>,
-    operations: Arc<RwLock<Vec<Operation<T>>>>,
-}
-
-impl<'a, T> From<&'a Context<'a, T>> for Foreground<'a, T>
-where
-    T: Identify,
-{
-    fn from(context: &'a Context<'_, T>) -> Self {
-        Foreground {
-            context,
-            operations: Default::default(),
-        }
-    }
-}
-
-impl<T> Transaction for Foreground<'_, T>
-where
-    T: Identify,
-{
-    type Target = T;
-
-    fn begin(&self) -> Context<'_, T> {
-        Context {
-            graph: self.context.graph,
-            schema: self.context.schema,
-            operations: self.operations.clone(),
-            target: Default::default(),
-            parent: Some(self.context),
-        }
-    }
-
-    fn commit(self) {
-        let Some(ops) = Arc::into_inner(self.operations) else {
-            tracing::error!("commiting transaction with contexts yet in use");
-            return;
-        };
-
-        let ops = match ops.into_inner() {
-            Ok(ops) => ops,
-            Err(err) => {
-                tracing::error!(error = err.to_string(), "committing poisoned transaction");
-                return;
-            }
-        };
-
-        let mut upstream_ops = match self.context.operations.write() {
-            Ok(ops) => ops,
-            Err(err) => {
-                tracing::error!(
-                    error = err.to_string(),
-                    "committing transaction into poisoned context"
-                );
-                return;
-            }
-        };
-
-        upstream_ops.extend(ops);
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{
@@ -405,7 +436,7 @@ mod tests {
             fixtures::{fake_node, FakeNode},
             Graph, Source,
         },
-        schema::Schema,
+        schema::{transaction::Context, Error, Result, Schema},
     };
 
     use super::Transaction;
@@ -415,32 +446,36 @@ mod tests {
         let schema: Schema<_> = Graph::default().with_node(fake_node!(1)).into();
 
         let tx = schema.transaction();
-        let ctx = tx.begin();
+        tx.with(|ctx| {
+            ctx.delete(1);
+            assert!(
+                !ctx.contains(&1),
+                "deletion should be registered into the context"
+            );
 
-        ctx.delete(1);
-        assert!(
-            !ctx.contains(&1),
-            "deletion should be registered into the context"
-        );
+            ctx.save(fake_node!(2));
+            assert!(
+                ctx.contains(&2),
+                "save should be registered into the context"
+            );
 
-        ctx.save(fake_node!(2));
-        assert!(
-            ctx.contains(&2),
-            "save should be registered into the context"
-        );
+            Ok(())
+        })
+        .expect("non-failing transaction should return Ok");
     }
 
     #[test]
     fn uncommited_transaction_should_not_apply_changes() {
         let schema: Schema<_> = Graph::default().with_node(fake_node!(1)).into();
+        schema
+            .transaction()
+            .with(|ctx| {
+                ctx.delete(1);
+                ctx.save(fake_node!(2));
 
-        {
-            let tx = schema.transaction();
-            let ctx = tx.begin();
-
-            ctx.delete(1);
-            ctx.save(fake_node!(2));
-        } // tx is droped here, schema is now unlock
+                Result::<()>::Err(Error::custom("failed transaction"))
+            })
+            .expect_err("transaction error should be propagated");
 
         assert!(
             schema.read().contains(&1),
@@ -482,14 +517,14 @@ mod tests {
         let schema: Schema<_> = Graph::default().with_node(fake_node!(1)).into();
 
         let tx_1 = schema.transaction();
-        let ctx_1 = tx_1.begin();
+        let ctx_1 = Context::from(&tx_1);
 
         let tx_2 = ctx_1.transaction();
-        let ctx_2 = tx_2.begin();
+        let ctx_2 = Context::from(&tx_2);
         ctx_2.delete(1);
 
         let tx_3 = ctx_1.transaction();
-        let ctx_3 = tx_3.begin();
+        let ctx_3 = Context::from(&tx_3);
         ctx_3.save(fake_node!(2));
 
         assert!(
@@ -524,23 +559,25 @@ mod tests {
     fn committed_subtransaction_should_apply_on_parent_context() {
         let schema: Schema<_> = Graph::default().with_node(fake_node!(1)).into();
 
-        {
-            let tx_1 = schema.transaction();
-            let ctx_1 = tx_1.begin();
+        schema
+            .transaction()
+            .with(|ctx_1| {
+                ctx_1
+                    .transaction()
+                    .with(|ctx_2| {
+                        ctx_2.delete(1);
+                        Ok(())
+                    })
+                    .expect("transaction should not fail");
 
-            ctx_1
-                .transaction()
-                .with(|ctx_2| {
-                    ctx_2.delete(1);
-                    Ok(())
-                })
-                .expect("transaction should not fail");
+                assert!(
+                    !ctx_1.contains(&1),
+                    "committed subtransaction should apply on parent context"
+                );
 
-            assert!(
-                !ctx_1.contains(&1),
-                "committed subtransaction should apply on parent context"
-            );
-        }
+                Result::<()>::Err(Error::custom("failed transaction"))
+            })
+            .expect_err("transaction error should be propagated");
 
         assert!(
             schema.read().contains(&1),
