@@ -469,45 +469,66 @@ mod tests {
     #[test]
     fn subtransactions_should_be_independent() {
         let schema: Schema<_> = Graph::default().with_node(fake_node!(1)).into();
-        
+
         let tx_1 = schema.transaction();
         let ctx_1 = tx_1.begin();
 
         let tx_2 = ctx_1.transaction();
         let ctx_2 = tx_2.begin();
         ctx_2.delete(1);
-    
+
         let tx_3 = ctx_1.transaction();
         let ctx_3 = tx_3.begin();
         ctx_3.save(fake_node!(2));
 
-        assert!(ctx_1.contains(&1), "clean context should keep original state");
-        assert!(!ctx_1.contains(&2), "clean context should keep original state");
+        assert!(
+            ctx_1.contains(&1),
+            "clean context should keep original state"
+        );
+        assert!(
+            !ctx_1.contains(&2),
+            "clean context should keep original state"
+        );
 
-        assert!(!ctx_2.contains(&1), "context shoudl overwrite original state");
-        assert!(!ctx_2.contains(&2), "subtransactions should not interfer each other");
+        assert!(
+            !ctx_2.contains(&1),
+            "context shoudl overwrite original state"
+        );
+        assert!(
+            !ctx_2.contains(&2),
+            "subtransactions should not interfer each other"
+        );
 
-        assert!(ctx_3.contains(&1), "subtransactions should not interfer each other");
-        assert!(ctx_3.contains(&2), "context shoudl overwrite original state.");
+        assert!(
+            ctx_3.contains(&1),
+            "subtransactions should not interfer each other"
+        );
+        assert!(
+            ctx_3.contains(&2),
+            "context shoudl overwrite original state."
+        );
     }
 
     #[test]
     fn committed_subtransaction_should_apply_on_parent_context() {
         let schema: Schema<_> = Graph::default().with_node(fake_node!(1)).into();
-        
+
         {
             let tx_1 = schema.transaction();
             let ctx_1 = tx_1.begin();
 
             let tx_2 = ctx_1.transaction();
-            
+
             {
                 let ctx_2 = tx_2.begin();
                 ctx_2.delete(1);
             }
 
             tx_2.commit();
-            assert!(!ctx_1.contains(&1), "committed subtransaction should apply on parent context");
+            assert!(
+                !ctx_1.contains(&1),
+                "committed subtransaction should apply on parent context"
+            );
         }
 
         assert!(
