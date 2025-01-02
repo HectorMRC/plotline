@@ -188,7 +188,7 @@ mod tests {
         }
 
         struct Bar<'a>(PhantomData<&'a ()>);
-        impl<'a> From<&Context<'_, Node>> for Bar<'a> {
+        impl From<&Context<'_, Node>> for Bar<'_> {
             fn from(_: &Context<'_, Node>) -> Self {
                 Bar(PhantomData)
             }
@@ -198,7 +198,7 @@ mod tests {
             Ok(())
         }
 
-        fn another_trigger<'a>(_: Ctx<Node>, _: Foo, _: Bar) -> Result<()> {
+        fn another_trigger(_: Ctx<Node>, _: Foo, _: Bar) -> Result<()> {
             Ok(())
         }
 
