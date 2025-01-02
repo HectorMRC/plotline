@@ -1,6 +1,10 @@
 //! Save transaction.
 
-use crate::{id::Identify, prelude::Transaction, schema::Result};
+use crate::{
+    id::Identify,
+    prelude::Transaction,
+    schema::{trigger::Trigger, Result},
+};
 
 /// Schedules a trigger before a save is performed.
 pub struct BeforeSave;
@@ -23,15 +27,11 @@ impl<T> Save<T> {
         tx.with(|ctx| {
             let ctx = ctx.with_target(self.node);
 
-            ctx.triggers()
-                .select(BeforeSave)
-                .try_for_each(|trigger| trigger.execute(&ctx))?;
+            ctx.triggers().select(BeforeSave).execute(&ctx)?;
 
             ctx.target().with(|node| ctx.save(node.clone()));
 
-            ctx.triggers()
-                .select(AfterSave)
-                .try_for_each(|trigger| trigger.execute(&ctx))?;
+            ctx.triggers().select(AfterSave).execute(&ctx)?;
 
             Ok(())
         })

@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use crate::{
     deref::TryDeref,
     id::Identify,
-    schema::{transaction::Transaction, Error, Result},
+    schema::{transaction::Transaction, trigger::Trigger, Error, Result},
 };
 
 /// Schedules a trigger before a deletion is performed.
@@ -37,14 +37,9 @@ where
             };
 
             let ctx = ctx.with_target(node);
-            ctx.triggers()
-                .select(BeforeDelete)
-                .try_for_each(|trigger| trigger.execute(&ctx))?;
-
+            ctx.triggers().select(BeforeDelete).execute(&ctx)?;
             ctx.delete(self.node_id);
-            ctx.triggers()
-                .select(AfterDelete)
-                .try_for_each(|trigger| trigger.execute(&ctx))?;
+            ctx.triggers().select(AfterDelete).execute(&ctx)?;
 
             Ok(())
         })

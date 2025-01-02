@@ -46,12 +46,13 @@ impl_trigger!(A, B, C, D, E, F);
 impl_trigger!(A, B, C, D, E, F, G);
 impl_trigger!(A, B, C, D, E, F, G, H);
 
-struct TriggerIter<'a, I> {
-    triggers: Option<I>,
+/// Implements the [`Trigger`] trait for a selection of triggers.
+pub struct TriggerSelect<'a, T> {
+    triggers: Option<&'a [Box<dyn Trigger<T, ()>>]>,
     _life: PhantomData<&'a ()>,
 }
 
-impl<I> Default for TriggerIter<'_, I> {
+impl<I> Default for TriggerSelect<'_, I> {
     fn default() -> Self {
         Self {
             triggers: Default::default(),
@@ -60,15 +61,25 @@ impl<I> Default for TriggerIter<'_, I> {
     }
 }
 
-impl<'a, T, I> Iterator for TriggerIter<'a, I>
+impl<'a, T> Trigger<T, ()> for TriggerSelect<'a, T>
 where
     T: 'a + Identify,
-    I: Iterator<Item = &'a dyn Trigger<T, ()>>,
 {
-    type Item = I::Item;
+    fn execute(&self, ctx: &Context<'_, T>) -> Result<()> {
+        let Some(triggers) = self.triggers else {
+            return Ok(());
+        };
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.triggers.as_mut()?.next()
+        triggers.iter().try_for_each(|trigger| trigger.execute(ctx))
+    }
+}
+
+impl<I> TriggerSelect<'_, I> {
+    /// Returns the amount of triggers that has been selected.
+    pub fn count(&self) -> usize {
+        self.triggers
+            .map(|triggers| triggers.len())
+            .unwrap_or_default()
     }
 }
 
@@ -112,16 +123,16 @@ where
     }
 
     /// Returns an iterator over the triggers scheduled for the given type.
-    pub fn select<S>(&self, _: S) -> impl Iterator<Item = &dyn Trigger<T, ()>>
+    pub fn select<S>(&self, _: S) -> TriggerSelect<'_, T>
     where
         S: 'static,
     {
         let Some(triggers) = self.triggers.get(&TypeId::of::<S>()) else {
-            return TriggerIter::default();
+            return TriggerSelect::default();
         };
 
-        TriggerIter {
-            triggers: Some(triggers.iter().map(AsRef::as_ref)),
+        TriggerSelect {
+            triggers: Some(triggers.as_slice()),
             _life: PhantomData,
         }
     }
