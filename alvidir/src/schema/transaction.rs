@@ -11,8 +11,8 @@ use super::{guard::SchemaWriteGuard, resource::ResourceSet, trigger::TriggerSet,
 
 /// Represents a set of operations that must be perfomed as a whole.
 pub trait Transaction: Sized {
-    /// The type being targeted by the transaction.
-    type Target: Identify;
+    /// The type being targeted by this transaction.
+    type Target;
 
     /// Executes the given closure as a transaction.
     fn with<F, T>(self, f: F) -> Result<T>
@@ -52,7 +52,6 @@ where
 
     fn with<F, U>(self, f: F) -> Result<U>
     where
-        Self: Sized,
         F: FnOnce(Context<'_, Self::Target>) -> Result<U>,
     {
         f((&self).into()).inspect(|_| {
@@ -125,7 +124,6 @@ where
 
     fn with<F, U>(self, f: F) -> Result<U>
     where
-        Self: Sized,
         F: FnOnce(Context<'_, Self::Target>) -> Result<U>,
     {
         f((&self).into()).inspect(|_| {

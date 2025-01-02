@@ -1,6 +1,6 @@
 //! Trigger helpers.
 
-use std::{any::TypeId, marker::PhantomData};
+use std::{any::TypeId, collections::BTreeMap, marker::PhantomData};
 
 use crate::id::Identify;
 
@@ -46,9 +46,35 @@ impl_trigger!(A, B, C, D, E, F);
 impl_trigger!(A, B, C, D, E, F, G);
 impl_trigger!(A, B, C, D, E, F, G, H);
 
+struct TriggerIter<'a, I> {
+    triggers: Option<I>,
+    _life: PhantomData<&'a ()>,
+}
+
+impl<I> Default for TriggerIter<'_, I> {
+    fn default() -> Self {
+        Self {
+            triggers: Default::default(),
+            _life: PhantomData,
+        }
+    }
+}
+
+impl<'a, T, I> Iterator for TriggerIter<'a, I>
+where
+    T: 'a + Identify,
+    I: Iterator<Item = &'a dyn Trigger<T, ()>>,
+{
+    type Item = I::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.triggers.as_mut()?.next()
+    }
+}
+
 /// A set of arbitrary triggers.
 pub struct TriggerSet<T> {
-    triggers: Vec<(TypeId, Box<dyn Trigger<T, ()>>)>,
+    triggers: BTreeMap<TypeId, Vec<Box<dyn Trigger<T, ()>>>>,
     _node: PhantomData<T>,
 }
 
@@ -61,16 +87,26 @@ impl<T> Default for TriggerSet<T> {
     }
 }
 
-impl<T> TriggerSet<T> {
+impl<T> TriggerSet<T>
+where
+    T: Identify,
+{
     /// Schedules a new trigger.
     pub fn with_trigger<S, Args>(mut self, _: S, trigger: impl Trigger<T, Args> + 'static) -> Self
     where
-        T: 'static + Identify,
+        T: 'static,
         S: 'static,
         Args: 'static,
     {
         let trigger: Box<dyn Trigger<T, ()>> = Box::new(ArglessTrigger::from(trigger));
-        self.triggers.push((TypeId::of::<S>(), trigger));
+        let scheduler = TypeId::of::<S>();
+
+        match self.triggers.get_mut(&scheduler) {
+            Some(triggers) => triggers.push(trigger),
+            None => {
+                self.triggers.insert(scheduler, vec![trigger]);
+            }
+        };
 
         self
     }
@@ -80,10 +116,14 @@ impl<T> TriggerSet<T> {
     where
         S: 'static,
     {
-        self.triggers
-            .iter()
-            .filter_map(|(type_id, trigger)| (&TypeId::of::<S>() == type_id).then_some(trigger))
-            .map(AsRef::as_ref)
+        let Some(triggers) = self.triggers.get(&TypeId::of::<S>()) else {
+            return TriggerIter::default();
+        };
+
+        TriggerIter {
+            triggers: Some(triggers.iter().map(AsRef::as_ref)),
+            _life: PhantomData,
+        }
     }
 }
 
