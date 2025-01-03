@@ -1,6 +1,6 @@
 use alvidir::prelude::*;
 
-use crate::{search_tree::IntervalSearchTreeNode, Interval};
+use crate::{Interval, IntervalSearchTreeNode};
 
 /// Stores the relation between a node (node id) and its interval.
 struct NodeInterval<T, Intv>
@@ -38,7 +38,7 @@ where
     }
 }
 
-/// An internval search tree.
+/// A self-balancing Interval Search Tree.
 pub struct IntervalSearchTree<T, Intv>
 where
     T: Identify,

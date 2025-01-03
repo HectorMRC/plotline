@@ -153,7 +153,7 @@ where
 mod tests {
     use crate::{
         fixtures::{interval_mock, IntervalMock},
-        search_tree::IntervalSearchTreeNode,
+        IntervalSearchTreeNode,
     };
 
     #[test]

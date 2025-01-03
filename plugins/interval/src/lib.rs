@@ -1,7 +1,10 @@
-//! Interval related definitions.
+//! A self-balancing Interval Search Tree.
 
-pub mod plugin;
-pub mod search_tree;
+mod node;
+pub use node::IntervalSearchTreeNode;
+
+mod tree;
+pub use tree::IntervalSearchTree;
 
 /// One of the limits in an [`Interval`].
 #[allow(dead_code)]
