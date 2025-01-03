@@ -26,11 +26,8 @@ impl<T> Save<T> {
     {
         tx.with(|ctx| {
             let ctx = ctx.with_target(self.node);
-
             ctx.triggers().select(BeforeSave).execute(&ctx)?;
-
             ctx.target().with(|node| ctx.save(node.clone()));
-
             ctx.triggers().select(AfterSave).execute(&ctx)?;
 
             Ok(())

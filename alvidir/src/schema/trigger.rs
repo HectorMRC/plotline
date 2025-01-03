@@ -49,14 +49,12 @@ impl_trigger!(A, B, C, D, E, F, G, H);
 /// Implements the [`Trigger`] trait for a selection of triggers.
 pub struct TriggerSelect<'a, T> {
     triggers: Option<&'a [Box<dyn Trigger<T, ()>>]>,
-    _life: PhantomData<&'a ()>,
 }
 
 impl<I> Default for TriggerSelect<'_, I> {
     fn default() -> Self {
         Self {
             triggers: Default::default(),
-            _life: PhantomData,
         }
     }
 }
@@ -71,15 +69,6 @@ where
         };
 
         triggers.iter().try_for_each(|trigger| trigger.execute(ctx))
-    }
-}
-
-impl<I> TriggerSelect<'_, I> {
-    /// Returns the amount of triggers that has been selected.
-    pub fn count(&self) -> usize {
-        self.triggers
-            .map(|triggers| triggers.len())
-            .unwrap_or_default()
     }
 }
 
@@ -133,7 +122,6 @@ where
 
         TriggerSelect {
             triggers: Some(triggers.as_slice()),
-            _life: PhantomData,
         }
     }
 }
@@ -165,19 +153,26 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::marker::PhantomData;
+    use std::{
+        marker::PhantomData,
+        sync::atomic::{AtomicUsize, Ordering},
+    };
 
     use crate::{
         graph::Graph,
         id::fixtures::IndentifyMock,
+        prelude::Transaction,
         schema::{
             transaction::{Context, Ctx},
+            trigger::Trigger,
             Result, Schema,
         },
     };
 
     #[test]
     fn triggers_downcasting() {
+        static COUNT: AtomicUsize = AtomicUsize::new(0);
+
         type Node = IndentifyMock<'static, usize>;
 
         struct Foo;
@@ -195,10 +190,12 @@ mod tests {
         }
 
         fn a_trigger(_: Ctx<Node>, _: Foo) -> Result<()> {
+            COUNT.fetch_add(1, Ordering::Relaxed);
             Ok(())
         }
 
         fn another_trigger(_: Ctx<Node>, _: Foo, _: Bar) -> Result<()> {
+            COUNT.fetch_add(1, Ordering::Relaxed);
             Ok(())
         }
 
@@ -210,7 +207,27 @@ mod tests {
             .with_trigger(Schedule1, another_trigger)
             .with_trigger(Schedule2, another_trigger);
 
-        assert_eq!(schema.triggers().select(Schedule1).count(), 2);
-        assert_eq!(schema.triggers().select(Schedule2).count(), 1);
+        schema
+            .transaction()
+            .with(|ctx| schema.triggers().select(Schedule1).execute(&ctx))
+            .expect("transaction should not fail");
+
+        assert_eq!(
+            COUNT.load(Ordering::Relaxed),
+            2,
+            "all scheduled triggers should be executed"
+        );
+
+        COUNT.store(0, Ordering::Relaxed);
+        schema
+            .transaction()
+            .with(|ctx| schema.triggers().select(Schedule2).execute(&ctx))
+            .expect("transaction should not fail");
+
+        assert_eq!(
+            COUNT.load(Ordering::Relaxed),
+            1,
+            "only scheduled triggers should be executed"
+        );
     }
 }
