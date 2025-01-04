@@ -1,55 +1,17 @@
-use alvidir::prelude::*;
+//! The interval search tree (IST) definition.
 
-use crate::{Interval, IntervalSearchTreeNode};
+use crate::{node::IntervalSearchTreeNode, Interval};
 
-/// Stores the relation between a node (node id) and its interval.
-struct NodeInterval<T, Intv>
+/// An interval search tree.
+pub struct IntervalSearchTree<Intv>
 where
-    T: Identify,
-{
-    node_id: T::Id,
-    interval: Intv,
-}
-
-impl<T, Intv> Interval for NodeInterval<T, Intv>
-where
-    T: Identify,
     Intv: Interval,
 {
-    type Bound = Intv::Bound;
-
-    fn lo(&self) -> Self::Bound {
-        self.interval.lo()
-    }
-
-    fn hi(&self) -> Self::Bound {
-        self.interval.hi()
-    }
+    root: Option<Box<IntervalSearchTreeNode<Intv>>>,
 }
 
-impl<T, Intv> Identify for NodeInterval<T, Intv>
+impl<Intv> Default for IntervalSearchTree<Intv>
 where
-    T: Identify,
-{
-    type Id = T::Id;
-
-    fn id(&self) -> &Self::Id {
-        &self.node_id
-    }
-}
-
-/// A self-balancing Interval Search Tree.
-pub struct IntervalSearchTree<T, Intv>
-where
-    T: Identify,
-    Intv: Interval,
-{
-    root: Option<IntervalSearchTreeNode<NodeInterval<T, Intv>>>,
-}
-
-impl<T, Intv> Default for IntervalSearchTree<T, Intv>
-where
-    T: Identify,
     Intv: Interval,
 {
     fn default() -> Self {
@@ -59,93 +21,183 @@ where
     }
 }
 
-impl<T, Intv> IntervalSearchTree<T, Intv>
+impl<Intv> IntervalSearchTree<Intv>
 where
-    T: Identify,
+    Intv: PartialEq + Interval,
+{
+    /// Deletes the given interval from the tree.
+    pub fn delete(&mut self, id: &Intv) {
+        if let Some(root) = self.root.take() {
+            self.root = root.delete(id);
+        }
+    }
+}
+
+impl<Intv> IntervalSearchTree<Intv>
+where
     Intv: Interval,
 {
-    fn insert(&mut self, interval: NodeInterval<T, Intv>) {
-        if let Some(root) = &mut self.root {
-            return root.insert(interval);
+    /// Inserts the given interval in the tree.
+    pub fn with_interval(mut self, interval: Intv) -> Self {
+        self.insert(interval);
+        self
+    }
+
+    /// Inserts the given interval in the tree.
+    pub fn insert(&mut self, interval: Intv) {
+        if let Some(root) = self.root.take() {
+            self.root = Some(root.insert(interval));
+            return;
         }
 
-        self.root = Some(IntervalSearchTreeNode::new(interval));
+        self.root = Some(Box::new(IntervalSearchTreeNode::new(interval)));
     }
-}
 
-impl<T, Intv> IntervalSearchTree<T, Intv>
-where
-    T: Identify,
-    Intv: Identify<Id = T::Id> + Interval,
-{
-    fn delete(&mut self, id: &T::Id) {
-        if let Some(root) = self.root.as_mut() {
-            root.delete(id);
-        }
+    /// Returns true if, and only if, there is an interval in the tree that intersects the given
+    /// one.
+    pub fn intersects(&self, interval: &Intv) -> bool {
+        self.root
+            .as_ref()
+            .map(|root| root.intersects(interval))
+            .unwrap_or_default()
     }
-}
 
-impl<T, Intv> IntervalSearchTree<T, Intv>
-where
-    T: 'static + Identify,
-    T::Id: Clone,
-    Intv: 'static + Interval + Property<T>,
-{
-    fn on_save(_: Ctx<T>, target: Target<T>, search_tree: Res<Self>) -> Result<()> {
-        let Some(intervals) = target.with(|target| {
-            Intv::all(target).into_iter().map({
-                let node_id = target.id().clone();
-                move |interval| NodeInterval {
-                    node_id: node_id.clone(),
-                    interval,
-                }
-            })
-        }) else {
-            return Ok(());
-        };
-
-        search_tree.with_mut(|search_tree| {
-            intervals.into_iter().for_each(|interval| {
-                search_tree.insert(interval);
-            });
-        });
-
-        Ok(())
-    }
-}
-
-impl<T, Intv> IntervalSearchTree<T, Intv>
-where
-    T: 'static + Identify,
-    T::Id: Clone,
-    Intv: 'static + Identify<Id = T::Id> + Interval + Property<T>,
-{
-    fn on_delete(_: Ctx<T>, target: Target<T>, search_tree: Res<Self>) -> Result<()> {
-        let Some(id) = target.with(|target| target.id().clone()) else {
-            return Ok(());
-        };
-
-        search_tree.with_mut(|search_tree| {
-            search_tree.delete(&id);
-        });
-
-        Ok(())
-    }
-}
-
-impl<T, Intv> Plugin<T> for IntervalSearchTree<T, Intv>
-where
-    T: 'static + Identify,
-    T::Id: Clone,
-    Intv: 'static + Identify<Id = T::Id> + Interval + Property<T>,
-{
-    fn setup(&self, schema: Schema<T>) -> Schema<T>
+    /// Calls the given closure for each interval in the tree overlapping the given one.
+    pub fn for_each_intersection<F>(&self, interval: &Intv, f: F)
     where
-        T: Identify,
+        F: FnMut(&Intv),
     {
-        schema
-            .with_resource(Self::default())
-            .with_trigger(AfterSave, Self::on_save)
-            .with_trigger(AfterDelete, Self::on_delete)
+        self.root
+            .as_ref()
+            .map(|root| root.for_each_intersection(interval, f));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        fixtures::{interval_mock, IntervalMock},
+        IntervalSearchTree,
+    };
+
+    #[test]
+    fn intersects_with_tree() {
+        struct Test<'a> {
+            name: &'a str,
+            tree: IntervalSearchTree<IntervalMock<usize>>,
+            query: IntervalMock<usize>,
+            intersects: bool,
+        }
+
+        vec![
+            Test {
+                name: "no intersaction",
+                tree: IntervalSearchTree::default().with_interval(interval_mock!(0, 2)),
+                query: interval_mock!(3, 3),
+                intersects: false,
+            },
+            Test {
+                name: "left-hand intersaction",
+                tree: IntervalSearchTree::default().with_interval(interval_mock!(0, 2)),
+                query: interval_mock!(1, 3),
+                intersects: true,
+            },
+            Test {
+                name: "right-hand intersaction",
+                tree: IntervalSearchTree::default().with_interval(interval_mock!(2, 4)),
+                query: interval_mock!(0, 3),
+                intersects: true,
+            },
+            Test {
+                name: "superset intersaction",
+                tree: IntervalSearchTree::default().with_interval(interval_mock!(0, 3)),
+                query: interval_mock!(1, 2),
+                intersects: true,
+            },
+            Test {
+                name: "subset intersaction",
+                tree: IntervalSearchTree::default().with_interval(interval_mock!(1, 2)),
+                query: interval_mock!(0, 3),
+                intersects: true,
+            },
+            Test {
+                name: "complex tree",
+                tree: IntervalSearchTree::default()
+                    .with_interval(interval_mock!(5, 6))
+                    .with_interval(interval_mock!(0, 4))
+                    .with_interval(interval_mock!(2, 6))
+                    .with_interval(interval_mock!(7, 9)),
+                query: interval_mock!(1, 2),
+                intersects: true,
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            assert_eq!(
+                test.tree.intersects(&test.query),
+                test.intersects,
+                "{}",
+                test.name
+            );
+        });
+    }
+
+    #[test]
+    fn for_each_intersection_in_tree() {
+        struct Test<'a> {
+            name: &'a str,
+            tree: IntervalSearchTree<IntervalMock<usize>>,
+            query: IntervalMock<usize>,
+            output: Vec<IntervalMock<usize>>,
+        }
+
+        vec![
+            Test {
+                name: "no intersactions",
+                tree: IntervalSearchTree::default().with_interval(interval_mock!(1, 2)),
+                query: interval_mock!(0, 0),
+                output: Vec::default(),
+            },
+            Test {
+                name: "multiple intersactions",
+                tree: IntervalSearchTree::default()
+                    .with_interval(interval_mock!(5, 6))
+                    .with_interval(interval_mock!(0, 2))
+                    .with_interval(interval_mock!(3, 3))
+                    .with_interval(interval_mock!(5, 9))
+                    .with_interval(interval_mock!(6, 6)),
+                query: interval_mock!(3, 5),
+                output: vec![
+                    interval_mock!(5, 6),
+                    interval_mock!(3, 3),
+                    interval_mock!(5, 9),
+                ],
+            },
+        ]
+        .into_iter()
+        .for_each(|test| {
+            let mut intervals = Vec::default();
+            test.tree
+                .for_each_intersection(&test.query, |interval| intervals.push(interval.clone()));
+
+            assert_eq!(
+                intervals.len(),
+                test.output.len(),
+                "{}: got intersection = {:?}, want = {:?}",
+                test.name,
+                intervals,
+                test.output
+            );
+
+            test.output.iter().for_each(|interval| {
+                assert!(
+                    intervals.contains(interval),
+                    "{}: interval = {:?} does not exists in {:?}",
+                    test.name,
+                    interval,
+                    intervals
+                )
+            });
+        })
     }
 }

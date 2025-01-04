@@ -1,8 +1,7 @@
-//! A self-balancing Interval Search Tree.
+//! An interval search tree.
 
 mod node;
-pub use node::IntervalSearchTreeNode;
-
+mod plugin;
 mod tree;
 pub use tree::IntervalSearchTree;
 
