@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-alvidir = { workspace = true }
+alvidir.workspace = true
+alvidir-plugin-interval.workspace = true
 anyhow = "1.0.93"
 clap = { version = "4.5", features = ["derive", "env", "string"] }
 ignore = "0.4"
