@@ -4,7 +4,7 @@ use alvidir::prelude::*;
 
 use crate::{Interval, IntervalSearchTree};
 
-/// Stores the relation between a node (node id) and its interval.
+/// Stores the relation between a node from the graph (node id) and its interval.
 #[derive(Debug, PartialEq)]
 struct NodeInterval<T, Intv>
 where
