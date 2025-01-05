@@ -1,5 +1,8 @@
 //! An interval search tree.
 
+mod features;
+#[allow(unused_imports)]
+pub use features::*;
 mod node;
 mod plugin;
 mod tree;
@@ -7,8 +10,8 @@ pub use tree::IntervalSearchTree;
 
 /// One of the limits in an [`Interval`].
 #[allow(dead_code)]
-pub trait Bound: Ord {}
-impl<T> Bound for T where T: Ord {}
+pub trait Bound: Copy + Ord {}
+impl<T> Bound for T where T: Copy + Ord {}
 
 /// A type delimited by two bounds.
 pub trait Interval {

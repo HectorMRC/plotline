@@ -7,6 +7,8 @@ edition = "2021"
 alvidir.workspace = true
 
 [features]
+# Enables the interval implementation for dates representation.
+date = []
 # Enables the "fixture" constructor for structs as well as mock implementations
 # for traits.
 fixtures = []

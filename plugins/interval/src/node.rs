@@ -37,15 +37,15 @@ where
 
         self.left = root.right.take();
         self.max = Some(self.value.hi())
-            .max(self.left.as_ref().map(|left| left.max.clone()))
-            .max(self.right.as_ref().map(|right| right.max.clone()))
-            .unwrap_or_else(|| self.value.hi());
+            .max(self.left.as_ref().map(|left| left.max))
+            .max(self.right.as_ref().map(|right| right.max))
+            .expect("max with Some should never be None");
 
         root.right = Some(self);
         root.max = Some(root.value.hi())
-            .max(root.left.as_ref().map(|left| left.max.clone()))
-            .max(root.right.as_ref().map(|right| right.max.clone()))
-            .unwrap_or_else(|| root.value.hi());
+            .max(root.left.as_ref().map(|left| left.max))
+            .max(root.right.as_ref().map(|right| right.max))
+            .expect("max with Some should never be None");
 
         root
     }
@@ -58,15 +58,15 @@ where
 
         self.right = root.left.take();
         self.max = Some(self.value.hi())
-            .max(self.left.as_ref().map(|left| left.max.clone()))
-            .max(self.right.as_ref().map(|right| right.max.clone()))
-            .unwrap_or_else(|| self.value.hi());
+            .max(self.left.as_ref().map(|left| left.max))
+            .max(self.right.as_ref().map(|right| right.max))
+            .expect("max with Some should never be None");
 
         root.left = Some(self);
         root.max = Some(root.value.hi())
-            .max(root.left.as_ref().map(|left| left.max.clone()))
-            .max(root.right.as_ref().map(|right| right.max.clone()))
-            .unwrap_or_else(|| root.value.hi());
+            .max(root.left.as_ref().map(|left| left.max))
+            .max(root.right.as_ref().map(|right| right.max))
+            .expect("max with Some should never be None");
 
         root
     }
