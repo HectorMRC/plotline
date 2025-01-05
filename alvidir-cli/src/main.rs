@@ -13,7 +13,7 @@ use tracing::Level;
 
 static DEFAULT_EXTENSION: &str = "md";
 
-static DEFAULT_CONTEXT_PATH: LazyLock<OsString> = LazyLock::new(|| {
+static DEFAULT_CONTEXT: LazyLock<OsString> = LazyLock::new(|| {
     std::env::current_dir()
         .expect("current working directory")
         .into_os_string()
@@ -32,7 +32,7 @@ struct Cli {
 
     /// The base directory.
     #[arg(
-        default_value = &*DEFAULT_CONTEXT_PATH,
+        default_value = &*DEFAULT_CONTEXT,
         default_missing_value = "always",
         global = true,
         short = 'C',
