@@ -51,6 +51,7 @@ enum DocumentSubCommand {
     Save(DocumentSaveArgs),
 }
 
+/// Manage documents in the graph.
 #[derive(Args)]
 pub struct DocumentCommand {
     /// The id of the document.

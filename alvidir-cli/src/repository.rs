@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{fs, path::PathBuf, sync::Arc};
 
 use alvidir::{
     document::{lazy::LazyDocument, DocumentRepository},
@@ -13,15 +13,28 @@ use crate::document::Document;
 pub struct LocalDocumentRepository {
     /// The base path in which the repository has to look up for files.
     pub context: PathBuf,
-    /// The filename pattern.
-    pub pattern: Regex,
+    /// The file's extension.
+    pub extension: String,
 }
 
 impl DocumentRepository for LocalDocumentRepository {
     type Document = Document;
 
-    fn find_by_id(&self, _id: &<Self::Document as Identify>::Id) -> Option<Self::Document> {
-        unimplemented!()
+    fn find_by_id(&self, id: &<Self::Document as Identify>::Id) -> Option<Self::Document> {
+        let path = self.context.join(id).with_extension(&self.extension);
+
+        fs::read(&path)
+            .inspect_err(|err| {
+                tracing::error!(
+                    error = ?err,
+                    id = ?id,
+                    context = ?self.context,
+                    path = ?path,
+                    "finding document by id"
+                )
+            })
+            .map(|bytes| Document { path, bytes })
+            .ok()
     }
 }
 
@@ -40,15 +53,21 @@ impl LocalDocumentRepository {
 
                 entry.ok()
             })
-            .filter(move |entry| {
-                let matches = self.pattern.is_match(&entry.file_name().to_string_lossy());
-                tracing::debug!(path = entry.path().to_string_lossy().to_string(), matches);
+            .filter({
+                let regex = Regex::new(&format!("\\.{}$", self.extension))
+                    .expect("pattern should be a valid regular expression");
 
-                matches
+                move |entry| {
+                    let matches = regex.is_match(&entry.file_name().to_string_lossy());
+                    tracing::debug!(path = entry.path().to_string_lossy().to_string(), matches);
+
+                    matches
+                }
             })
             .filter_map(move |entry| {
                 let path = entry
                     .path()
+                    .with_extension("")
                     .strip_prefix(&self.context)
                     .map(ToOwned::to_owned);
 

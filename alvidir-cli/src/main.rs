@@ -9,11 +9,9 @@ use alvidir::{graph::Graph, schema::Schema};
 use alvidir_cli::{document::DocumentCli, repository::LocalDocumentRepository, CliCommand};
 use anyhow::Result;
 use clap::Parser;
-use regex::Regex;
 use tracing::Level;
 
-/// Matches any filename.
-const DEFAULT_FILE_PATTERN: &str = ".*";
+static DEFAULT_EXTENSION: &str = "md";
 
 static DEFAULT_CONTEXT_PATH: LazyLock<OsString> = LazyLock::new(|| {
     std::env::current_dir()
@@ -42,15 +40,15 @@ struct Cli {
     )]
     context: PathBuf,
 
-    /// The filename pattern.
+    /// The file's extension.
     #[arg(
-        default_value = &*DEFAULT_FILE_PATTERN,
+        default_value = &*DEFAULT_EXTENSION,
         default_missing_value = "always",
         global = true,
         short,
         long
     )]
-    pattern: String,
+    extension: String,
 }
 
 #[allow(clippy::arc_with_non_send_sync)]
@@ -66,7 +64,7 @@ fn main() -> Result<()> {
 
     let document_repo = Arc::new(LocalDocumentRepository {
         context: args.context,
-        pattern: Regex::new(&args.pattern).expect("pattern should be a valid regular expression"),
+        extension: args.extension,
     });
 
     let graph = Graph::from_iter(document_repo.all());
