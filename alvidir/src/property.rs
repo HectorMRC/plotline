@@ -1,6 +1,4 @@
-//! Resource definition.
-
-use crate::deref::TryDeref;
+//! Property definition.
 
 /// A value in a source.
 pub trait Property<Src> {
@@ -8,17 +6,4 @@ pub trait Property<Src> {
     fn all(source: &Src) -> Vec<Self>
     where
         Self: Sized;
-}
-
-impl<T, U> Property<U> for T
-where
-    T: Property<U::Target>,
-    U: TryDeref,
-{
-    fn all(source: &U) -> Vec<Self>
-    where
-        Self: Sized,
-    {
-        source.try_deref().map(T::all).unwrap_or_default()
-    }
 }
