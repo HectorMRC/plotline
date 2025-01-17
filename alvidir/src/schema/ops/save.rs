@@ -1,6 +1,7 @@
 //! Save transaction.
 
 use crate::{
+    deref::With,
     id::Identify,
     prelude::Transaction,
     schema::{trigger::Trigger, Result},
@@ -22,7 +23,7 @@ impl<T> Save<T> {
     /// Executes the [`Save`] transaction.
     pub fn execute(self, tx: impl Transaction<Target = T>) -> Result<()>
     where
-        T: Identify + Clone,
+        T: 'static + Identify + Clone,
     {
         tx.with(|ctx| {
             let ctx = ctx.with_target(self.node);

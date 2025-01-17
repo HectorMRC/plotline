@@ -1,6 +1,6 @@
 //! A subset of imports.
 
-pub use crate::deref::{TryDeref, TryDerefMut};
+pub use crate::deref::{ReadOnly, ReadWrite, TryDeref, TryDerefMut, With, WithMut};
 pub use crate::id::Identify;
 pub use crate::property::Property;
 pub use crate::schema::{

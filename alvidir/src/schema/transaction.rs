@@ -1,8 +1,9 @@
 //! Transaction definition.
 
-use std::sync::{Arc, OnceLock, RwLock};
+use std::sync::{Arc, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::{
+    deref::{ReadOnly, ReadWrite, TryDeref, TryDerefMut},
     graph::{Graph, NodeProxy, Source},
     id::Identify,
 };
@@ -209,39 +210,133 @@ impl<T> Clone for Target<T> {
     }
 }
 
+/// Holds a read-only access to the target's value.
+pub struct TargetReadGuard<'a, T> {
+    guard: Option<RwLockReadGuard<'a, T>>,
+}
+
+impl<T> Default for TargetReadGuard<'_, T> {
+    fn default() -> Self {
+        Self {
+            guard: Default::default(),
+        }
+    }
+}
+
+impl<T> TryDeref for TargetReadGuard<'_, T> {
+    type Target = T;
+
+    fn try_deref(&self) -> Option<&Self::Target> {
+        self.guard.as_deref()
+    }
+}
+
+impl<T> ReadOnly for Target<T>
+where
+    T: 'static,
+{
+    type Target = T;
+
+    type Guard<'a> = TargetReadGuard<'a, T>;
+
+    fn read(&self) -> Self::Guard<'_> {
+        let Some(lock) = self.lock.as_ref() else {
+            return Default::default();
+        };
+
+        match lock.read() {
+            Ok(guard) => TargetReadGuard { guard: Some(guard) },
+            Err(err) => {
+                tracing::error!(error = err.to_string(), "accessing transaction target");
+                Default::default()
+            }
+        }
+    }
+}
+
+/// Holds a read-write access to the target's value.
+pub struct TargetWriteGuard<'a, T> {
+    guard: Option<RwLockWriteGuard<'a, T>>,
+}
+
+impl<T> Default for TargetWriteGuard<'_, T> {
+    fn default() -> Self {
+        Self {
+            guard: Default::default(),
+        }
+    }
+}
+
+impl<T> TryDeref for TargetWriteGuard<'_, T> {
+    type Target = T;
+
+    fn try_deref(&self) -> Option<&Self::Target> {
+        self.guard.as_deref()
+    }
+}
+
+impl<T> TryDerefMut for TargetWriteGuard<'_, T> {
+    fn try_deref_mut(&mut self) -> Option<&mut Self::Target> {
+        self.guard.as_deref_mut()
+    }
+}
+
+impl<T> ReadWrite for Target<T>
+where
+    T: 'static,
+{
+    type Target = T;
+
+    type Guard<'a> = TargetWriteGuard<'a, T>;
+
+    fn write(&self) -> Self::Guard<'_> {
+        let Some(lock) = self.lock.as_ref() else {
+            return Default::default();
+        };
+
+        match lock.write() {
+            Ok(guard) => TargetWriteGuard { guard: Some(guard) },
+            Err(err) => {
+                tracing::error!(error = err.to_string(), "accessing transaction target");
+                Default::default()
+            }
+        }
+    }
+}
+
 impl<T> Target<T> {
     /// Sets the given value as the target.
     pub fn set(&mut self, value: T) {
         self.lock = Some(Arc::new(RwLock::new(value)));
     }
 
-    /// Gets a read-only access to the target and executes the given closure.
-    pub fn with<F, R>(&self, f: F) -> Option<R>
-    where
-        F: FnOnce(&T) -> R,
-    {
-        match self.lock.as_ref()?.read() {
-            Ok(guard) => Some(f(&guard)),
-            Err(err) => {
-                tracing::error!(error = err.to_string(), "accessing target");
-                None
-            }
-        }
-    }
+    // /// Gets a read-only access to the target and executes the given closure.
+    // pub fn with<F, R>(&self, f: F) -> Option<R>
+    // where
+    //     F: FnOnce(&T) -> R,
+    // {
+    //     match self.lock.as_ref()?.read() {
+    //         Ok(guard) => Some(f(&guard)),
+    //         Err(err) => {
+    //             tracing::error!(error = err.to_string(), "accessing target");
+    //             None
+    //         }
+    //     }
+    // }
 
-    /// Gets a read-write access to the target and executes the given closure.
-    pub fn with_mut<F, R>(&self, f: F) -> Option<R>
-    where
-        F: FnOnce(&mut T) -> R,
-    {
-        match self.lock.as_ref()?.write() {
-            Ok(mut guard) => Some(f(&mut guard)),
-            Err(err) => {
-                tracing::error!(error = err.to_string(), "accessing target");
-                None
-            }
-        }
-    }
+    // /// Gets a read-write access to the target and executes the given closure.
+    // pub fn with_mut<F, R>(&self, f: F) -> Option<R>
+    // where
+    //     F: FnOnce(&mut T) -> R,
+    // {
+    //     match self.lock.as_ref()?.write() {
+    //         Ok(mut guard) => Some(f(&mut guard)),
+    //         Err(err) => {
+    //             tracing::error!(error = err.to_string(), "accessing target");
+    //             None
+    //         }
+    //     }
+    // }
 }
 
 impl<'a, T> From<&'a Context<'a, T>> for Target<T>
@@ -398,7 +493,7 @@ where
     }
 }
 
-/// Represents a constrained-access to a [`Context`].
+/// Represents a constrained access to a [`Context`].
 pub struct Ctx<'a, T>
 where
     T: Identify,
@@ -572,13 +667,33 @@ mod tests {
                     "committed subtransaction should apply on parent context"
                 );
 
-                Result::<()>::Err(Error::custom("failed transaction"))
+                Ok(())
             })
-            .expect_err("transaction error should be propagated");
+            .unwrap();
+    }
 
-        assert!(
-            schema.read().contains(&1),
-            "uncommitted transaction should not apply changes"
-        );
+    #[test]
+    fn parent_changes_should_be_visible_from_subtransactions() {
+        let schema: Schema<_> = Graph::default().into();
+
+        schema
+            .transaction()
+            .with(|ctx_1| {
+                ctx_1.save(fake_node!(1));
+                ctx_1
+                    .transaction()
+                    .with(|ctx_2| {
+                        assert!(
+                            ctx_2.contains(&1),
+                            "parent changes should be visible from substransaction"
+                        );
+
+                        Ok(())
+                    })
+                    .unwrap();
+
+                Ok(())
+            })
+            .unwrap();
     }
 }

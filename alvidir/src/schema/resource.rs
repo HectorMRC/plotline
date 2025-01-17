@@ -4,10 +4,13 @@ use std::{
     any::{Any, TypeId},
     collections::BTreeMap,
     marker::PhantomData,
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
-use crate::id::Identify;
+use crate::{
+    deref::{ReadOnly, ReadWrite, TryDeref, TryDerefMut, With},
+    id::Identify,
+};
 
 use super::transaction::Context;
 
@@ -39,38 +42,121 @@ pub struct Res<T> {
     _type: PhantomData<T>,
 }
 
+/// Holds a read-only access to a resource.
+pub struct ResReadGuard<'a, T> {
+    guard: Option<RwLockReadGuard<'a, Box<dyn Any>>>,
+    _type: PhantomData<T>,
+}
+
+impl<T> Default for ResReadGuard<'_, T> {
+    fn default() -> Self {
+        Self {
+            guard: Default::default(),
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<T> TryDeref for ResReadGuard<'_, T>
+where
+    T: 'static,
+{
+    type Target = T;
+
+    fn try_deref(&self) -> Option<&Self::Target> {
+        self.guard.as_ref()?.downcast_ref()
+    }
+}
+
+impl<T> ReadOnly for Res<T>
+where
+    T: 'static,
+{
+    type Target = T;
+    type Guard<'a> = ResReadGuard<'a, T>;
+
+    fn read(&self) -> Self::Guard<'_> {
+        let Some(lock) = self.lock.as_ref() else {
+            return Default::default();
+        };
+
+        match lock.read() {
+            Ok(guard) => ResReadGuard {
+                guard: Some(guard),
+                _type: PhantomData,
+            },
+            Err(err) => {
+                tracing::error!(error = err.to_string(), type_id = ?TypeId::of::<T>(), "accessing resource");
+                Default::default()
+            }
+        }
+    }
+}
+
+/// Holds a read-write access to a resource.
+pub struct ResWriteGuard<'a, T> {
+    guard: Option<RwLockWriteGuard<'a, Box<dyn Any>>>,
+    _type: PhantomData<T>,
+}
+
+impl<T> Default for ResWriteGuard<'_, T> {
+    fn default() -> Self {
+        Self {
+            guard: Default::default(),
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<T> TryDeref for ResWriteGuard<'_, T>
+where
+    T: 'static,
+{
+    type Target = T;
+
+    fn try_deref(&self) -> Option<&Self::Target> {
+        self.guard.as_ref()?.downcast_ref()
+    }
+}
+
+impl<T> TryDerefMut for ResWriteGuard<'_, T>
+where
+    T: 'static,
+{
+    fn try_deref_mut(&mut self) -> Option<&mut Self::Target> {
+        self.guard.as_mut()?.downcast_mut()
+    }
+}
+
+impl<T> ReadWrite for Res<T>
+where
+    T: 'static,
+{
+    type Target = T;
+    type Guard<'a> = ResWriteGuard<'a, T>;
+
+    fn write(&self) -> Self::Guard<'_> {
+        let Some(lock) = self.lock.as_ref() else {
+            return Default::default();
+        };
+
+        match lock.write() {
+            Ok(guard) => ResWriteGuard {
+                guard: Some(guard),
+                _type: PhantomData,
+            },
+            Err(err) => {
+                tracing::error!(error = err.to_string(), type_id = ?TypeId::of::<T>(), "accessing resource");
+                Default::default()
+            }
+        }
+    }
+}
+
 impl<T> Res<T>
 where
     T: 'static,
 {
-    /// Gets a read-only access to the resource and executes the given closure.
-    pub fn with<F, R>(&self, f: F) -> Option<R>
-    where
-        F: FnOnce(&T) -> R,
-    {
-        match self.lock.as_ref()?.read() {
-            Ok(res) => Some(f(res.downcast_ref()?)),
-            Err(err) => {
-                tracing::error!(error = err.to_string(), type_id = ?TypeId::of::<T>(), "accessing resource");
-                None
-            }
-        }
-    }
-
-    /// Gets a read-write access to the resouce and executes the given closure.
-    pub fn with_mut<F, R>(&self, f: F) -> Option<R>
-    where
-        F: FnOnce(&mut T) -> R,
-    {
-        match self.lock.as_ref()?.write() {
-            Ok(mut res) => Some(f(res.downcast_mut()?)),
-            Err(err) => {
-                tracing::error!(error = err.to_string(), type_id = ?TypeId::of::<T>(), "accessing resource");
-                None
-            }
-        }
-    }
-
     /// Returns true if, and only if, the resource exists.
     pub fn exists(&self) -> bool {
         self.with(|_| true).unwrap_or_default()
@@ -102,6 +188,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
+        deref::{With, WithMut},
         graph::Graph,
         id::fixtures::IndentifyMock,
         schema::{resource::Res, Schema},

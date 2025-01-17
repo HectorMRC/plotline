@@ -54,7 +54,7 @@ where
     where
         P: Plugin<T> + 'static,
     {
-        plugin.setup(self)
+        plugin.install(self)
     }
 
     /// Adds the given resource into the schema.
