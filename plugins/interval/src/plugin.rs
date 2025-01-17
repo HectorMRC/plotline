@@ -1,17 +1,30 @@
 //! The plugin implementation for [`IntervalSearchTree`].
 
-use alvidir::prelude::*;
+use std::marker::PhantomData;
+
+use alvidir::{prelude::*, property::Extract};
 
 use crate::{Interval, IntervalSearchTree};
 
 /// Stores the relation between a node from the graph (node id) and its interval.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 struct NodeInterval<T, Intv>
 where
     T: Identify,
 {
     node_id: T::Id,
     interval: Intv,
+}
+
+impl<T, Intv> PartialEq for NodeInterval<T, Intv>
+where
+    T: Identify,
+    T::Id: PartialEq,
+    Intv: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.node_id == other.node_id && self.interval == other.interval
+    }
 }
 
 impl<T, Intv> Interval for NodeInterval<T, Intv>
@@ -41,15 +54,28 @@ where
     }
 }
 
-impl<T, Intv> IntervalSearchTree<NodeInterval<T, Intv>>
+type SearchTree<T, Intv> = IntervalSearchTree<NodeInterval<T, Intv>>;
+
+pub struct IntervalPlugin<T, Extractor> {
+    extractor: Extractor,
+    node: PhantomData<T>,
+}
+
+impl<T, Extractor> IntervalPlugin<T, Extractor>
 where
-    T: 'static + PartialEq + Identify,
+    T: 'static + Identify,
     T::Id: Clone + PartialEq,
-    Intv: 'static + PartialEq + Interval + Property<T>,
+    Extractor: 'static + Extract<T>,
+    Extractor::Target: Interval + PartialEq,
 {
-    fn on_delete(_: Ctx<T>, target: Target<T>, search_tree: Res<Self>) -> Result<()> {
-        let Some(intervals) = target.with(|target| {
-            Intv::all(target).into_iter().map({
+    fn on_delete(
+        _: Ctx<T>,
+        target: Target<T>,
+        search_tree: Res<SearchTree<T, Extractor::Target>>,
+        extractor: Res<Extractor>,
+    ) -> Result<()> {
+        let Some(intervals) = (target, extractor).with(|(target, factory)| {
+            factory.all(target).into_iter().map({
                 let node_id = target.id().clone();
                 move |interval| NodeInterval {
                     node_id: node_id.clone(),
@@ -70,15 +96,21 @@ where
     }
 }
 
-impl<T, Intv> IntervalSearchTree<NodeInterval<T, Intv>>
+impl<T, Extractor> IntervalPlugin<T, Extractor>
 where
     T: 'static + Identify,
-    T::Id: Clone,
-    Intv: 'static + Interval + Property<T>,
+    T::Id: Clone + PartialEq,
+    Extractor: 'static + Extract<T>,
+    Extractor::Target: Interval + PartialEq,
 {
-    fn on_save(_: Ctx<T>, target: Target<T>, search_tree: Res<Self>) -> Result<()> {
-        let Some(intervals) = target.with(|target| {
-            Intv::all(target).into_iter().map({
+    fn on_save(
+        _: Ctx<T>,
+        target: Target<T>,
+        search_tree: Res<SearchTree<T, Extractor::Target>>,
+        extractor: Res<Extractor>,
+    ) -> Result<()> {
+        let Some(intervals) = (target, extractor).with(|(target, extractor)| {
+            extractor.all(target).into_iter().map({
                 let node_id = target.id().clone();
                 move |interval| NodeInterval {
                     node_id: node_id.clone(),
@@ -99,18 +131,20 @@ where
     }
 }
 
-impl<T, Intv> Plugin<T> for IntervalSearchTree<NodeInterval<T, Intv>>
+impl<T, Extractor> Plugin<T> for IntervalPlugin<T, Extractor>
 where
-    T: 'static + PartialEq + Identify,
+    T: 'static + Identify,
     T::Id: Clone + PartialEq,
-    Intv: 'static + PartialEq + Identify<Id = T::Id> + Interval + Property<T>,
+    Extractor: 'static + Extract<T>,
+    Extractor::Target: Interval + PartialEq,
 {
-    fn setup(&self, schema: Schema<T>) -> Schema<T>
+    fn install(self, schema: Schema<T>) -> Schema<T>
     where
         T: Identify,
     {
         schema
-            .with_resource(Self::default())
+            .with_resource(self.extractor)
+            .with_resource(SearchTree::<T, Extractor::Target>::default())
             .with_trigger(AfterSave, Self::on_save)
             .with_trigger(AfterDelete, Self::on_delete)
     }

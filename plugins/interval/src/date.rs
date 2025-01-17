@@ -6,7 +6,10 @@ use crate::Interval;
 
 /// Represents an arbitrary date of N components of type T that is encoded using the Little-endian format.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct LittleEndianDate<T, const N: usize>([T; N]);
+pub struct LittleEndianDate<T, const N: usize> {
+    /// Determines the value of each component in the date.
+    components: [T; N],
+}
 
 impl<T, const N: usize> PartialOrd for LittleEndianDate<T, N>
 where
@@ -22,7 +25,7 @@ where
     T: Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        for (this, other) in self.0.iter().zip(&other.0).rev() {
+        for (this, other) in self.components.iter().zip(&other.components).rev() {
             let order = this.cmp(other);
             if !order.is_eq() {
                 return order;
@@ -50,14 +53,18 @@ where
 
 impl<T, const N: usize> From<BigEndianDate<T, N>> for LittleEndianDate<T, N> {
     fn from(mut date: BigEndianDate<T, N>) -> Self {
-        date.0.reverse();
-        Self(date.0)
+        date.components.reverse();
+        Self {
+            components: date.components,
+        }
     }
 }
 
 /// Represents an arbitrary date of N components of type T that is encoded using the Big-endian format.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BigEndianDate<T, const N: usize>([T; N]);
+pub struct BigEndianDate<T, const N: usize> {
+    components: [T; N],
+}
 
 impl<T, const N: usize> PartialOrd for BigEndianDate<T, N>
 where
@@ -73,7 +80,7 @@ where
     T: Ord,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        for (this, other) in self.0.iter().zip(&other.0) {
+        for (this, other) in self.components.iter().zip(&other.components) {
             let order = this.cmp(other);
             if !order.is_eq() {
                 return order;
@@ -101,7 +108,9 @@ where
 
 impl<T, const N: usize> From<LittleEndianDate<T, N>> for BigEndianDate<T, N> {
     fn from(mut date: LittleEndianDate<T, N>) -> Self {
-        date.0.reverse();
-        Self(date.0)
+        date.components.reverse();
+        Self {
+            components: date.components,
+        }
     }
 }

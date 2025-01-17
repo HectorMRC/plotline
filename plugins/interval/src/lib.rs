@@ -1,8 +1,7 @@
 //! An interval search tree.
 
-mod features;
-#[allow(unused_imports)]
-pub use features::*;
+#[cfg(feature = "date")]
+pub mod date;
 mod node;
 mod plugin;
 mod tree;
