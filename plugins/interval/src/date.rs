@@ -1,26 +1,66 @@
 //! Bounds and intervals implementing the [`Property`] trait.
 
-use std::cmp::Ordering;
+use std::{cmp::Ordering, marker::PhantomData};
 
 use crate::Interval;
 
-/// Represents an arbitrary date of N components of type T that is encoded using the Little-endian format.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct LittleEndianDate<T, const N: usize> {
-    /// Determines the value of each component in the date.
+/// Marks a [`Date`] as being encoded using the Little-endian format.
+#[derive(Debug, Clone, Copy)]
+pub struct LittleEndian;
+
+/// Represents an arbitrary date of N components of type T encoded using the Big-endian format.
+pub type LittleEndianDate<T, const N: usize> = Date<T, N, LittleEndian>;
+
+/// Marks a [`Date`] as being encoded using the Big-endian format.
+#[derive(Debug, Clone, Copy)]
+pub struct BigEndian;
+
+/// Represents an arbitrary date of N components of type T encoded using the Big-endian format.
+pub type BigEndianDate<T, const N: usize> = Date<T, N, BigEndian>;
+
+/// Represents an arbitrary date of N components of type T encoded using the specified endian.
+#[derive(Debug, Clone, Copy)]
+pub struct Date<T, const N: usize, Endian> {
     components: [T; N],
+    endian: PhantomData<Endian>,
 }
 
-impl<T, const N: usize> PartialOrd for LittleEndianDate<T, N>
+impl<T, const N: usize, Endian> Eq for Date<T, N, Endian> where T: Eq {}
+
+impl<T, const N: usize, Endian> PartialEq for Date<T, N, Endian>
 where
-    T: Ord,
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.components == other.components
+    }
+}
+
+impl<T, const N: usize, Endian> PartialOrd for Date<T, N, Endian>
+where
+    Self: Ord,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<T, const N: usize> Ord for LittleEndianDate<T, N>
+impl<T, const N: usize, Endian> Interval for Date<T, N, Endian>
+where
+    Self: Copy + Ord,
+{
+    type Bound = Self;
+
+    fn lo(&self) -> Self::Bound {
+        *self
+    }
+
+    fn hi(&self) -> Self::Bound {
+        *self
+    }
+}
+
+impl<T, const N: usize> Ord for Date<T, N, LittleEndian>
 where
     T: Ord,
 {
@@ -36,46 +76,7 @@ where
     }
 }
 
-impl<T, const N: usize> Interval for LittleEndianDate<T, N>
-where
-    T: Copy + Ord,
-{
-    type Bound = Self;
-
-    fn lo(&self) -> Self::Bound {
-        *self
-    }
-
-    fn hi(&self) -> Self::Bound {
-        *self
-    }
-}
-
-impl<T, const N: usize> From<BigEndianDate<T, N>> for LittleEndianDate<T, N> {
-    fn from(mut date: BigEndianDate<T, N>) -> Self {
-        date.components.reverse();
-        Self {
-            components: date.components,
-        }
-    }
-}
-
-/// Represents an arbitrary date of N components of type T that is encoded using the Big-endian format.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct BigEndianDate<T, const N: usize> {
-    components: [T; N],
-}
-
-impl<T, const N: usize> PartialOrd for BigEndianDate<T, N>
-where
-    T: Ord,
-{
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<T, const N: usize> Ord for BigEndianDate<T, N>
+impl<T, const N: usize> Ord for Date<T, N, BigEndian>
 where
     T: Ord,
 {
@@ -88,29 +89,5 @@ where
         }
 
         Ordering::Equal
-    }
-}
-
-impl<T, const N: usize> Interval for BigEndianDate<T, N>
-where
-    T: Copy + Ord,
-{
-    type Bound = Self;
-
-    fn lo(&self) -> Self::Bound {
-        *self
-    }
-
-    fn hi(&self) -> Self::Bound {
-        *self
-    }
-}
-
-impl<T, const N: usize> From<LittleEndianDate<T, N>> for BigEndianDate<T, N> {
-    fn from(mut date: LittleEndianDate<T, N>) -> Self {
-        date.components.reverse();
-        Self {
-            components: date.components,
-        }
     }
 }

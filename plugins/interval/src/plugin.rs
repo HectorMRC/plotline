@@ -6,20 +6,16 @@ use alvidir::{prelude::*, property::Extract};
 
 use crate::{Interval, IntervalSearchTree};
 
-/// Stores the relation between a node from the graph (node id) and its interval.
+/// Stores the relation between a node from the graph and its interval.
 #[derive(Debug)]
-struct NodeInterval<T, Intv>
-where
-    T: Identify,
-{
-    node_id: T::Id,
+struct NodeInterval<Id, Intv> {
+    node_id: Id,
     interval: Intv,
 }
 
-impl<T, Intv> PartialEq for NodeInterval<T, Intv>
+impl<Id, Intv> PartialEq for NodeInterval<Id, Intv>
 where
-    T: Identify,
-    T::Id: PartialEq,
+    Id: PartialEq,
     Intv: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
@@ -27,9 +23,8 @@ where
     }
 }
 
-impl<T, Intv> Interval for NodeInterval<T, Intv>
+impl<Id, Intv> Interval for NodeInterval<Id, Intv>
 where
-    T: Identify,
     Intv: Interval,
 {
     type Bound = Intv::Bound;
@@ -43,19 +38,17 @@ where
     }
 }
 
-impl<T, Intv> Identify for NodeInterval<T, Intv>
-where
-    T: Identify,
-{
-    type Id = T::Id;
+impl<Id, Intv> Identify for NodeInterval<Id, Intv> {
+    type Id = Id;
 
     fn id(&self) -> &Self::Id {
         &self.node_id
     }
 }
 
-type SearchTree<T, Intv> = IntervalSearchTree<NodeInterval<T, Intv>>;
+type SearchTree<Id, Intv> = IntervalSearchTree<NodeInterval<Id, Intv>>;
 
+/// Implements the [`Plugin`] trait for an arbitrary extractor of intervals from a source of type T.
 pub struct IntervalPlugin<T, Extractor> {
     extractor: Extractor,
     node: PhantomData<T>,
@@ -71,7 +64,7 @@ where
     fn on_delete(
         _: Ctx<T>,
         target: Target<T>,
-        search_tree: Res<SearchTree<T, Extractor::Target>>,
+        search_tree: Res<SearchTree<T::Id, Extractor::Target>>,
         extractor: Res<Extractor>,
     ) -> Result<()> {
         let Some(intervals) = (target, extractor).with(|(target, factory)| {
@@ -106,7 +99,7 @@ where
     fn on_save(
         _: Ctx<T>,
         target: Target<T>,
-        search_tree: Res<SearchTree<T, Extractor::Target>>,
+        search_tree: Res<SearchTree<T::Id, Extractor::Target>>,
         extractor: Res<Extractor>,
     ) -> Result<()> {
         let Some(intervals) = (target, extractor).with(|(target, extractor)| {
