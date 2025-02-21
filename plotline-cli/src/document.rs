@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use alvidir::{
+use plotline::{
     document::{lazy::LazyDocument, DocumentRepository},
     id::Identify,
     schema::{

@@ -1,10 +1,10 @@
 [package]
-name = "alvidir-plugin-interval"
+name = "plotline-plugin-interval"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-alvidir.workspace = true
+plotline.workspace = true
 
 [features]
 default = ["date"]

@@ -3,10 +3,10 @@ authors = ["Hèctor Morales <hector.morales.carnice@gmail.com>"]
 description = "A graph-based document manager."
 edition = "2021"
 license = "MIT"
-name = "alvidir"
+name = "plotline"
 readme = "../README.md"
 repository = "https://github.com/hectormrc/plotline"
-version = "0.0.1"
+version = "0.1.0"
 
 [dependencies]
 thiserror.workspace = true
@@ -18,5 +18,5 @@ tracing.workspace = true
 fixtures = []
 
 [lib]
-name = "alvidir"
+name = "plotline"
 path = "src/lib.rs"

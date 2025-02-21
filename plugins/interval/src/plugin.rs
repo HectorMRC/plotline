@@ -2,7 +2,7 @@
 
 use std::marker::PhantomData;
 
-use alvidir::{prelude::*, property::Extract};
+use plotline::{prelude::*, property::Extractor};
 
 use crate::{Interval, IntervalSearchTree};
 
@@ -54,18 +54,18 @@ pub struct IntervalPlugin<T, Extractor> {
     node: PhantomData<T>,
 }
 
-impl<T, Extractor> IntervalPlugin<T, Extractor>
+impl<T, Extr> IntervalPlugin<T, Extr>
 where
     T: 'static + Identify,
     T::Id: Clone + PartialEq,
-    Extractor: 'static + Extract<T>,
-    Extractor::Target: Interval + PartialEq,
+    Extr: 'static + Extractor<T>,
+    Extr::Target: Interval + PartialEq,
 {
     fn on_delete(
         _: Ctx<T>,
         target: Target<T>,
-        search_tree: Res<SearchTree<T::Id, Extractor::Target>>,
-        extractor: Res<Extractor>,
+        search_tree: Res<SearchTree<T::Id, Extr::Target>>,
+        extractor: Res<Extr>,
     ) -> Result<()> {
         let Some(intervals) = (target, extractor).with(|(target, factory)| {
             factory.all(target).into_iter().map({
@@ -89,18 +89,18 @@ where
     }
 }
 
-impl<T, Extractor> IntervalPlugin<T, Extractor>
+impl<T, Extr> IntervalPlugin<T, Extr>
 where
     T: 'static + Identify,
     T::Id: Clone + PartialEq,
-    Extractor: 'static + Extract<T>,
-    Extractor::Target: Interval + PartialEq,
+    Extr: 'static + Extractor<T>,
+    Extr::Target: Interval + PartialEq,
 {
     fn on_save(
         _: Ctx<T>,
         target: Target<T>,
-        search_tree: Res<SearchTree<T::Id, Extractor::Target>>,
-        extractor: Res<Extractor>,
+        search_tree: Res<SearchTree<T::Id, Extr::Target>>,
+        extractor: Res<Extr>,
     ) -> Result<()> {
         let Some(intervals) = (target, extractor).with(|(target, extractor)| {
             extractor.all(target).into_iter().map({
@@ -124,12 +124,12 @@ where
     }
 }
 
-impl<T, Extractor> Plugin<T> for IntervalPlugin<T, Extractor>
+impl<T, Extr> Plugin<T> for IntervalPlugin<T, Extr>
 where
     T: 'static + Identify,
     T::Id: Clone + PartialEq,
-    Extractor: 'static + Extract<T>,
-    Extractor::Target: Interval + PartialEq,
+    Extr: 'static + Extractor<T>,
+    Extr::Target: Interval + PartialEq,
 {
     fn install(self, schema: Schema<T>) -> Schema<T>
     where
@@ -137,7 +137,7 @@ where
     {
         schema
             .with_resource(self.extractor)
-            .with_resource(SearchTree::<T, Extractor::Target>::default())
+            .with_resource(SearchTree::<T, Extr::Target>::default())
             .with_trigger(AfterSave, Self::on_save)
             .with_trigger(AfterDelete, Self::on_delete)
     }

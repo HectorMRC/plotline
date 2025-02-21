@@ -2,6 +2,8 @@
 
 use std::{cmp::Ordering, marker::PhantomData};
 
+// use plotline::property::Extractor;
+
 use crate::Interval;
 
 /// Marks a [`Date`] as being encoded using the Little-endian format.
@@ -9,25 +11,25 @@ use crate::Interval;
 pub struct LittleEndian;
 
 /// Represents an arbitrary date of N components of type T encoded using the Big-endian format.
-pub type LittleEndianDate<T, const N: usize> = Date<T, N, LittleEndian>;
+pub type LittleEndianDate<const N: usize, T> = Date<N, T, LittleEndian>;
 
 /// Marks a [`Date`] as being encoded using the Big-endian format.
 #[derive(Debug, Clone, Copy)]
 pub struct BigEndian;
 
 /// Represents an arbitrary date of N components of type T encoded using the Big-endian format.
-pub type BigEndianDate<T, const N: usize> = Date<T, N, BigEndian>;
+pub type BigEndianDate<const N: usize, T> = Date<N, T, BigEndian>;
 
 /// Represents an arbitrary date of N components of type T encoded using the specified endian.
 #[derive(Debug, Clone, Copy)]
-pub struct Date<T, const N: usize, Endian> {
+pub struct Date<const N: usize, T, Endian> {
     components: [T; N],
     endian: PhantomData<Endian>,
 }
 
-impl<T, const N: usize, Endian> Eq for Date<T, N, Endian> where T: Eq {}
+impl<const N: usize, T, Endian> Eq for Date<N, T, Endian> where T: Eq {}
 
-impl<T, const N: usize, Endian> PartialEq for Date<T, N, Endian>
+impl<const N: usize, T, Endian> PartialEq for Date<N, T, Endian>
 where
     T: PartialEq,
 {
@@ -36,7 +38,7 @@ where
     }
 }
 
-impl<T, const N: usize, Endian> PartialOrd for Date<T, N, Endian>
+impl<const N: usize, T, Endian> PartialOrd for Date<N, T, Endian>
 where
     Self: Ord,
 {
@@ -45,7 +47,7 @@ where
     }
 }
 
-impl<T, const N: usize, Endian> Interval for Date<T, N, Endian>
+impl<const N: usize, T, Endian> Interval for Date<N, T, Endian>
 where
     Self: Copy + Ord,
 {
@@ -60,7 +62,7 @@ where
     }
 }
 
-impl<T, const N: usize> Ord for Date<T, N, LittleEndian>
+impl<const N: usize, T> Ord for Date<N, T, LittleEndian>
 where
     T: Ord,
 {
@@ -76,7 +78,7 @@ where
     }
 }
 
-impl<T, const N: usize> Ord for Date<T, N, BigEndian>
+impl<const N: usize, T> Ord for Date<N, T, BigEndian>
 where
     T: Ord,
 {
@@ -91,3 +93,17 @@ where
         Ordering::Equal
     }
 }
+
+// pub struct DateExtractor<const N: usize, T, Endian> {
+//     separator: char,
+//     component: PhantomData<T>,
+//     endian: PhantomData<Endian>,
+// }
+
+// impl<const N: usize, Src, T, Endian> Extractor<Src> for DateExtractor<N, T, Endian> {
+//     type Target = Date<N, T, Endian>;
+
+//     fn all(&self, source: &Src) -> Vec<Self::Target> {
+//         todo!()
+//     }
+// }

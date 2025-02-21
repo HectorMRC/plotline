@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf, sync::Arc};
 
-use alvidir::{
+use plotline::{
     document::{lazy::LazyDocument, DocumentRepository},
     id::Identify,
 };

@@ -6,5 +6,5 @@ pub mod prelude;
 pub mod property;
 pub mod schema;
 
-// Needed for internal usage of alvidir-macros.
-extern crate self as alvidir;
+// Needed for internal usage of plotline-macros.
+extern crate self as plotline;

@@ -1,11 +1,11 @@
 [workspace]
-members = ["alvidir", "alvidir-cli", "plugins/interval"]
+members = ["plotline", "plotline-cli"]
 resolver = "2"
 
 [workspace.dependencies]
-alvidir = { path = "alvidir", default-features = false }
-alvidir-plugin-interval = { path = "plugins/interval", default-features = false }
-log = { version = "0.4.22", default-features = false }
+plotline = { path = "plotline", default-features = false }
+# plotline-plugin-interval = { path = "plugins/interval", default-features = false }
+log = { version = "0.4.25", default-features = false }
 serde = { version = "1.0.217", default-features = false }
-thiserror = { version = "2.0.9", default-features = false }
+thiserror = { version = "2.0.11", default-features = false }
 tracing = { version = "0.1.41", default-features = false }

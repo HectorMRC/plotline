@@ -5,8 +5,8 @@ use std::{
     sync::{Arc, LazyLock},
 };
 
-use alvidir::{graph::Graph, schema::Schema};
-use alvidir_cli::{document::DocumentCli, repository::LocalDocumentRepository, CliCommand};
+use plotline::{graph::Graph, schema::Schema};
+use plotline_cli::{document::DocumentCli, repository::LocalDocumentRepository, CliCommand};
 use anyhow::Result;
 use clap::Parser;
 use tracing::Level;
@@ -22,9 +22,9 @@ static DEFAULT_CONTEXT: LazyLock<OsString> = LazyLock::new(|| {
 /// An astonishing graph-based docs manager.
 #[derive(Parser)]
 #[command(
-    name = "alvidir",
+    name = "plot",
     about = "An astonishing graph-based docs manager.",
-    version = "0.0.1"
+    version = "0.1.0"
 )]
 struct Cli {
     #[command(subcommand)]
